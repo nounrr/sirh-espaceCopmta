@@ -133,6 +133,13 @@ const AddTaskForm = ({ listId, onTaskAdded }) => {
   // Nouveaux champs
   const [type, setType] = useState('AC');
   const [origine, setOrigine] = useState('');
+  // Nouveau: catégorie & récurrence
+  const [taskKind, setTaskKind] = useState('ponctuelle'); // 'ponctuelle' | 'continues'
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrence, setRecurrence] = useState('monthly'); // 'monthly' | 'quarterly' | 'custom'
+  const [recurrenceIntervalDays, setRecurrenceIntervalDays] = useState('');
+  const [periodStart, setPeriodStart] = useState('');
+  const [periodEnd, setPeriodEnd] = useState('');
   const [errors, setErrors] = useState({});
   const [expanded, setExpanded] = useState(false);
 
@@ -186,7 +193,13 @@ const AddTaskForm = ({ listId, onTaskAdded }) => {
       status: effectiveStatus,
       pourcentage: effectivePourcentage,
           type: type || null,
-          origine: origine?.trim() || null
+          origine: origine?.trim() || null,
+          task_kind: String(taskKind || '').toLowerCase(),
+          is_recurring: Boolean(isRecurring),
+          recurrence: isRecurring ? recurrence : null,
+          recurrence_interval_days: isRecurring && recurrence === 'custom' ? (Number(recurrenceIntervalDays) || null) : null,
+          period_start: periodStart || null,
+          period_end: periodEnd || null
         }
       })).unwrap();
       
@@ -201,6 +214,12 @@ const AddTaskForm = ({ listId, onTaskAdded }) => {
   setPourcentage(0);
   setType('AC');
   setOrigine('');
+  setTaskKind('ponctuelle');
+  setIsRecurring(false);
+  setRecurrence('monthly');
+  setRecurrenceIntervalDays('');
+  setPeriodStart('');
+  setPeriodEnd('');
       
       if (result?.task) {
         onTaskAdded?.(result.task);
@@ -240,6 +259,12 @@ const AddTaskForm = ({ listId, onTaskAdded }) => {
   setPourcentage(0);
   setType('AC');
   setOrigine('');
+  setTaskKind('ponctuelle');
+  setIsRecurring(false);
+  setRecurrence('monthly');
+  setRecurrenceIntervalDays('');
+  setPeriodStart('');
+  setPeriodEnd('');
     setExpanded(false);
   };
 
@@ -328,6 +353,55 @@ const AddTaskForm = ({ listId, onTaskAdded }) => {
                 placeholder="Chercher ou choisir"
               />
             </div>
+          </div>
+
+          {/* Catégorie de tâche et récurrence (optionnel) */}
+          <div className="row g-3 mb-3">
+            <div className="col-md-4 col-12">
+              <label className="form-label small text-muted d-flex align-items-center gap-1 mb-1">
+                <Icon icon="mdi:format-list-bulleted-type" /> Catégorie
+              </label>
+              <select className="form-select form-select-sm" value={taskKind} onChange={(e)=>setTaskKind(e.target.value)} disabled={loading}>
+                <option value="ponctuelle">Ponctuelle</option>
+                <option value="continues">Continues</option>
+              </select>
+            </div>
+            {taskKind === 'continues' && (
+              <>
+                <div className="col-md-4">
+                  <label className="form-label small text-muted d-flex align-items-center gap-1 mb-1">
+                    <Icon icon="mdi:repeat" /> Récurrence
+                  </label>
+                  <div className="input-group input-group-sm">
+                    <div className="input-group-text">
+                      <input className="form-check-input mt-0" type="checkbox" checked={isRecurring} onChange={(e)=>setIsRecurring(e.target.checked)} />
+                    </div>
+                    <select className="form-select form-select-sm" value={recurrence} onChange={(e)=>setRecurrence(e.target.value)} disabled={!isRecurring || loading}>
+                      <option value="monthly">Mensuelle</option>
+                      <option value="quarterly">Trimestrielle</option>
+                      <option value="custom">Personnalisée</option>
+                    </select>
+                  </div>
+                </div>
+                {isRecurring && recurrence === 'custom' && (
+                  <div className="col-md-4">
+                    <label className="form-label small text-muted">Intervalle (jours)</label>
+                    <input type="number" min={1} max={365} className="form-control form-control-sm" value={recurrenceIntervalDays} onChange={(e)=>setRecurrenceIntervalDays(e.target.value)} />
+                  </div>
+                )}
+                <div className="col-12">
+                  <label className="form-label small text-muted">Période (optionnel)</label>
+                  <div className="row g-2">
+                    <div className="col-md-3">
+                      <input type="date" className="form-control form-control-sm" value={periodStart} onChange={(e)=>setPeriodStart(e.target.value)} placeholder="Début" />
+                    </div>
+                    <div className="col-md-3">
+                      <input type="date" className="form-control form-control-sm" value={periodEnd} onChange={(e)=>setPeriodEnd(e.target.value)} placeholder="Fin" />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Options étendues */}

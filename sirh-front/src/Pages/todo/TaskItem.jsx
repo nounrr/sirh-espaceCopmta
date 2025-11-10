@@ -18,6 +18,13 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
   const [editAssigned, setEditAssigned] = useState(task.assigned_to || '');
   const [editType, setEditType] = useState(task.type || 'AC');
   const [editOrigine, setEditOrigine] = useState(task.origine || '');
+  // Task kind & recurrence fields
+  const [editTaskKind, setEditTaskKind] = useState(task.task_kind || 'ponctuelle'); // 'ponctuelle' | 'continues'
+  const [editIsRecurring, setEditIsRecurring] = useState(Boolean(task.is_recurring));
+  const [editRecurrence, setEditRecurrence] = useState(task.recurrence || 'monthly'); // 'monthly' | 'quarterly' | 'custom'
+  const [editRecurrenceIntervalDays, setEditRecurrenceIntervalDays] = useState(task.recurrence_interval_days || '');
+  const [editPeriodStart, setEditPeriodStart] = useState(task.period_start || '');
+  const [editPeriodEnd, setEditPeriodEnd] = useState(task.period_end || '');
   const [status, setStatus] = useState(task.status);
   const [isHovered, setIsHovered] = useState(false);
   const [editPourcentage, setEditPourcentage] = useState(task.pourcentage || 0);
@@ -190,7 +197,13 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
       status: finalStatus,
       pourcentage: finalStatus === 'En cours' ? finalPourcentage : finalStatus === 'Terminée' ? 100 : 0,
       type: editType || null,
-      origine: editOrigine?.trim() || null
+      origine: editOrigine?.trim() || null,
+      task_kind: String(editTaskKind || '').toLowerCase(),
+      is_recurring: editTaskKind === 'continues' ? Boolean(editIsRecurring) : false,
+      recurrence: (editTaskKind === 'continues' && editIsRecurring) ? editRecurrence : null,
+      recurrence_interval_days: (editTaskKind === 'continues' && editIsRecurring && editRecurrence === 'custom') ? (Number(editRecurrenceIntervalDays) || null) : null,
+      period_start: editPeriodStart || null,
+      period_end: editPeriodEnd || null
     };
     if (!payload.description) return;
     try {
@@ -214,7 +227,13 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
   setEditAssigned(task.assigned_to || '');
   setEditPourcentage(task.pourcentage || 0);
   setEditType(task.type || 'AC');
-  setEditOrigine(task.origine || '');
+	setEditOrigine(task.origine || '');
+    setEditTaskKind(task.task_kind || 'ponctuelle');
+    setEditIsRecurring(Boolean(task.is_recurring));
+    setEditRecurrence(task.recurrence || 'monthly');
+    setEditRecurrenceIntervalDays(task.recurrence_interval_days || '');
+    setEditPeriodStart(task.period_start || '');
+    setEditPeriodEnd(task.period_end || '');
   };
 
   const handleInlinePourcentageUpdate = async (value) => {
@@ -365,6 +384,44 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
                       onChange={(e) => setEditOrigine(e.target.value)}
                     />
                   </div>
+                  {/* Catégorie & récurrence */}
+                  <div className="col-6">
+                    <select
+                      className="form-select form-select-sm"
+                      value={editTaskKind}
+                      onChange={(e)=>setEditTaskKind(e.target.value)}
+                    >
+                      <option value="ponctuelle">Ponctuelle</option>
+                      <option value="continues">Continues</option>
+                    </select>
+                  </div>
+                  {editTaskKind === 'continues' && (
+                    <>
+                      <div className="col-6">
+                        <div className="input-group input-group-sm">
+                          <div className="input-group-text">
+                            <input className="form-check-input mt-0" type="checkbox" checked={editIsRecurring} onChange={(e)=>setEditIsRecurring(e.target.checked)} />
+                          </div>
+                          <select className="form-select form-select-sm" value={editRecurrence} onChange={(e)=>setEditRecurrence(e.target.value)} disabled={!editIsRecurring}>
+                            <option value="monthly">Mensuelle</option>
+                            <option value="quarterly">Trimestrielle</option>
+                            <option value="custom">Personnalisée</option>
+                          </select>
+                        </div>
+                      </div>
+                      {editIsRecurring && editRecurrence === 'custom' && (
+                        <div className="col-6">
+                          <input type="number" min={1} max={365} className="form-control form-control-sm" placeholder="Intervalle (jours)" value={editRecurrenceIntervalDays} onChange={(e)=>setEditRecurrenceIntervalDays(e.target.value)} />
+                        </div>
+                      )}
+                      <div className="col-6">
+                        <input type="date" className="form-control form-control-sm" placeholder="Période début" value={editPeriodStart} onChange={(e)=>setEditPeriodStart(e.target.value)} />
+                      </div>
+                      <div className="col-6">
+                        <input type="date" className="form-control form-control-sm" placeholder="Période fin" value={editPeriodEnd} onChange={(e)=>setEditPeriodEnd(e.target.value)} />
+                      </div>
+                    </>
+                  )}
                   <div className="col-12">
                     <select
                       className="form-select form-select-sm"
@@ -422,6 +479,19 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
               <span className={`badge ${task.type === 'AC' ? 'bg-primary' : task.type === 'AP' ? 'bg-success' : 'bg-secondary'} rounded-pill px-2 py-1 d-flex align-items-center gap-1`} style={{ fontSize: '0.6rem' }}>
                 <Icon icon="mdi:ticket" style={{ fontSize: '0.7rem' }} /> {task.type || 'N/A'}
               </span>
+              {/* Catégorie */}
+              {task.task_kind && (
+                <span className={`badge ${task.task_kind === 'continues' ? 'bg-info' : 'bg-secondary'} bg-opacity-10 text-${task.task_kind === 'continues' ? 'info' : 'secondary'} rounded-pill px-2 py-1 d-flex align-items-center gap-1`} style={{ fontSize: '0.6rem' }}>
+                  <Icon icon="mdi:format-list-bulleted-type" style={{ fontSize: '0.7rem' }} /> {task.task_kind === 'continues' ? 'Continues' : 'Ponctuelle'}
+                </span>
+              )}
+              {/* Récurrence (si continues) */}
+              {task.task_kind === 'continues' && task.is_recurring && (
+                <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1 d-flex align-items-center gap-1" style={{ fontSize: '0.6rem' }}>
+                  <Icon icon="mdi:repeat" style={{ fontSize: '0.7rem' }} />
+                  {task.recurrence === 'monthly' ? 'Mensuelle' : task.recurrence === 'quarterly' ? 'Trimestrielle' : task.recurrence === 'custom' ? `Chaque ${task.recurrence_interval_days || '?'} j` : 'Récurrente'}
+                </span>
+              )}
               {/* Origine */}
               {task.origine && (
                 <span className="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2 py-1 d-flex align-items-center gap-1" style={{ fontSize: '0.6rem' }}>

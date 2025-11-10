@@ -14,11 +14,24 @@ use Illuminate\Support\Facades\Log;
 
 class TodoTask extends Model
 {
-    protected $fillable = ['todo_list_id', 'description', 'status', 'start_date', 'end_date', 'assigned_to', 'pourcentage', 'type', 'origine', 'client_id', 'priority'];
+    protected $fillable = ['todo_list_id', 'description', 'status', 'start_date', 'end_date', 'assigned_to', 'pourcentage', 'type', 'origine', 'client_id', 'priority', 'task_kind', 'is_recurring', 'recurrence', 'recurrence_interval_days', 'period_start', 'period_end', 'next_run_at'];
 
     protected $with = ['comments', 'attachments', 'assignees', 'cancellationRequests', 'proofs'];
 
-    protected $appends = ['source'];
+    protected $appends = ['source', 'active_timer'];
+
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'period_start' => 'date',
+        'period_end' => 'date',
+        'next_run_at' => 'datetime',
+        'is_recurring' => 'boolean',
+        'recurrence_interval_days' => 'integer',
+        'assigned_to' => 'integer',
+        'client_id' => 'integer',
+        'pourcentage' => 'integer',
+    ];
     
     protected static function booted()
     {
