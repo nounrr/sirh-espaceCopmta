@@ -1,0 +1,407 @@
+.project-report-page {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+/* En-tête moderne */
+.page-header {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.page-title {
+  color: #212529;
+  font-weight: 700;
+  font-size: 1.75rem;
+}
+
+/* Cartes statistiques modernes */
+.stat-card-primary,
+.stat-card-info,
+.stat-card-warning,
+.stat-card-success {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card-primary:hover,
+.stat-card-info:hover,
+.stat-card-warning:hover,
+.stat-card-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.stat-icon-bg {
+  transition: all 0.3s ease;
+}
+
+/* Cartes de contenu */
+.card {
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Styles pour les titres de projet cliquables */
+.text-primary[style*="cursor: pointer"]:hover {
+  text-decoration: underline;
+  color: #0056b3 !important;
+  transition: color 0.2s ease;
+}
+
+/* Styles pour la vue détaillée */
+.project-detail-view {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.project-detail-view .card {
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.project-detail-view .card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.project-detail-view .card-header {
+  background: white;
+  border-bottom: 1px solid #e9ecef;
+  padding: 1.5rem;
+  border-radius: 12px 12px 0 0 !important;
+  font-weight: 600;
+}
+
+.project-detail-view .table th {
+  background-color: #f8f9fa;
+  border: none;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 1rem;
+}
+
+.project-detail-view .table td {
+  border: none;
+  border-bottom: 1px solid #f1f3f4;
+  vertical-align: middle;
+  padding: 1rem;
+}
+
+.project-detail-view .table tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+  transition: background-color 0.2s ease;
+}
+
+/* Styles pour le tableau avec les colonnes de dates */
+.table-responsive {
+  overflow-x: auto;
+}
+
+.table th, .table td {
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.table th:first-child, .table td:first-child {
+  min-width: 20px;
+}
+
+.table th:last-child, .table td:last-child {
+  min-width: 150px;
+}
+
+/* Responsive pour les colonnes de dates */
+@media (max-width: 1200px) {
+  .table th, .table td {
+    font-size: 0.875rem;
+    min-width: 100px;
+  }
+  
+  .table th:first-child, .table td:first-child {
+    min-width: 20px;
+  }
+}
+
+@media (max-width: 992px) {
+  .table th, .table td {
+    font-size: 0.8rem;
+    min-width: 80px;
+    padding: 0.5rem 0.75rem !important;
+  }
+  
+  .table th:first-child, .table td:first-child {
+    min-width: 20px;
+  }
+}
+
+/* Tableau moderne */
+.table th {
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6c757d;
+  background-color: #f8f9fa;
+}
+
+.table td {
+  vertical-align: middle;
+  padding: 1rem 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.04);
+}
+
+/* Progress bars */
+.progress {
+  height: 6px;
+  border-radius: 3px;
+  background-color: #e9ecef;
+}
+
+.progress-bar {
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+/* Badges modernisés */
+.badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+/* Cercle de progression */
+.progress-circle-container .progress {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #28a745 0deg,
+    #28a745 calc(var(--progress, 0) * 3.6deg),
+    #e9ecef calc(var(--progress, 0) * 3.6deg),
+    #e9ecef 360deg
+  );
+  position: relative;
+}
+
+/* Filtres */
+.form-control,
+.form-select {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
+}
+
+.bg-light {
+  background-color: #f8f9fa !important;
+}
+
+/* États vides */
+.text-center {
+  padding: 3rem 1rem;
+}
+
+/* Animation d'apparition */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card,
+.page-header {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .project-report-page {
+    padding: 1rem;
+  }
+  
+  .page-header {
+    padding: 1.5rem;
+    text-align: center;
+  }
+  
+  .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .stat-icon-bg {
+    padding: 0.75rem;
+  }
+  
+  .table-responsive {
+    border-radius: 8px;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+}
+
+/* Spinner de chargement */
+.spinner-border {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+/* Icônes */
+[data-icon] {
+  transition: color 0.2s ease;
+}
+
+/* Amélioration des couleurs */
+.text-primary { color: #0d6efd !important; }
+.text-success { color: #198754 !important; }
+.text-warning { color: #fd7e14 !important; }
+.text-info { color: #0dcaf0 !important; }
+.text-danger { color: #dc3545 !important; }
+
+/* Bordures personnalisées */
+.border-0 {
+  border: none !important;
+}
+
+/* Ombres */
+.shadow-sm {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ===== NOUVEAUX STYLES POUR CARTES DYNAMIQUES ===== */
+
+/* Indicateur de filtre actif pour les cartes */
+.stat-card-filtered {
+  border-left: 4px solid #007bff !important;
+  background: linear-gradient(135deg, rgba(0,123,255,0.05), rgba(255,255,255,0.95));
+  position: relative;
+}
+
+.stat-card-filtered::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(180deg, #007bff, #0056b3);
+  animation: filterPulse 2s ease-in-out infinite;
+}
+
+/* Animation pour indiquer un filtre actif */
+@keyframes filterPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Styles pour les badges de filtre */
+.filter-badge {
+  animation: fadeInScale 0.3s ease-out;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Amélioration de l'apparence des alertes de filtre */
+.filter-alert {
+  border-radius: 12px;
+  border: 2px solid rgba(13, 110, 253, 0.2);
+  background: linear-gradient(135deg, rgba(13, 110, 253, 0.08), rgba(255, 255, 255, 0.95));
+  backdrop-filter: blur(10px);
+  animation: slideInFromTop 0.4s ease-out;
+  margin-bottom: 1.5rem;
+}
+
+.filter-alert.alert-success {
+  border: 2px solid rgba(25, 135, 84, 0.2);
+  background: linear-gradient(135deg, rgba(25, 135, 84, 0.08), rgba(255, 255, 255, 0.95));
+}
+
+@keyframes slideInFromTop {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Style pour les graphiques avec filtres */
+.chart-filtered {
+  border: 2px solid rgba(13, 110, 253, 0.1);
+  box-shadow: 0 4px 15px rgba(13, 110, 253, 0.1);
+}
+
+/* Amélioration des hover effects pour cartes filtrées */
+.stat-card-filtered:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0,123,255,0.2) !important;
+}
+
+/* Responsivité améliorée pour mobile */
+@media (max-width: 768px) {
+  .filter-badge {
+    font-size: 0.65rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .filter-alert {
+    margin-bottom: 1rem;
+    padding: 1rem;
+  }
+  
+  .stat-icon-bg {
+    padding: 0.5rem !important;
+  }
+  
+  .stat-icon-bg .iconify {
+    font-size: 20px !important;
+  }
+}

@@ -1,0 +1,475 @@
+/* ===== MOBILE RESPONSIVE STYLES ===== */
+
+/* Breakpoints */
+@media (max-width: 768px) {
+  
+  /* ===== EXCEPTION: Forcer flex-row pour éléments qui doivent rester horizontaux ===== */
+  .no-column,
+  .d-flex.no-column,
+  .no-column.d-flex,
+  .d-flex .no-column {
+    flex-direction: row !important;
+  }
+  
+  /* ===== LAYOUT GLOBAL ===== */
+  .container-fluid {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  
+  .row {
+    margin-left: -0.25rem !important;
+    margin-right: -0.25rem !important;
+  }
+  
+  .col, [class*="col-"] {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+
+  /* ===== TITRES ET HEADERS ===== */
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+    width: 100% !important;
+  }
+  
+  .page-title {
+    font-size: 1.2rem !important;
+    margin-bottom: 0.5rem !important;
+    width: 100% !important;
+  }
+  
+  .page-actions {
+    width: 100% !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    margin-top: 1rem !important;
+  }
+  
+  /* Structure spécifique pour titre + boutons sur mobile */
+  .d-flex.justify-content-between:not(.no-column) {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+  }
+  
+  .d-flex.justify-content-between:not(.no-column) .d-flex:last-child:not(.no-column) {
+    width: 100% !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Headers de cartes */
+  .card-header.d-flex {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+  
+  .card-header .d-flex:last-child {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Titres spécifiques */
+  h1, .h1 { font-size: 1.5rem !important; line-height: 1.3 !important; }
+  h2, .h2 { font-size: 1.3rem !important; line-height: 1.3 !important; }
+  h3, .h3 { font-size: 1.1rem !important; line-height: 1.3 !important; }
+  h4, .h4 { font-size: 1rem !important; line-height: 1.3 !important; }
+  h5, .h5 { font-size: 0.9rem !important; line-height: 1.3 !important; }
+  h6, .h6 { font-size: 0.8rem !important; line-height: 1.3 !important; }
+  
+  /* Sous-titres */
+  .text-muted.small, .small.text-muted {
+    font-size: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* ===== BOUTONS ===== */
+  .btn {
+    font-size: 0.8rem !important;
+    padding: 0.5rem 0.75rem !important;
+    width: 100% !important;
+    margin-bottom: 0.5rem !important;
+    border-radius: 0.375rem !important;
+  }
+  
+  /* Boutons dans les headers */
+  .page-header .btn,
+  .card-header .btn {
+    width: 100% !important;
+    margin-bottom: 0.5rem !important;
+    justify-content: center !important;
+  }
+  
+  /* Groupes de boutons */
+  .btn-group {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 0.25rem !important;
+  }
+  
+  .btn-group .btn {
+    border-radius: 0.375rem !important;
+    margin-bottom: 0.25rem !important;
+    width: 100% !important;
+  }
+  
+  /* Boutons small */
+  .btn-sm {
+    font-size: 0.7rem !important;
+    padding: 0.25rem 0.5rem !important;
+    width: 100% !important;
+  }
+  
+  /* Boutons dans les actions */
+  .d-flex.gap-2 .btn,
+  .d-flex.gap-3 .btn {
+    flex: 1 !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  /* Actions multiples */
+  .d-flex.gap-2,
+  .d-flex.gap-3 {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Boutons avec icônes */
+  .btn .me-2,
+  .btn .ms-2 {
+    margin-right: 0.5rem !important;
+    margin-left: 0 !important;
+  }
+
+  /* ===== TABLEAUX RESPONSIFS ===== */
+  .table-responsive {
+    border: none !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  .table {
+    font-size: 0.75rem !important;
+    min-width: 600px !important;
+  }
+  
+  .table th, .table td {
+    padding: 0.5rem 0.25rem !important;
+    white-space: nowrap !important;
+  }
+  
+  .table th {
+    font-size: 0.7rem !important;
+    background-color: #f8f9fa !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+  }
+  
+  /* Table alternative: Cards sur mobile */
+  .mobile-card-table {
+    display: none !important;
+  }
+  
+  .mobile-card-table.show-mobile {
+    display: block !important;
+  }
+  
+  .mobile-card-table .table {
+    display: none !important;
+  }
+  
+  .table-card {
+    background: white !important;
+    border-radius: 0.5rem !important;
+    padding: 1rem !important;
+    margin-bottom: 0.75rem !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    border: 1px solid #e9ecef !important;
+  }
+  
+  .table-card-header {
+    font-weight: 600 !important;
+    color: #495057 !important;
+    margin-bottom: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    border-bottom: 1px solid #e9ecef !important;
+  }
+  
+  .table-card-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0.25rem 0 !important;
+    border-bottom: 1px solid #f8f9fa !important;
+  }
+  
+  .table-card-row:last-child {
+    border-bottom: none !important;
+  }
+  
+  .table-card-label {
+    font-weight: 500 !important;
+    color: #6c757d !important;
+    font-size: 0.8rem !important;
+  }
+  
+  .table-card-value {
+    font-weight: 600 !important;
+    color: #212529 !important;
+    text-align: right !important;
+    flex: 1 !important;
+    margin-left: 1rem !important;
+  }
+
+  /* ===== CARDS ET MODALES ===== */
+  .card {
+    margin-bottom: 1rem !important;
+  }
+  
+  .card-header {
+    padding: 0.75rem !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  
+  .card-body {
+    padding: 0.75rem !important;
+  }
+  
+  .modal-dialog {
+    margin: 0.5rem !important;
+    max-width: calc(100% - 1rem) !important;
+  }
+  
+  .modal-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 1rem !important;
+  }
+  
+  .modal-body {
+    padding: 1rem !important;
+  }
+  
+  .modal-footer {
+    flex-direction: column !important;
+    padding: 1rem !important;
+  }
+  
+  .modal-footer .btn {
+    width: 100% !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* ===== FORMULAIRES ===== */
+  .form-control {
+    font-size: 0.9rem !important;
+    padding: 0.75rem !important;
+  }
+  
+  .form-select {
+    font-size: 0.9rem !important;
+    padding: 0.75rem !important;
+  }
+  
+  .form-label {
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .input-group {
+    flex-direction: column !important;
+  }
+  
+  .input-group .btn {
+    width: 100% !important;
+    margin-top: 0.5rem !important;
+    border-radius: 0.375rem !important;
+  }
+
+  /* ===== NAVIGATION ET FILTRES ===== */
+  .filter-container {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  
+  .filter-group {
+    width: 100% !important;
+  }
+  
+  .breadcrumb {
+    font-size: 0.8rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .pagination {
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+  }
+  
+  .page-link {
+    font-size: 0.8rem !important;
+    padding: 0.375rem 0.5rem !important;
+  }
+  
+  /* ===== LAYOUTS SPÉCIFIQUES ===== */
+  
+  /* Layout avec titre + actions (Dashboard, listes, etc.) */
+  .header-with-actions {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+  }
+  
+  .header-with-actions .header-title {
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .header-with-actions .header-actions {
+    width: 100% !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Layout pour les modales */
+  .modal-header-responsive {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+  }
+  
+  .modal-header-responsive .modal-actions {
+    width: 100% !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Layout pour les cartes de statistiques */
+  .stats-header {
+    text-align: center !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .stats-header .stats-actions {
+    margin-top: 1rem !important;
+    width: 100% !important;
+  }
+  
+  /* Layout pour les formulaires */
+  .form-header {
+    flex-direction: column !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .form-header .form-actions {
+    width: 100% !important;
+    margin-top: 1rem !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+
+  /* ===== UTILITIES MOBILE ===== */
+  .mobile-hide {
+    display: none !important;
+  }
+  
+  .mobile-show {
+    display: block !important;
+  }
+  
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+  }
+  
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  .mobile-gap-small {
+    gap: 0.5rem !important;
+  }
+
+  /* ===== STATISTIQUES ET GRAPHIQUES ===== */
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+  
+  .stat-card {
+    text-align: center !important;
+    padding: 1rem !important;
+  }
+  
+  .chart-container {
+    height: 250px !important;
+    overflow: hidden !important;
+  }
+
+  /* ===== TEXTE ET CONTENU ===== */
+  .text-truncate-mobile {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    max-width: 150px !important;
+  }
+  
+  .content-scroll {
+    max-height: 300px !important;
+    overflow-y: auto !important;
+  }
+
+  /* ===== ESPACEMENT ===== */
+  .mobile-p-1 { padding: 0.25rem !important; }
+  .mobile-p-2 { padding: 0.5rem !important; }
+  .mobile-p-3 { padding: 1rem !important; }
+  .mobile-m-1 { margin: 0.25rem !important; }
+  .mobile-m-2 { margin: 0.5rem !important; }
+  .mobile-m-3 { margin: 1rem !important; }
+  
+  .mobile-mb-1 { margin-bottom: 0.25rem !important; }
+  .mobile-mb-2 { margin-bottom: 0.5rem !important; }
+  .mobile-mb-3 { margin-bottom: 1rem !important; }
+}
+
+/* ===== OPTIMISATIONS POUR TRÈS PETITS ÉCRANS ===== */
+@media (max-width: 480px) {
+  .container-fluid {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+  
+  .card {
+    border-radius: 0.25rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  .btn {
+    font-size: 0.75rem !important;
+    padding: 0.375rem 0.5rem !important;
+  }
+  
+  .table {
+    font-size: 0.7rem !important;
+  }
+  
+  .modal-dialog {
+    margin: 0.25rem !important;
+    max-width: calc(100% - 0.5rem) !important;
+  }
+}

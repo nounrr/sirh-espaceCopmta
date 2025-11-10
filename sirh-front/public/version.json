@@ -1,0 +1,15 @@
+{
+  "version": "3.1.6",
+  "buildTime": "2025-08-09T21:30:00.000Z",
+  "cacheBuster": 1754775000000,
+  "features": [
+    "🚀 Système de mise à jour automatique",
+    "🔧 Détection de nouvelles versions", 
+    "✨ Interface de notification améliorée",
+    "🔒 Cache busting automatique",
+    "📱 Installation PWA multi-plateforme",
+    "🍎 Support iOS Safari avec instructions",
+    "🌐 Détection automatique de navigateur/OS",
+    "⚡ Gestionnaire PWA unifié"
+  ]
+}
