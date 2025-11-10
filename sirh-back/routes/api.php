@@ -9,6 +9,7 @@ use App\Http\Controllers\StatistiquesController;
 use App\Http\Controllers\PointageController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AbsenceRequestExcelController;
+use App\Http\Controllers\DashboardAnalyticsController;
 use App\Http\Controllers\PointageImportController;
 use App\Http\Controllers\DepartementExcelController;
 use App\Http\Controllers\PointageExcelController;
@@ -162,6 +163,14 @@ Route::delete('/user-docs/{userId}/{typeDocId}', [UserTypeDocController::class, 
     Route::post('/tasks/{task}/progress', [TimeTrackingController::class, 'progress']);
     Route::get('/timesheet', [TimeTrackingController::class, 'timesheet']);
     Route::get('/analytics/time', [TimeTrackingController::class, 'analytics']);
+
+    // Dashboard & analytics
+    Route::get('/analytics/status-overview',[DashboardAnalyticsController::class,'statusOverview']);
+    Route::get('/analytics/time-breakdown',[DashboardAnalyticsController::class,'timeBreakdown']);
+    Route::get('/analytics/profitability',[DashboardAnalyticsController::class,'profitability']);
+    Route::get('/analytics/team-performance',[DashboardAnalyticsController::class,'teamPerformance']);
+    Route::get('/analytics/overdue-tasks',[DashboardAnalyticsController::class,'overdueTasks']);
+    Route::get('/analytics/info-requests',[DashboardAnalyticsController::class,'infoRequestSummary']);
 
     //pub et vote
     Route::get('/publications', [PublicationController::class, 'index']);
