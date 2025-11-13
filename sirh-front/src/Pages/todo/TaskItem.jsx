@@ -4,7 +4,6 @@ import { Icon } from '@iconify/react';
 import { useDispatch } from 'react-redux';
 import { updateTask, deleteTask } from '../../Redux/Slices/todoTaskSlice';
 import { fetchTodoLists } from '../../Redux/Slices/todoListSlice';
-import { startTaskTimer, stopTaskTimer, updateTaskProgress } from '../../Redux/Slices/timeTrackingSlice';
 import TaskItemActions from './TaskItemActions';
 // (Suppression import doublon IconifyIcon)
 import Swal from '../../utils/swal';
@@ -18,20 +17,10 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
   const [editAssigned, setEditAssigned] = useState(task.assigned_to || '');
   const [editType, setEditType] = useState(task.type || 'AC');
   const [editOrigine, setEditOrigine] = useState(task.origine || '');
-  // Task kind & recurrence fields
-  const [editTaskKind, setEditTaskKind] = useState(task.task_kind || 'ponctuelle'); // 'ponctuelle' | 'continues'
-  const [editIsRecurring, setEditIsRecurring] = useState(Boolean(task.is_recurring));
-  const [editRecurrence, setEditRecurrence] = useState(task.recurrence || 'monthly'); // 'monthly' | 'quarterly' | 'custom'
-  const [editRecurrenceIntervalDays, setEditRecurrenceIntervalDays] = useState(task.recurrence_interval_days || '');
-  const [editPeriodStart, setEditPeriodStart] = useState(task.period_start || '');
-  const [editPeriodEnd, setEditPeriodEnd] = useState(task.period_end || '');
   const [status, setStatus] = useState(task.status);
   const [isHovered, setIsHovered] = useState(false);
   const [editPourcentage, setEditPourcentage] = useState(task.pourcentage || 0);
   const [inlinePourcentage, setInlinePourcentage] = useState(task.pourcentage || 0);
-  const [showProgressModal, setShowProgressModal] = useState(false);
-  const [progressPercent, setProgressPercent] = useState(task.pourcentage || 0);
-  const [progressComment, setProgressComment] = useState('');
   
   // Sync local status if the task prop changes externally (ex: updated elsewhere then store refresh)
   useEffect(() => {
@@ -140,38 +129,6 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
     }
   };
 
-  const handleStart = async () => {
-    try {
-      await dispatch(startTaskTimer(task.id)).unwrap();
-      Swal.fire({ icon:'success', title:'Timer démarré', toast:true, position:'top-end', timer:1200, showConfirmButton:false });
-    } catch (e) {
-      Swal.fire({ icon:'error', title:e?.message || 'Erreur démarrage', toast:true, position:'top-end', timer:1800, showConfirmButton:false });
-    }
-  };
-
-  const handleStop = async () => {
-    try {
-      await dispatch(stopTaskTimer(task.id)).unwrap();
-      Swal.fire({ icon:'success', title:'Timer stoppé', toast:true, position:'top-end', timer:1200, showConfirmButton:false });
-    } catch (e) {
-      Swal.fire({ icon:'error', title:e?.message || 'Erreur arrêt', toast:true, position:'top-end', timer:1800, showConfirmButton:false });
-    }
-  };
-
-  const handleProgressSubmit = async () => {
-    const pct = Math.max(0, Math.min(100, Number(progressPercent)));
-    try {
-      await dispatch(updateTaskProgress({ taskId: task.id, pourcentage: pct, comment: progressComment || undefined })).unwrap();
-      setShowProgressModal(false);
-      setProgressComment('');
-      setProgressPercent(pct);
-      await dispatch(fetchTodoLists());
-      Swal.fire({ icon:'success', title:'Progression mise à jour', toast:true, position:'top-end', timer:1200, showConfirmButton:false });
-    } catch (e) {
-      Swal.fire({ icon:'error', title:e?.message || 'Erreur progression', toast:true, position:'top-end', timer:1800, showConfirmButton:false });
-    }
-  };
-
   const handleEdit = () => {
     setIsEditing(true);
     setEditValue(task.description);
@@ -197,13 +154,7 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
       status: finalStatus,
       pourcentage: finalStatus === 'En cours' ? finalPourcentage : finalStatus === 'Terminée' ? 100 : 0,
       type: editType || null,
-      origine: editOrigine?.trim() || null,
-      task_kind: String(editTaskKind || '').toLowerCase(),
-      is_recurring: editTaskKind === 'continues' ? Boolean(editIsRecurring) : false,
-      recurrence: (editTaskKind === 'continues' && editIsRecurring) ? editRecurrence : null,
-      recurrence_interval_days: (editTaskKind === 'continues' && editIsRecurring && editRecurrence === 'custom') ? (Number(editRecurrenceIntervalDays) || null) : null,
-      period_start: editPeriodStart || null,
-      period_end: editPeriodEnd || null
+      origine: editOrigine?.trim() || null
     };
     if (!payload.description) return;
     try {
@@ -227,13 +178,7 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
   setEditAssigned(task.assigned_to || '');
   setEditPourcentage(task.pourcentage || 0);
   setEditType(task.type || 'AC');
-	setEditOrigine(task.origine || '');
-    setEditTaskKind(task.task_kind || 'ponctuelle');
-    setEditIsRecurring(Boolean(task.is_recurring));
-    setEditRecurrence(task.recurrence || 'monthly');
-    setEditRecurrenceIntervalDays(task.recurrence_interval_days || '');
-    setEditPeriodStart(task.period_start || '');
-    setEditPeriodEnd(task.period_end || '');
+  setEditOrigine(task.origine || '');
   };
 
   const handleInlinePourcentageUpdate = async (value) => {
@@ -316,18 +261,7 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
                 opacity: isHovered ? 1 : 0.6,
                 transition: 'opacity 0.3s ease'
               }}>
-                <div className="d-flex align-items-center gap-1">
-                  <button className="btn btn-sm btn-outline-success" title="Démarrer" onClick={handleStart}>
-                    <Icon icon="mdi:play" />
-                  </button>
-                  <button className="btn btn-sm btn-outline-danger" title="Arrêter" onClick={handleStop}>
-                    <Icon icon="mdi:stop" />
-                  </button>
-                  <button className="btn btn-sm btn-outline-primary" title="% & commentaire" onClick={()=>setShowProgressModal(true)}>
-                    <Icon icon="mdi:pencil" />
-                  </button>
-                  <TaskItemActions onEdit={handleEdit} onDelete={handleDelete} />
-                </div>
+                <TaskItemActions onEdit={handleEdit} onDelete={handleDelete} />
               </div>
             )}
           </div>
@@ -384,44 +318,6 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
                       onChange={(e) => setEditOrigine(e.target.value)}
                     />
                   </div>
-                  {/* Catégorie & récurrence */}
-                  <div className="col-6">
-                    <select
-                      className="form-select form-select-sm"
-                      value={editTaskKind}
-                      onChange={(e)=>setEditTaskKind(e.target.value)}
-                    >
-                      <option value="ponctuelle">Ponctuelle</option>
-                      <option value="continues">Continues</option>
-                    </select>
-                  </div>
-                  {editTaskKind === 'continues' && (
-                    <>
-                      <div className="col-6">
-                        <div className="input-group input-group-sm">
-                          <div className="input-group-text">
-                            <input className="form-check-input mt-0" type="checkbox" checked={editIsRecurring} onChange={(e)=>setEditIsRecurring(e.target.checked)} />
-                          </div>
-                          <select className="form-select form-select-sm" value={editRecurrence} onChange={(e)=>setEditRecurrence(e.target.value)} disabled={!editIsRecurring}>
-                            <option value="monthly">Mensuelle</option>
-                            <option value="quarterly">Trimestrielle</option>
-                            <option value="custom">Personnalisée</option>
-                          </select>
-                        </div>
-                      </div>
-                      {editIsRecurring && editRecurrence === 'custom' && (
-                        <div className="col-6">
-                          <input type="number" min={1} max={365} className="form-control form-control-sm" placeholder="Intervalle (jours)" value={editRecurrenceIntervalDays} onChange={(e)=>setEditRecurrenceIntervalDays(e.target.value)} />
-                        </div>
-                      )}
-                      <div className="col-6">
-                        <input type="date" className="form-control form-control-sm" placeholder="Période début" value={editPeriodStart} onChange={(e)=>setEditPeriodStart(e.target.value)} />
-                      </div>
-                      <div className="col-6">
-                        <input type="date" className="form-control form-control-sm" placeholder="Période fin" value={editPeriodEnd} onChange={(e)=>setEditPeriodEnd(e.target.value)} />
-                      </div>
-                    </>
-                  )}
                   <div className="col-12">
                     <select
                       className="form-select form-select-sm"
@@ -479,19 +375,6 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
               <span className={`badge ${task.type === 'AC' ? 'bg-primary' : task.type === 'AP' ? 'bg-success' : 'bg-secondary'} rounded-pill px-2 py-1 d-flex align-items-center gap-1`} style={{ fontSize: '0.6rem' }}>
                 <Icon icon="mdi:ticket" style={{ fontSize: '0.7rem' }} /> {task.type || 'N/A'}
               </span>
-              {/* Catégorie */}
-              {task.task_kind && (
-                <span className={`badge ${task.task_kind === 'continues' ? 'bg-info' : 'bg-secondary'} bg-opacity-10 text-${task.task_kind === 'continues' ? 'info' : 'secondary'} rounded-pill px-2 py-1 d-flex align-items-center gap-1`} style={{ fontSize: '0.6rem' }}>
-                  <Icon icon="mdi:format-list-bulleted-type" style={{ fontSize: '0.7rem' }} /> {task.task_kind === 'continues' ? 'Continues' : 'Ponctuelle'}
-                </span>
-              )}
-              {/* Récurrence (si continues) */}
-              {task.task_kind === 'continues' && task.is_recurring && (
-                <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1 d-flex align-items-center gap-1" style={{ fontSize: '0.6rem' }}>
-                  <Icon icon="mdi:repeat" style={{ fontSize: '0.7rem' }} />
-                  {task.recurrence === 'monthly' ? 'Mensuelle' : task.recurrence === 'quarterly' ? 'Trimestrielle' : task.recurrence === 'custom' ? `Chaque ${task.recurrence_interval_days || '?'} j` : 'Récurrente'}
-                </span>
-              )}
               {/* Origine */}
               {task.origine && (
                 <span className="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2 py-1 d-flex align-items-center gap-1" style={{ fontSize: '0.6rem' }}>
@@ -617,34 +500,6 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
           box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
         }
       `}</style>
-
-      {/* Progress modal */}
-      {showProgressModal && (
-        <div className="modal fade show" style={{ display:'block', background:'rgba(0,0,0,0.35)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Mise à jour progression</h5>
-                <button type="button" className="btn-close" onClick={()=>setShowProgressModal(false)}></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Pourcentage</label>
-                  <input type="number" min={0} max={100} className="form-control" value={progressPercent} onChange={(e)=>setProgressPercent(e.target.value)} />
-                </div>
-                <div className="mb-2">
-                  <label className="form-label">Commentaire</label>
-                  <textarea className="form-control" rows={3} value={progressComment} onChange={(e)=>setProgressComment(e.target.value)} />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-secondary" onClick={()=>setShowProgressModal(false)}>Annuler</button>
-                <button className="btn btn-primary" onClick={handleProgressSubmit}>Enregistrer</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

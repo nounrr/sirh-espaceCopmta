@@ -33,7 +33,7 @@
 
     // alias rétro-compatible
     const handleDownloadAttachment = openFile;
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
 import { fetchTodoLists } from '../../Redux/Slices/todoListSlice';
@@ -43,8 +43,21 @@ import { fetchUsers } from '../../Redux/Slices/userSlice';
 import { fetchClients } from '../../Redux/Slices/clientsSlice';
 import Swal from '../../utils/swal';
 import { fetchTaskComments, addTaskComment, updateTaskComment, deleteTaskComment } from '../../Redux/Slices/taskCommentsSlice';
+import { fetchActiveEntry, startTaskTimer, pauseTaskTimer, finishTask } from '../../Redux/Slices/timeTrackingSlice';
 
-const PRIVILEGED_ROLES = ['rh', 'gest_projet'];
+const PRIVILEGED_ROLES = [
+  'rh',
+  'gest_rh',
+  'gest_projet',
+  'gest-projet',
+  'gestionnaire_projet',
+  'chef_dep',
+  'chef-dep',
+  'chef_dept',
+  'chef_departement',
+  'chef_department',
+  'admin',
+];
 const MINIMAL_ACCESS_ROLES = [
   'employe',
   'employé',
@@ -96,6 +109,22 @@ const TasksPhoneView = () => {
   const { user: authUser, roles: authRoles = [] } = useSelector((state) => state.auth || {});
   const taskCommentsState = useSelector((state) => state.taskComments || {});
   const commentsByTask = taskCommentsState.commentsByTask || {};
+  const { activeByTask = {}, dailyByTask = {} } = useSelector((state) => state.timeTracking || {});
+
+  // Ticker global pour l'affichage HH:MM:SS des entrées actives
+  // plus de compteur live
+
+  // Parse robuste des timestamps renvoyés par l'API
+  const parseApiDate = (value) => {
+    if (!value) return null;
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d;
+    const norm = String(value).replace(' ', 'T');
+    const d2 = new Date(norm);
+    if (!Number.isNaN(d2.getTime())) return d2;
+    const d3 = new Date(norm + 'Z');
+    return Number.isNaN(d3.getTime()) ? null : d3;
+  };
 
   const [query, setQuery] = useState('');
   const [showAdd, setShowAdd] = useState(false);
@@ -161,6 +190,9 @@ const TasksPhoneView = () => {
   const [sendingBulkReminders, setSendingBulkReminders] = useState(false);
   const filterAssigneeCloseTimeout = useRef(null);
   const commentInputRefs = useRef({});
+  const justPausedTasksRef = useRef(new Set());
+  const pauseTimeoutsRef = useRef({});
+  const pauseCooldownsRef = useRef({});
 
   const cancelFilterAssigneeClose = () => {
     if (filterAssigneeCloseTimeout.current) {
@@ -608,7 +640,7 @@ const TasksPhoneView = () => {
     }
   }, [hasLimitedEmployeePermissions, editStatus]);
 
-  const isTaskAssignedToCurrentUser = (task) => {
+  const isTaskAssignedToCurrentUser = useCallback((task) => {
     if (!authUser?.id) {
       return false;
     }
@@ -620,9 +652,33 @@ const TasksPhoneView = () => {
       return true;
     }
 
-    const multiAssignees = Array.isArray(task?.assignees) ? task.assignees : [];
-    return multiAssignees.some((assignee) => String(assignee.id) === currentId);
-  };
+    if (Array.isArray(task?.assignees)) {
+      if (task.assignees.some((assignee) => String(assignee.id) === currentId)) {
+        return true;
+      }
+    }
+
+    if (Array.isArray(task?.collaborators)) {
+      if (task.collaborators.some((user) => String(user.id) === currentId)) {
+        return true;
+      }
+    }
+
+    if (Array.isArray(task?.participants)) {
+      if (task.participants.some((user) => String(user.id) === currentId)) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [authUser]);
+
+  // Autorisation d'afficher les boutons Début/Pause/Finish
+  const canWorkOnTask = useCallback((task) => {
+    if (!task) return false;
+    if (userHasAdvancedAccess) return true;
+    return isTaskAssignedToCurrentUser(task);
+  }, [userHasAdvancedAccess, isTaskAssignedToCurrentUser]);
 
   const getCancellationRequests = (task) => task?.cancellation_requests || task?.cancellationRequests || [];
 
@@ -828,6 +884,41 @@ const TasksPhoneView = () => {
     const startIdx = (safePage - 1) * perPage;
     return filtered.slice(startIdx, startIdx + perPage);
   }, [filtered, currentPage, perPage, totalPages]);
+
+  // Précharger l'état active-entry pour les tâches visibles (une seule fois par tâche)
+  const preloadedActiveRef = useRef(new Set());
+  useEffect(() => {
+    if (!Array.isArray(paginatedTasks)) return;
+    paginatedTasks.forEach((t) => {
+      const id = t?.id;
+      if (!id) return;
+      if (!preloadedActiveRef.current.has(id)) {
+        preloadedActiveRef.current.add(id);
+        dispatch(fetchActiveEntry(id));
+      }
+    });
+  }, [dispatch, paginatedTasks]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(pauseTimeoutsRef.current).forEach((timer) => clearTimeout(timer));
+    };
+  }, []);
+
+  useEffect(() => {
+    Object.entries(activeByTask).forEach(([taskId, entry]) => {
+      const id = Number(taskId);
+      if (!entry || Number.isNaN(id)) return;
+      if (!justPausedTasksRef.current.has(id)) return;
+      const now = Date.now();
+      const last = pauseCooldownsRef.current[id] || 0;
+      if (now - last < 3000) return;
+      pauseCooldownsRef.current[id] = now;
+      dispatch(pauseTaskTimer(id))
+        .then(() => dispatch(fetchActiveEntry(id)))
+        .catch(() => {});
+    });
+  }, [activeByTask, dispatch]);
 
   const resetForm = () => {
     setDescription('');
@@ -3756,6 +3847,199 @@ const TasksPhoneView = () => {
                                 </span>
                               )}
                             </button>
+
+                            {/* Boutons Temps: Début / Pause / Terminer (sans compteur live), avec styles distincts pause vs terminé */}
+                            {(() => {
+                              const entry = activeByTask?.[task.id];
+                              const percentValue = Number(task.pourcentage ?? task.progression ?? 0);
+                              const showPlay = !entry;
+                              const isFinished = String(task.status || '').toLowerCase().includes('termin');
+                              const isCancelled = String(task.status || '').toLowerCase().includes('annul');
+                              const isDone = isFinished || percentValue >= 100;
+                              const allowed = canWorkOnTask(task);
+                              const deny = (actionLabel) => {
+                                showSwal({ icon: 'error', title: 'Accès refusé', text: `Vous n'avez pas la permission de ${actionLabel} cette tâche`, toast: true, timer: 2200, position: 'top-end', showConfirmButton: false });
+                              };
+                              const handleStart = async () => {
+                                if (!allowed) {
+                                  deny('démarrer');
+                                  return;
+                                }
+                                justPausedTasksRef.current.delete(task.id);
+                                if (pauseTimeoutsRef.current[task.id]) {
+                                  clearTimeout(pauseTimeoutsRef.current[task.id]);
+                                  delete pauseTimeoutsRef.current[task.id];
+                                }
+                                try {
+                                  await dispatch(startTaskTimer(task.id)).unwrap();
+                                  await dispatch(fetchActiveEntry(task.id));
+                                } catch (err) {
+                                  showSwal({ icon: 'error', title: 'Impossible de démarrer', text: String(err || 'Erreur inconnue'), toast: true, timer: 2200, position: 'top-end', showConfirmButton: false });
+                                }
+                              };
+                              const handlePause = async () => {
+                                if (!allowed) {
+                                  deny('mettre en pause');
+                                  return;
+                                }
+                                try {
+                                  await dispatch(pauseTaskTimer(task.id)).unwrap();
+                                  await dispatch(fetchActiveEntry(task.id));
+                                  justPausedTasksRef.current.add(task.id);
+                                  if (pauseTimeoutsRef.current[task.id]) {
+                                    clearTimeout(pauseTimeoutsRef.current[task.id]);
+                                  }
+                                  pauseTimeoutsRef.current[task.id] = setTimeout(() => {
+                                    justPausedTasksRef.current.delete(task.id);
+                                    delete pauseTimeoutsRef.current[task.id];
+                                  }, 5 * 60 * 1000);
+                                } catch (err) {
+                                  showSwal({ icon: 'error', title: 'Impossible de mettre en pause', text: String(err || 'Aucune progression en cours'), toast: true, timer: 2200, position: 'top-end', showConfirmButton: false });
+                                }
+                              };
+                              const handleFinish = async () => {
+                                if (!allowed) {
+                                  deny('terminer');
+                                  return;
+                                }
+                                try {
+                                  const choice = await showSwal({
+                                    icon: 'question',
+                                    title: 'Terminer la tâche ?',
+                                    text: 'Souhaitez-vous également mettre la progression à 100% ?',
+                                    showCancelButton: true,
+                                    showDenyButton: true,
+                                    cancelButtonText: 'Annuler',
+                                    confirmButtonText: 'Terminer',
+                                    denyButtonText: 'Terminer et mettre 100%'
+                                  });
+
+                                  if (!choice.isConfirmed && !choice.isDenied) {
+                                    return;
+                                  }
+
+                                  const markHundred = choice.isDenied;
+
+                                  await dispatch(finishTask(task.id)).unwrap();
+
+                                  if (markHundred) {
+                                    await dispatch(updateTask({ id: task.id, data: { pourcentage: 100 } })).unwrap();
+                                  }
+
+                                  await dispatch(fetchActiveEntry(task.id));
+
+                                  showSwal({
+                                    icon: 'success',
+                                    title: 'Tâche terminée',
+                                    text: markHundred ? 'Progression fixée à 100%.' : 'Progression conservée.',
+                                    toast: true,
+                                    timer: 2200,
+                                    position: 'top-end',
+                                    showConfirmButton: false
+                                  });
+                                } catch (err) {
+                                  showSwal({ icon: 'error', title: 'Impossible de terminer', text: String(err || 'Erreur inconnue'), toast: true, timer: 2200, position: 'top-end', showConfirmButton: false });
+                                }
+                              };
+                              if (isCancelled) {
+                                return (
+                                  <span
+                                    className="badge d-inline-flex align-items-center justify-content-center"
+                                    title="Tâche annulée"
+                                    style={{ fontSize: '0.65rem', height: 24, borderRadius: 12, background: 'rgba(239,68,68,0.15)', color: '#dc2626' }}
+                                  >
+                                    <Icon icon="mdi:close-circle" className="me-1" /> Annulé
+                                  </span>
+                                );
+                              }
+                              if (isDone) {
+                                return (
+                                  <span
+                                    className="badge d-inline-flex align-items-center justify-content-center"
+                                    title="Tâche terminée"
+                                    style={{ fontSize: '0.65rem', height: 24, borderRadius: 12, background: 'rgba(16,185,129,0.15)', color: '#059669' }}
+                                  >
+                                    <Icon icon="mdi:check-circle" className="me-1" /> Terminé
+                                  </span>
+                                );
+                              }
+                              return showPlay ? (
+                                <>
+                                  {/* Daily badge removed as requested */}
+                                  {/* En pause par défaut si aucune entrée active et non terminé/annulé */}
+                                  {true && (
+                                    <span
+                                      className="badge d-inline-flex align-items-center justify-content-center"
+                                      title="En pause"
+                                      style={{ fontSize: '0.65rem', height: 24, borderRadius: 12, background: 'rgba(245,158,11,0.15)', color: '#d97706' }}
+                                    >
+                                      <Icon icon="mdi:pause-circle" className="me-1" /> En pause
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm d-inline-flex align-items-center justify-content-center no-column"
+                                    onClick={handleStart}
+                                    aria-label="Débuter la progression"
+                                    title="Débuter la progression"
+                                    style={{ 
+                                      width: 32, height: 32, minWidth: 32, maxWidth: 32, flex: '0 0 auto', padding: 0,
+                                      borderRadius: '10px', border: 'none',
+                                      background: allowed ? 'rgba(16,185,129,0.15)' : 'rgba(209,213,219,0.4)',
+                                      color: allowed ? '#10b981' : '#9ca3af',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => { if (!allowed) return; e.currentTarget.style.background = 'rgba(16,185,129,0.25)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                                    onMouseLeave={(e) => { if (!allowed) return; e.currentTarget.style.background = 'rgba(16,185,129,0.15)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                                    disabled={!allowed}
+                                  >
+                                    <Icon icon="mdi:play" style={{ fontSize: '1rem' }} />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  {/* Daily badge removed as requested */}
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm d-inline-flex align-items-center justify-content-center no-column"
+                                    onClick={handlePause}
+                                    aria-label="Pause"
+                                    title="Mettre en pause"
+                                    style={{ 
+                                      width: 32, height: 32, minWidth: 32, maxWidth: 32, flex: '0 0 auto', padding: 0,
+                                      borderRadius: '10px', border: 'none',
+                                      background: allowed ? 'rgba(245,158,11,0.15)' : 'rgba(209,213,219,0.4)',
+                                      color: allowed ? '#d97706' : '#9ca3af',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => { if (!allowed) return; e.currentTarget.style.background = 'rgba(245,158,11,0.25)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                                    onMouseLeave={(e) => { if (!allowed) return; e.currentTarget.style.background = 'rgba(245,158,11,0.15)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                                    disabled={!allowed}
+                                  >
+                                    <Icon icon="mdi:pause" style={{ fontSize: '1rem' }} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm d-inline-flex align-items-center justify-content-center no-column"
+                                    onClick={handleFinish}
+                                    aria-label="Terminer"
+                                    title="Terminer la tâche"
+                                    style={{ 
+                                      width: 32, height: 32, minWidth: 32, maxWidth: 32, flex: '0 0 auto', padding: 0,
+                                      borderRadius: '10px', border: 'none',
+                                      background: allowed ? 'rgba(239,68,68,0.15)' : 'rgba(209,213,219,0.4)',
+                                      color: allowed ? '#dc2626' : '#9ca3af',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => { if (!allowed) return; e.currentTarget.style.background = 'rgba(239,68,68,0.25)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                                    onMouseLeave={(e) => { if (!allowed) return; e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                                    disabled={!allowed}
+                                  >
+                                    <Icon icon="mdi:stop" style={{ fontSize: '1rem' }} />
+                                  </button>
+                                </>
+                              );
+                            })()}
                             
                             {!normalizedStatus.includes('annul') && (
                               <button

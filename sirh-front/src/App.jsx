@@ -44,8 +44,6 @@ import CreateProjectPage from './Pages/projets/CreateProjectPage';
 import ProjectDetailPage from './Pages/projets/ProjectDetailPage.jsx';
 import ProjectTablePage from './Pages/projets/ProjectTablePage.jsx';
 import ProjectReportPage from './Pages/projets/ProjectReportPage.jsx';
-import TimesheetPage from './Pages/reports/TimesheetPage.jsx';
-import TimeAnalyticsPage from './Pages/reports/TimeAnalyticsPage.jsx';
 import OneSignal from 'react-onesignal'; // Make sure you have this package installed
 import ModalNotif from './ModalNotif'
 // Leave Management System - Soldes d'équipe uniquement
@@ -365,10 +363,6 @@ const roles = useSelector((state) => state.auth.roles || []);
     <Route path="/projets/:id" element={<ProjectDetailPage />} />
     <Route path="/projets-table" element={<ProjectTablePage />} />
     <Route path="/projets-rapport" element={<ProjectReportPage />} />
-
-  {/* Time tracking */}
-  <Route path="/timesheet" element={<TimesheetPage />} />
-  <Route path="/analytics/time" element={<TimeAnalyticsPage />} />
 
     {/* Audit route */}
     <Route path="/audit" element={<AuditPage />} />

@@ -1,14 +1,20 @@
 <?php
+/**
+ * @deprecated This legacy model is no longer used. Time slices are now stored in TaskProgressHour.
+ *             Kept temporarily for backward compatibility; do not reference in new code.
+ */
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TimeEntry extends Model
 {
     protected $fillable = [
-        'user_id','todo_task_id','client_id','started_at','stopped_at','note','source'
+        'user_id',
+        'todo_task_id',
+        'started_at',
+        'stopped_at',
     ];
 
     protected $casts = [
@@ -16,13 +22,13 @@ class TimeEntry extends Model
         'stopped_at' => 'datetime',
     ];
 
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function task(): BelongsTo { return $this->belongsTo(TodoTask::class, 'todo_task_id'); }
-    public function client(): BelongsTo { return $this->belongsTo(User::class, 'client_id'); }
-
-    public function getDurationMinutesAttribute(): ?int
+    public function user()
     {
-        if (!$this->started_at || !$this->stopped_at) return null;
-        return $this->stopped_at->diffInMinutes($this->started_at);
+        return $this->belongsTo(User::class);
+    }
+
+    public function task()
+    {
+        return $this->belongsTo(TodoTask::class, 'todo_task_id');
     }
 }

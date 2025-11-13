@@ -5,24 +5,30 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    public function up(): void {
-        Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users','hourly_rate')) {
-                // Fallback: if 'salaire' column doesn't exist use last column position (no after())
-                if (Schema::hasColumn('users','salaire')) {
-                    $table->decimal('hourly_rate',10,2)->nullable()->after('salaire');
-                } else {
-                    $table->decimal('hourly_rate',10,2)->nullable();
-                }
-            }
-        });
-    }
+	public function up(): void
+	{
+		if (!Schema::hasTable('users')) {
+			return; // Base table missing; nothing to alter
+		}
 
-    public function down(): void {
-        Schema::table('users', function (Blueprint $table) {
-            if (Schema::hasColumn('users','hourly_rate')) {
-                $table->dropColumn('hourly_rate');
-            }
-        });
-    }
+		Schema::table('users', function (Blueprint $table) {
+			if (!Schema::hasColumn('users', 'hourly_rate')) {
+				// Avoid placing AFTER a column that may not exist in this schema
+				$table->decimal('hourly_rate', 10, 2)->nullable();
+			}
+		});
+	}
+
+	public function down(): void
+	{
+		if (!Schema::hasTable('users')) {
+			return;
+		}
+		Schema::table('users', function (Blueprint $table) {
+			if (Schema::hasColumn('users', 'hourly_rate')) {
+				$table->dropColumn('hourly_rate');
+			}
+		});
+	}
 };
+

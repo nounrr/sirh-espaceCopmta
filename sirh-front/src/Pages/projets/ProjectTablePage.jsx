@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
 import Swal from 'sweetalert2';
@@ -33,9 +33,13 @@ import {
   addTaskComment
 } from '../../Redux/Slices/taskCommentsSlice';
 import ProjectAuditHistory from '../../Components/ProjectAuditHistory';
+import { fetchActiveEntry, startTaskTimer, fetchMyActiveEntry, pauseTaskTimer, finishTask } from '../../Redux/Slices/timeTrackingSlice';
 
 const ProjectTablePage = () => {
   const dispatch = useDispatch();
+  const justPausedTasksRef = useRef(new Set());
+  const pauseTimeoutsRef = useRef({});
+  const pauseCooldownsRef = useRef({});
   
   // États pour les données
   const { items: projects, status: projectsStatus } = useSelector(state => state.projects);
@@ -44,6 +48,7 @@ const ProjectTablePage = () => {
   const { user: currentUser } = useSelector(state => state.auth);
   const { items: users } = useSelector(state => state.users);
   const { commentsByTask } = useSelector(state => state.taskComments);
+  const { activeByTask, dailyByTask } = useSelector(state => state.timeTracking);
   
   // Obtenir toutes les tâches depuis les listes ET depuis le store des tâches
   const tasks = [
@@ -114,6 +119,8 @@ const ProjectTablePage = () => {
     dispatch(fetchProjects());
     dispatch(fetchTodoLists());
     dispatch(fetchUsers()); // Ajouter le chargement des utilisateurs
+    // Connaître l'entrée active globale (facultatif)
+    dispatch(fetchMyActiveEntry());
   }, [dispatch]);
   
   // Charger les commentaires d'une tâche lorsqu'elle est sélectionnée
@@ -151,6 +158,32 @@ const ProjectTablePage = () => {
       return `${user.prenom || ''} ${user.nom || user.name || ''}`.trim();
     }
     return `Utilisateur ${userId}`;
+  };
+
+  // Peut travailler sur une tâche ? (mêmes règles que backend canWorkOn)
+  const canWorkOnTask = (task) => {
+    if (!currentUser) return false;
+    const role = currentUser.role;
+    if (['RH', 'Gest_RH', 'Chef_Dep'].includes(role)) return true;
+    const userId = currentUser.id;
+    if (parseInt(task?.assigned_to || 0, 10) === parseInt(userId, 10)) return true;
+    // Vérifier many-to-many si l'objet l'expose (assignees: [ {id}, ... ])
+    if (Array.isArray(task?.assignees) && task.assignees.some(u => parseInt(u.id, 10) === parseInt(userId, 10))) {
+      return true;
+    }
+    return false;
+  };
+
+  // Parse robuste des timestamps renvoyés par l'API (gère "YYYY-MM-DD HH:mm:ss" et ISO)
+  const parseApiDate = (value) => {
+    if (!value) return null;
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d;
+    const norm = String(value).replace(' ', 'T');
+    const d2 = new Date(norm);
+    if (!Number.isNaN(d2.getTime())) return d2;
+    const d3 = new Date(norm + 'Z');
+    return Number.isNaN(d3.getTime()) ? null : d3;
   };
 
   // Fonction pour obtenir les détails complets d'un employé
@@ -296,6 +329,47 @@ const ProjectTablePage = () => {
       [`${type}_${rowId}`]: !prev[`${type}_${rowId}`]
     }));
   };
+
+  // Quand une liste est ouverte, charger l'état "active-entry" pour ses tâches visibles (au plus une fois par tâche)
+  const preloadedActiveRef = useRef(new Set());
+  useEffect(() => {
+    const expandedListIds = Object.entries(expandedRows)
+      .filter(([key, val]) => val && key.startsWith('list_'))
+      .map(([key]) => Number(key.replace('list_', '')));
+    if (expandedListIds.length === 0) return;
+    expandedListIds.forEach((listId) => {
+      const listTasks = getFilteredTasks(listId);
+      listTasks.forEach((t) => {
+        const id = t?.id;
+        if (!id) return;
+        if (!preloadedActiveRef.current.has(id)) {
+          preloadedActiveRef.current.add(id);
+          dispatch(fetchActiveEntry(id));
+        }
+      });
+    });
+  }, [expandedRows]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(pauseTimeoutsRef.current).forEach((timer) => clearTimeout(timer));
+    };
+  }, []);
+
+  useEffect(() => {
+    Object.entries(activeByTask || {}).forEach(([taskId, entry]) => {
+      const id = Number(taskId);
+      if (!entry || Number.isNaN(id)) return;
+      if (!justPausedTasksRef.current.has(id)) return;
+      const now = Date.now();
+      const last = pauseCooldownsRef.current[id] || 0;
+      if (now - last < 3000) return;
+      pauseCooldownsRef.current[id] = now;
+      dispatch(pauseTaskTimer(id))
+        .then(() => dispatch(fetchActiveEntry(id)))
+        .catch(() => {});
+    });
+  }, [activeByTask, dispatch]);
   
   // Fonction pour filtrer les projets selon la recherche et les filtres
   const getFilteredProjects = () => {
@@ -2140,6 +2214,7 @@ const handleSubmitListInline = async (projectId) => {
                                                   ) : (
                                                     <div className="row g-2">
                                                       {getFilteredTasks(list.id).map(task => {
+                                                        // Rendu de chaque tâche
                                                         const getStatusClass = (status) => {
                                                           switch(status) {
                                                             case 'Terminée': return 'bg-success';
@@ -2373,6 +2448,166 @@ const handleSubmitListInline = async (projectId) => {
                                                                           >
                                                                             <Icon icon="mdi:comment-multiple-outline" style={{ fontSize: '0.9rem' }} />
                                                                           </button>
+
+                                                                          {/* Temps: démarrer / pause / terminer la progression (selon droits) */}
+                                                                          {canWorkOnTask(task) && (() => {
+                                                                            const entry = activeByTask?.[task.id];
+                                                                            const isActive = !!entry;
+                                                                            const format = (ms) => {
+                                                                              const totalSec = Math.max(0, Math.floor(ms / 1000));
+                                                                              const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+                                                                              const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+                                                                              const s = String(totalSec % 60).padStart(2, '0');
+                                                                              return `${h}:${m}:${s}`;
+                                                                            };
+                                                                            const today = dailyByTask?.[task.id]?.my_minutes ?? 0;
+                                                                            const formatMinutes = (mins) => {
+                                                                              const m = Math.max(0, Number(mins) || 0);
+                                                                              const h = Math.floor(m / 60);
+                                                                              const mm = m % 60;
+                                                                              return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+                                                                            };
+                                                                            const showPlay = !entry; // sans compteur live
+                                                                            const percentValue = Number(task.pourcentage ?? task.progression ?? 0);
+                                                                            const isFinished = String(task.status || '').toLowerCase().includes('termin');
+                                                                            const isCancelled = String(task.status || '').toLowerCase().includes('annul');
+                                                                            const isDone = isFinished || percentValue >= 100;
+                                                                            const handleStart = async () => {
+                                                                              try {
+                                                                                justPausedTasksRef.current.delete(task.id);
+                                                                                if (pauseTimeoutsRef.current[task.id]) {
+                                                                                  clearTimeout(pauseTimeoutsRef.current[task.id]);
+                                                                                  delete pauseTimeoutsRef.current[task.id];
+                                                                                }
+                                                                                await dispatch(startTaskTimer(task.id)).unwrap();
+                                                                                await dispatch(fetchActiveEntry(task.id));
+                                                                              } catch (err) {
+                                                                                Swal.fire({ icon: 'error', title: 'Impossible de démarrer', text: String(err || 'Erreur inconnue') });
+                                                                              }
+                                                                            };
+                                                                            const handlePause = async () => {
+                                                                              try {
+                                                                                await dispatch(pauseTaskTimer(task.id)).unwrap();
+                                                                                await dispatch(fetchActiveEntry(task.id));
+                                                                                justPausedTasksRef.current.add(task.id);
+                                                                                if (pauseTimeoutsRef.current[task.id]) {
+                                                                                  clearTimeout(pauseTimeoutsRef.current[task.id]);
+                                                                                }
+                                                                                pauseTimeoutsRef.current[task.id] = setTimeout(() => {
+                                                                                  justPausedTasksRef.current.delete(task.id);
+                                                                                  delete pauseTimeoutsRef.current[task.id];
+                                                                                }, 5 * 60 * 1000);
+                                                                              } catch (err) {
+                                                                                Swal.fire({ icon: 'error', title: 'Impossible de mettre en pause', text: String(err || 'Aucune progression en cours') });
+                                                                              }
+                                                                            };
+                                                                            const handleFinish = async () => {
+                                                                              try {
+                                                                                justPausedTasksRef.current.delete(task.id);
+                                                                                if (pauseTimeoutsRef.current[task.id]) {
+                                                                                  clearTimeout(pauseTimeoutsRef.current[task.id]);
+                                                                                  delete pauseTimeoutsRef.current[task.id];
+                                                                                }
+                                                                                const choice = await Swal.fire({
+                                                                                  icon: 'question',
+                                                                                  title: 'Terminer la tâche ?',
+                                                                                  text: 'Souhaitez-vous mettre la progression à 100% ?',
+                                                                                  showCancelButton: true,
+                                                                                  showDenyButton: true,
+                                                                                  cancelButtonText: 'Annuler',
+                                                                                  confirmButtonText: 'Terminer',
+                                                                                  denyButtonText: 'Terminer et mettre 100%'
+                                                                                });
+
+                                                                                if (!choice.isConfirmed && !choice.isDenied) {
+                                                                                  return;
+                                                                                }
+
+                                                                                const markHundred = choice.isDenied;
+
+                                                                                await dispatch(finishTask(task.id)).unwrap();
+
+                                                                                if (markHundred) {
+                                                                                  await dispatch(updateTask({ id: task.id, data: { pourcentage: 100 } })).unwrap();
+                                                                                }
+
+                                                                                await dispatch(fetchActiveEntry(task.id));
+
+                                                                                Swal.fire({
+                                                                                  icon: 'success',
+                                                                                  title: 'Tâche terminée',
+                                                                                  text: markHundred ? 'Progression mise à 100%.' : 'Progression conservée.',
+                                                                                  toast: true,
+                                                                                  timer: 2200,
+                                                                                  position: 'top-end',
+                                                                                  showConfirmButton: false
+                                                                                });
+                                                                              } catch (err) {
+                                                                                Swal.fire({ icon: 'error', title: 'Impossible de terminer', text: String(err || 'Erreur inconnue') });
+                                                                              }
+                                                                            };
+                                                                              return (
+                                                                                isDone ? (
+                                                                                <span className="badge bg-success-subtle text-success" title="Tâche terminée" style={{ fontSize: '0.7rem' }}>
+                                                                                  <Icon icon="mdi:check-circle" className="me-1" /> Terminé
+                                                                                </span>
+                                                                              ) : isCancelled ? (
+                                                                                <span className="badge bg-danger-subtle text-danger" title="Tâche annulée" style={{ fontSize: '0.7rem' }}>
+                                                                                  <Icon icon="mdi:cancel" className="me-1" /> Annulé
+                                                                                </span>
+                                                                              ) : showPlay ? (
+                                                                                <div className="d-flex align-items-center gap-1">
+                                                                                  {/* Daily badge removed as requested */}
+                                                                                  {/* En pause par défaut si aucune entrée active et non terminé/annulé */}
+                                                                                  {true && (
+                                                                                    <span className="badge bg-warning-subtle text-warning" title="En pause" style={{ fontSize: '0.7rem' }}>
+                                                                                      <Icon icon="mdi:pause-circle" className="me-1" /> En pause
+                                                                                    </span>
+                                                                                  )}
+                                                                                  <button
+                                                                                    type="button"
+                                                                                    className="btn btn-sm rounded-pill shadow-sm border-0 d-flex align-items-center justify-content-center"
+                                                                                    onClick={handleStart}
+                                                                                    title="Débuter la progression"
+                                                                                    style={{
+                                                                                      background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                                                                                      color: 'white'
+                                                                                    }}
+                                                                                  >
+                                                                                    <Icon icon="mdi:play" style={{ fontSize: '0.9rem' }} />
+                                                                                  </button>
+                                                                                </div>
+                                                                              ) : (
+                                                                                <div className="d-flex align-items-center gap-1">
+                                                                                  {/* Daily badge removed as requested */}
+                                                                                  <button
+                                                                                    type="button"
+                                                                                    className="btn btn-sm rounded-pill shadow-sm border-0 d-flex align-items-center justify-content-center"
+                                                                                    onClick={handlePause}
+                                                                                    title="Mettre en pause"
+                                                                                    style={{
+                                                                                      background: 'linear-gradient(135deg, #ffc107 0%, #fd7e14 100%)',
+                                                                                      color: 'white'
+                                                                                    }}
+                                                                                  >
+                                                                                    <Icon icon="mdi:pause" style={{ fontSize: '0.9rem' }} />
+                                                                                  </button>
+                                                                                  <button
+                                                                                    type="button"
+                                                                                    className="btn btn-sm rounded-pill shadow-sm border-0 d-flex align-items-center justify-content-center"
+                                                                                    onClick={handleFinish}
+                                                                                    title="Terminer la tâche"
+                                                                                    style={{
+                                                                                      background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
+                                                                                      color: 'white'
+                                                                                    }}
+                                                                                  >
+                                                                                    <Icon icon="mdi:stop" style={{ fontSize: '0.9rem' }} />
+                                                                                  </button>
+                                                                                </div>
+                                                                              )
+                                                                            );
+                                                                          })()}
                                                                           
                                                                           {canManageProject() && (
                                                                             <>

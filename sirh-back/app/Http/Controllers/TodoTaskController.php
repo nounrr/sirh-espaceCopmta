@@ -47,12 +47,6 @@ class TodoTaskController extends Controller
                 'type' => 'nullable|string|in:AC,AP',
                 'origine' => 'nullable|string',
                 'source' => 'nullable|string',
-                'task_kind' => 'nullable|in:continues,ponctuelle',
-                'is_recurring' => 'nullable|boolean',
-                'recurrence' => 'nullable|in:monthly,quarterly,custom',
-                'recurrence_interval_days' => 'nullable|integer|min:1|max:365',
-                'period_start' => 'nullable|date',
-                'period_end' => 'nullable|date|after_or_equal:period_start',
                 'attachments' => 'nullable|array',
                 'attachments.*' => 'file|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,xlsm,txt|max:20480',
                 'assignees' => 'nullable|array',
@@ -81,13 +75,6 @@ class TodoTaskController extends Controller
                 'origine' => $request->input('source', $request->input('origine')),
                 'client_id' => $request->input('client_id'),
                 'priority' => $request->input('priority', 'normale'),
-                'task_kind' => $request->task_kind,
-                'is_recurring' => (bool) $request->boolean('is_recurring'),
-                'recurrence' => $request->recurrence,
-                'recurrence_interval_days' => $request->recurrence_interval_days,
-                'period_start' => $request->period_start,
-                'period_end' => $request->period_end,
-                'next_run_at' => $request->next_run_at,
             ];
 
             $task = DB::transaction(function () use ($request, $payload, $assigneeIds) {
@@ -197,12 +184,6 @@ class TodoTaskController extends Controller
             'source' => 'nullable|string',
             'assigned_to' => 'nullable|exists:users,id',
             'todo_list_id' => 'sometimes|exists:todo_lists,id',
-            'task_kind' => 'nullable|in:continues,ponctuelle',
-            'is_recurring' => 'nullable|boolean',
-            'recurrence' => 'nullable|in:monthly,quarterly,custom',
-            'recurrence_interval_days' => 'nullable|integer|min:1|max:365',
-            'period_start' => 'nullable|date',
-            'period_end' => 'nullable|date|after_or_equal:period_start',
             'attachments' => 'nullable|array',
             'attachments.*' => 'file|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,xlsm,txt|max:20480',
             'remove_attachments' => 'nullable|array',
@@ -231,13 +212,6 @@ class TodoTaskController extends Controller
             'todo_list_id',
             'client_id',
             'priority',
-            'task_kind',
-            'is_recurring',
-            'recurrence',
-            'recurrence_interval_days',
-            'period_start',
-            'period_end',
-            'next_run_at',
         ];
 
         if ($hasLimitedEmployeePermissions) {

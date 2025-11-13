@@ -79,22 +79,6 @@ public function todoListsCreated()
         return $this->hasMany(TodoTask::class, 'assigned_to');
     }
 
-    /**
-     * Time tracking entries for this user.
-     */
-    public function timeEntries()
-    {
-        return $this->hasMany(\App\Models\TimeEntry::class, 'user_id');
-    }
-
-    /**
-     * Progress logs authored by this user.
-     */
-    public function taskProgressLogs()
-    {
-        return $this->hasMany(\App\Models\TaskProgressLog::class, 'user_id');
-    }
-
 
    
     /**

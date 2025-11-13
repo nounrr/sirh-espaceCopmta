@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\TodoTaskProof;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Models\TaskProgressHour;
 
 /**
  * @property-read \Illuminate\Database\Eloquent\Collection<int, User> $assignees
@@ -14,24 +15,11 @@ use Illuminate\Support\Facades\Log;
 
 class TodoTask extends Model
 {
-    protected $fillable = ['todo_list_id', 'description', 'status', 'start_date', 'end_date', 'assigned_to', 'pourcentage', 'type', 'origine', 'client_id', 'priority', 'task_kind', 'is_recurring', 'recurrence', 'recurrence_interval_days', 'period_start', 'period_end', 'next_run_at'];
+    protected $fillable = ['todo_list_id', 'description', 'status', 'start_date', 'end_date', 'assigned_to', 'pourcentage', 'type', 'origine', 'client_id', 'priority'];
 
     protected $with = ['comments', 'attachments', 'assignees', 'cancellationRequests', 'proofs'];
 
-    protected $appends = ['source', 'active_timer'];
-
-    protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'period_start' => 'date',
-        'period_end' => 'date',
-        'next_run_at' => 'datetime',
-        'is_recurring' => 'boolean',
-        'recurrence_interval_days' => 'integer',
-        'assigned_to' => 'integer',
-        'client_id' => 'integer',
-        'pourcentage' => 'integer',
-    ];
+    protected $appends = ['source'];
     
     protected static function booted()
     {
@@ -166,6 +154,11 @@ class TodoTask extends Model
             ->with(['uploader:id,name,prenom']);
     }
 
+    public function progressHours()
+    {
+        return $this->hasMany(TaskProgressHour::class, 'task_id')->orderBy('start_datetime', 'desc');
+    }
+
     public function cancellationRequests()
     {
         return $this->hasMany(TodoTaskCancellationRequest::class, 'todo_task_id')
@@ -176,36 +169,6 @@ class TodoTask extends Model
     public function getSourceAttribute()
     {
         return $this->origine;
-    }
-
-    /**
-     * Time tracking relations
-     */
-    public function timeEntries()
-    {
-        return $this->hasMany(\App\Models\TimeEntry::class, 'todo_task_id');
-    }
-
-    public function progressLogs()
-    {
-        return $this->hasMany(\App\Models\TaskProgressLog::class, 'todo_task_id');
-    }
-
-    /**
-     * Helper: does current user have an active timer on this task?
-     */
-    public function getActiveTimerAttribute()
-    {
-        try {
-            $user = \Illuminate\Support\Facades\Auth::user();
-            if (!$user) return false;
-            return \App\Models\TimeEntry::where('user_id', $user->id)
-                ->where('todo_task_id', $this->id)
-                ->whereNull('stopped_at')
-                ->exists();
-        } catch (\Throwable $e) {
-            return false;
-        }
     }
 
     private static function normalizeStatus(string $status): string

@@ -2,144 +2,245 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\TaskProgressHour;
 use App\Models\TodoTask;
-use App\Models\TimeEntry;
-use App\Models\TaskProgressLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\Response;
 
 class TimeTrackingController extends Controller
 {
+    private function closeEntries($entries, $endTime = null)
+    {
+        $timestamp = $endTime ?: now();
+
+        return collect($entries)->map(function ($entry) use ($timestamp) {
+            $entry->end_datetime = $timestamp;
+            $entry->save();
+            $entry->refresh();
+
+            return $entry;
+        });
+    }
+
+    private function canWorkOn(TodoTask $task, $user): bool
+    {
+        if (!$user) return false;
+        $role = $user->role ?? null;
+        if (in_array($role, ['RH', 'Gest_RH', 'Chef_Dep'])) {
+            return true;
+        }
+
+        if ((int)($task->assigned_to ?? 0) === (int)$user->id) {
+            return true;
+        }
+
+        // Check many-to-many assignees
+        return $task->assignees()->where('users.id', $user->id)->exists();
+    }
+
+    // POST /api/tasks/{task}/start
     public function start(TodoTask $task)
     {
         $user = Auth::user();
-        // Close any previous open timer for this user (any task)
-        TimeEntry::where('user_id',$user->id)->whereNull('stopped_at')->update(['stopped_at'=>now()]);
+        if (!$this->canWorkOn($task, $user)) {
+            return response()->json(['message' => 'Non autorisé'], Response::HTTP_FORBIDDEN);
+        }
 
-        $entry = TimeEntry::create([
+        // Allow simultaneous work across tasks: do NOT auto-close other open entries
+        // Ensure only one open entry per user+task (close legacy duplicates if any)
+        $openEntries = TaskProgressHour::where('user_id', $user->id)
+            ->where('task_id', $task->id)
+            ->whereNull('end_datetime')
+            ->latest('start_datetime')
+            ->get();
+
+        if ($openEntries->isNotEmpty()) {
+            $latest = $openEntries->shift();
+            if ($openEntries->isNotEmpty()) {
+                $this->closeEntries($openEntries);
+            }
+
+            return response()->json($latest);
+        }
+
+        $entry = TaskProgressHour::create([
             'user_id' => $user->id,
-            'todo_task_id' => $task->id,
-            'client_id' => $task->client_id,
-            'started_at' => now(),
-            'source' => 'auto'
+            'task_id' => $task->id,
+            'start_datetime' => now(),
         ]);
-
-        if (!$task->real_start_at) {
-            $task->real_start_at = now();
-            $task->save();
-        }
-
-        if ($task->status === 'Non commencée' || $task->status === 'Non commencé') {
-            $task->status = 'En cours';
-            $task->save();
-        }
 
         return response()->json($entry);
     }
 
+    // POST /api/tasks/{task}/stop
     public function stop(TodoTask $task)
     {
         $user = Auth::user();
-        $entry = TimeEntry::where('user_id',$user->id)
-            ->where('todo_task_id',$task->id)
-            ->whereNull('stopped_at')
-            ->latest('started_at')
-            ->first();
-        if (!$entry) {
-            return response()->json(['message'=>'No active timer'],404);
+        if (!$this->canWorkOn($task, $user)) {
+            return response()->json(['message' => 'Non autorisé'], Response::HTTP_FORBIDDEN);
         }
-        $entry->stopped_at = now();
-        $entry->save();
+
+        $openEntries = TaskProgressHour::where('user_id', $user->id)
+            ->where('task_id', $task->id)
+            ->whereNull('end_datetime')
+            ->latest('start_datetime')
+            ->get();
+
+        if ($openEntries->isEmpty()) {
+            // Make pause/stop idempotent: return 200 with a no-op payload
+            return response()->json([
+                'closed' => false,
+                'message' => 'Aucune progression en cours',
+            ]);
+        }
+
+        $closedEntries = $this->closeEntries($openEntries);
+
+        return response()->json([
+            'closed' => true,
+            'closed_count' => $closedEntries->count(),
+            'entries' => $closedEntries->values(),
+        ]);
+    }
+
+    // POST /api/tasks/{task}/pause (alias of stop for semantics)
+    public function pause(TodoTask $task)
+    {
+        return $this->stop($task);
+    }
+
+    // GET /api/tasks/{task}/active-entry
+    public function activeEntry(TodoTask $task)
+    {
+        $user = Auth::user();
+        if (!$this->canWorkOn($task, $user)) {
+            return response()->json(['message' => 'Non autorisé'], Response::HTTP_FORBIDDEN);
+        }
+
+        $entry = TaskProgressHour::where('user_id', $user->id)
+            ->where('task_id', $task->id)
+            ->whereNull('end_datetime')
+            ->latest('start_datetime')
+            ->first();
+
         return response()->json($entry);
     }
 
-    public function progress(Request $request, TodoTask $task)
+    // GET /api/tasks/{task}/time-summary
+    public function timeSummary(TodoTask $task, Request $request)
     {
-        $data = $request->validate([
-            'pourcentage' => 'required|integer|min:0|max:100',
-            'comment' => 'nullable|string'
-        ]);
         $user = Auth::user();
+        if (!$this->canWorkOn($task, $user)) {
+            return response()->json(['message' => 'Non autorisé'], Response::HTTP_FORBIDDEN);
+        }
 
-        $log = null;
-        DB::transaction(function() use ($task,$data,$user,&$log) {
-            $task->pourcentage = $data['pourcentage'];
-            if ($data['pourcentage'] >= 100) {
-                $task->status = 'Terminée';
-                if (!$task->real_end_at) {
-                    $task->real_end_at = now();
-                }
-            } elseif ($task->status === 'Non commencée') {
-                $task->status = 'En cours';
-            }
-            $task->save();
-            $log = TaskProgressLog::create([
-                'todo_task_id' => $task->id,
-                'user_id' => $user->id,
-                'pourcentage' => $data['pourcentage'],
-                'comment' => $data['comment'] ?? null,
+        $date = $request->query('date');
+        if ($date) {
+            // Daily summary including running slices overlapping that day
+            $startOfDay = date('Y-m-d 00:00:00', strtotime($date));
+            $endOfDay = date('Y-m-d 23:59:59', strtotime($date));
+
+            $total = DB::table('task_progress_hours')
+                ->selectRaw('COALESCE(SUM(TIMESTAMPDIFF(MINUTE, GREATEST(start_datetime, ?), LEAST(COALESCE(end_datetime, NOW()), ?))), 0) as minutes', [$startOfDay, $endOfDay])
+                ->where('task_id', $task->id)
+                ->where('start_datetime', '<', $endOfDay)
+                ->where(function ($q) use ($startOfDay) {
+                    $q->whereNull('end_datetime')->orWhere('end_datetime', '>', $startOfDay);
+                })
+                ->value('minutes');
+
+            $mine = DB::table('task_progress_hours')
+                ->selectRaw('COALESCE(SUM(TIMESTAMPDIFF(MINUTE, GREATEST(start_datetime, ?), LEAST(COALESCE(end_datetime, NOW()), ?))), 0) as minutes', [$startOfDay, $endOfDay])
+                ->where('task_id', $task->id)
+                ->where('user_id', $user->id)
+                ->where('start_datetime', '<', $endOfDay)
+                ->where(function ($q) use ($startOfDay) {
+                    $q->whereNull('end_datetime')->orWhere('end_datetime', '>', $startOfDay);
+                })
+                ->value('minutes');
+
+            return response()->json([
+                'period' => 'day',
+                'date' => date('Y-m-d', strtotime($date)),
+                'total_minutes' => (int)($total ?? 0),
+                'my_minutes' => (int)($mine ?? 0),
             ]);
-        });
-        return response()->json($log);
+        } else {
+            // Overall summary (closed slices only)
+            $total = DB::table('task_progress_hours')
+                ->selectRaw('COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_datetime, end_datetime)), 0) as minutes')
+                ->where('task_id', $task->id)
+                ->whereNotNull('end_datetime')
+                ->value('minutes');
+
+            $mine = DB::table('task_progress_hours')
+                ->selectRaw('COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_datetime, end_datetime)), 0) as minutes')
+                ->where('task_id', $task->id)
+                ->where('user_id', $user->id)
+                ->whereNotNull('end_datetime')
+                ->value('minutes');
+
+            return response()->json([
+                'period' => 'all',
+                'total_minutes' => (int)($total ?? 0),
+                'my_minutes' => (int)($mine ?? 0),
+            ]);
+        }
     }
 
-    public function timesheet(Request $request)
+    // GET /api/my/active-entry
+    public function myActiveEntry()
     {
-        $validated = $request->validate([
-            'from' => 'required|date',
-            'to' => 'required|date'
-        ]);
         $user = Auth::user();
-        $query = TimeEntry::with(['task:id,description','client:id,name,prenom'])
-            ->whereBetween('started_at', [$validated['from'], $validated['to'].' 23:59:59']);
-        if (!in_array($user->role, ['RH','Gest_RH','Chef_Dep'])) {
-            $query->where('user_id',$user->id);
-        } elseif ($request->filled('user_id')) {
-            $query->where('user_id',$request->user_id);
-        }
-        $entries = $query->get();
-        $daily = $entries->groupBy(fn($e)=>$e->started_at->toDateString())->map(function($items){
-            return [
-                'minutes' => $items->sum(fn($i)=>$i->duration_minutes ?? 0),
-                'tasks' => $items->pluck('todo_task_id')->unique()->count()
-            ];
-        });
-        return response()->json([
-            'entries' => $entries,
-            'daily' => $daily,
-        ]);
+        $entry = TaskProgressHour::with('task')
+            ->where('user_id', $user->id)
+            ->whereNull('end_datetime')
+            ->latest('start_datetime')
+            ->first();
+
+        return response()->json($entry);
     }
 
-    public function analytics(Request $request)
+    // GET /api/my/active-entries (optional: list all concurrent active entries)
+    public function myActiveEntries()
     {
-        $validated = $request->validate([
-            'from' => 'required|date',
-            'to' => 'required|date'
-        ]);
         $user = Auth::user();
-        if (!in_array($user->role,['RH','Gest_RH','Chef_Dep'])) {
-            return response()->json(['message'=>'Non autorisé'],403);
-        }
-        $from = $validated['from'];
-        $to = $validated['to'].' 23:59:59';
-
-        $entries = TimeEntry::with('user:id,name,prenom,hourly_rate')
-            ->whereNotNull('stopped_at')
-            ->whereBetween('started_at', [$from,$to])
+        $entries = TaskProgressHour::with('task')
+            ->where('user_id', $user->id)
+            ->whereNull('end_datetime')
+            ->orderByDesc('start_datetime')
             ->get();
 
-        $grouped = $entries->groupBy('client_id')->map(function($rows){
-            $hours = $rows->sum(fn($r)=> ($r->duration_minutes ?? 0)/60);
-            $cost = $rows->sum(fn($r)=> (($r->duration_minutes ?? 0)/60) * ($r->user->hourly_rate ?? 0));
-            return [
-                'hours' => $hours,
-                'cost' => $cost,
-            ];
-        });
+        return response()->json($entries);
+    }
+
+    // POST /api/tasks/{task}/finish
+    public function finish(TodoTask $task)
+    {
+        $user = Auth::user();
+        if (!$this->canWorkOn($task, $user)) {
+            return response()->json(['message' => 'Non autorisé'], Response::HTTP_FORBIDDEN);
+        }
+
+        // Close any open slice for this task
+        $openEntries = TaskProgressHour::where('user_id', $user->id)
+            ->where('task_id', $task->id)
+            ->whereNull('end_datetime')
+            ->latest('start_datetime')
+            ->get();
+
+        $closedEntries = collect();
+        if ($openEntries->isNotEmpty()) {
+            $closedEntries = $this->closeEntries($openEntries);
+        }
+
+        $task->refresh();
+
         return response()->json([
-            'costPerClient' => $grouped,
-            'totalHours' => $entries->sum(fn($r)=> ($r->duration_minutes ?? 0)/60)
+            'closed_entries' => $closedEntries->values(),
+            'task' => $task,
         ]);
     }
 }

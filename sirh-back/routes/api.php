@@ -9,7 +9,6 @@ use App\Http\Controllers\StatistiquesController;
 use App\Http\Controllers\PointageController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AbsenceRequestExcelController;
-use App\Http\Controllers\DashboardAnalyticsController;
 use App\Http\Controllers\PointageImportController;
 use App\Http\Controllers\DepartementExcelController;
 use App\Http\Controllers\PointageExcelController;
@@ -28,12 +27,12 @@ use App\Http\Controllers\TodoTaskController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TodoTaskCancellationRequestController;
 use App\Http\Controllers\UserTypeDocController;
-use App\Http\Controllers\TimeTrackingController;
 use App\Http\Controllers\JourFerieController;
 use App\Http\Controllers\CongeExportController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\SalaireController;
 use App\Http\Controllers\ChargePersonnelController;
+use App\Http\Controllers\TimeTrackingController;
 use App\Http\Middleware\RoleMiddleware;
 
 Route::resource('jours-feries', JourFerieController::class);
@@ -157,20 +156,15 @@ Route::delete('/user-docs/{userId}/{typeDocId}', [UserTypeDocController::class, 
     Route::put('/comments/{commentId}', [TaskCommentController::class, 'update']);
     Route::delete('/comments/{commentId}', [TaskCommentController::class, 'destroy']);
 
-    // Time tracking routes
+    // Time tracking for tasks
     Route::post('/tasks/{task}/start', [TimeTrackingController::class, 'start']);
     Route::post('/tasks/{task}/stop', [TimeTrackingController::class, 'stop']);
-    Route::post('/tasks/{task}/progress', [TimeTrackingController::class, 'progress']);
-    Route::get('/timesheet', [TimeTrackingController::class, 'timesheet']);
-    Route::get('/analytics/time', [TimeTrackingController::class, 'analytics']);
-
-    // Dashboard & analytics
-    Route::get('/analytics/status-overview',[DashboardAnalyticsController::class,'statusOverview']);
-    Route::get('/analytics/time-breakdown',[DashboardAnalyticsController::class,'timeBreakdown']);
-    Route::get('/analytics/profitability',[DashboardAnalyticsController::class,'profitability']);
-    Route::get('/analytics/team-performance',[DashboardAnalyticsController::class,'teamPerformance']);
-    Route::get('/analytics/overdue-tasks',[DashboardAnalyticsController::class,'overdueTasks']);
-    Route::get('/analytics/info-requests',[DashboardAnalyticsController::class,'infoRequestSummary']);
+    Route::post('/tasks/{task}/pause', [TimeTrackingController::class, 'pause']);
+    Route::post('/tasks/{task}/finish', [TimeTrackingController::class, 'finish']);
+    Route::get('/tasks/{task}/active-entry', [TimeTrackingController::class, 'activeEntry']);
+    Route::get('/tasks/{task}/time-summary', [TimeTrackingController::class, 'timeSummary']);
+    Route::get('/my/active-entry', [TimeTrackingController::class, 'myActiveEntry']);
+    Route::get('/my/active-entries', [TimeTrackingController::class, 'myActiveEntries']);
 
     //pub et vote
     Route::get('/publications', [PublicationController::class, 'index']);
@@ -203,8 +197,8 @@ Route::get('/export-conges', [CongeExportController::class, 'exportCongés']);
 
 Route::middleware(['auth:sanctum', 'role:RH'])->group(function () {
     Route::post('/assign-role', [AuthController::class, 'assignRole']);
-    Route::get('/user_permission', function () {
-        $user = auth()->user();
+    Route::get('/user_permission', function (Request $request) {
+        $user = $request->user();
         return response()->json([
             'user' => $user->name,
             'roles' => $user->getRoleNames(),

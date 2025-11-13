@@ -24297,6 +24297,42 @@ ALTER TABLE `users`
 ALTER TABLE `votes`
   ADD CONSTRAINT `votes_answer_id_foreign` FOREIGN KEY (`answer_id`) REFERENCES `answers` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `votes_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `time_entries`
+--
+CREATE TABLE `time_entries` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` bigint(20) UNSIGNED NOT NULL,
+  `todo_task_id` bigint(20) UNSIGNED NOT NULL,
+  `started_at` datetime NOT NULL,
+  `stopped_at` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
+
+--
+-- Index pour la table `time_entries`
+--
+ALTER TABLE `time_entries`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `time_entries_user_id_started_at_index` (`user_id`,`started_at`),
+  ADD KEY `time_entries_todo_task_id_index` (`todo_task_id`);
+
+--
+-- AUTO_INCREMENT pour la table `time_entries`
+--
+ALTER TABLE `time_entries`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- Contraintes pour la table `time_entries`
+--
+ALTER TABLE `time_entries`
+  ADD CONSTRAINT `time_entries_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `time_entries_todo_task_id_foreign` FOREIGN KEY (`todo_task_id`) REFERENCES `todo_tasks` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
