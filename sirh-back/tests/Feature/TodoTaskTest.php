@@ -33,7 +33,7 @@ class TodoTaskTest extends TestCase
 		$payload = [
 			'description' => 'Prepare monthly report',
 			'repeat_count' => 3,
-			'repeat_frequency' => '5_minutes',
+			'repeat_frequency' => 'week',
 			'repeat_ranges' => [
 				['start_date' => '2025-01-01', 'end_date' => '2025-01-02'],
 				['start_date' => '2025-01-01', 'end_date' => '2025-01-02'],
@@ -72,8 +72,8 @@ class TodoTaskTest extends TestCase
 			->all();
 
 		$this->assertCount(2, $delays);
-		$this->assertEqualsWithDelta(300, $delays[0], 3);
-		$this->assertEqualsWithDelta(600, $delays[1], 3);
+		$this->assertEqualsWithDelta(604800, $delays[0], 5);
+		$this->assertEqualsWithDelta(1209600, $delays[1], 5);
 	}
 
 	public function test_repeat_job_creates_task_with_assignees_and_attachments(): void

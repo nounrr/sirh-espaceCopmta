@@ -86,7 +86,6 @@ const MINIMAL_ACCESS_ROLES = [
 const MAX_REPEAT_COUNT = 10;
 const REPEAT_FREQUENCY_OPTIONS = [
   { value: 'manual', label: 'Personnalisé' },
-  { value: '5_minutes', label: 'Toutes les 5 minutes' },
   { value: 'week', label: 'Chaque semaine' },
   { value: 'month', label: 'Chaque mois' },
   { value: '3_months', label: 'Tous les 3 mois' },
@@ -114,9 +113,6 @@ const addIntervalToDate = (dateString, frequency, multiplier) => {
   if (Number.isNaN(baseDate.getTime())) return '';
   const steps = Number(multiplier) || 0;
   switch (frequency) {
-    case '5_minutes':
-      baseDate.setMinutes(baseDate.getMinutes() + steps * 5);
-      break;
     case 'week':
       baseDate.setDate(baseDate.getDate() + steps * 7);
       break;
@@ -2599,7 +2595,7 @@ const TasksPhoneView = () => {
                     </small>
                     {repeatCount > 1 && (
                       <small className="text-muted d-block mt-1" style={{ fontSize: '0.75rem' }}>
-                        Les occurrences supplémentaires seront planifiées automatiquement et créées selon la fréquence sélectionnée (ex. toutes les 5 minutes).
+                        Les occurrences supplémentaires seront planifiées automatiquement et créées selon la fréquence sélectionnée.
                       </small>
                     )}
                   </div>

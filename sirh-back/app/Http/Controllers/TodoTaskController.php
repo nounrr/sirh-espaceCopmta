@@ -54,7 +54,7 @@ class TodoTaskController extends Controller
                 'assignees' => 'nullable|array',
                 'assignees.*' => 'integer|distinct|exists:users,id',
                 'repeat_count' => 'nullable|integer|min:1|max:10',
-                'repeat_frequency' => 'nullable|string|in:manual,5_minutes,week,month,3_months,6_months,year',
+                'repeat_frequency' => 'nullable|string|in:manual,week,month,3_months,6_months,year',
                 'repeat_ranges' => 'nullable|array',
                 'repeat_ranges.*.start_date' => 'nullable|date',
                 'repeat_ranges.*.end_date' => 'nullable|date',
@@ -567,7 +567,6 @@ class TodoTaskController extends Controller
         $now = now();
 
         return match ($frequency) {
-            '5_minutes' => $now->copy()->addMinutes(5 * $iteration),
             'week' => $now->copy()->addWeeks($iteration),
             'month' => $now->copy()->addMonths($iteration),
             '3_months' => $now->copy()->addMonths(3 * $iteration),
