@@ -7,10 +7,30 @@ use App\Models\TodoTask;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 use Symfony\Component\HttpFoundation\Response;
 
 class TimeTrackingController extends Controller
 {
+    private const PRIVILEGED_ROLES = [
+        'rh',
+        'gest_rh',
+        'gest-rh',
+        'gest_projet',
+        'gest-projet',
+        'gestionnaire_projet',
+        'chef_dep',
+        'chef-dep',
+        'chef_dept',
+        'chef_departement',
+        'chef_department',
+        'chef_projet',
+        'chef-projet',
+        'chef_chant',
+        'admin',
+    ];
+
     private function closeEntries($entries, $endTime = null)
     {
         $timestamp = $endTime ?: now();
@@ -24,11 +44,31 @@ class TimeTrackingController extends Controller
         });
     }
 
+    private function normalizeRole(?string $role): ?string
+    {
+        if (!$role) {
+            return null;
+        }
+
+        $normalized = Str::of($role)
+            ->lower()
+            ->replace(['é', 'è', 'ê', 'ë'], 'e')
+            ->replace(['à', 'á', 'â', 'ä'], 'a')
+            ->replace(['ï', 'î', 'ì'], 'i')
+            ->replace(['ö', 'ô', 'ò'], 'o')
+            ->replace(['ü', 'û', 'ù'], 'u')
+            ->replace(' ', '_')
+            ->__toString();
+
+        return $normalized;
+    }
+
     private function canWorkOn(TodoTask $task, $user): bool
     {
         if (!$user) return false;
         $role = $user->role ?? null;
-        if (in_array($role, ['RH', 'Gest_RH', 'Chef_Dep'])) {
+        $normalizedRole = $this->normalizeRole($role) ?? '';
+        if ($normalizedRole && in_array($normalizedRole, self::PRIVILEGED_ROLES, true)) {
             return true;
         }
 
@@ -137,55 +177,115 @@ class TimeTrackingController extends Controller
         }
 
         $date = $request->query('date');
+        $driver = DB::getDriverName();
+        $isSqlite = $driver === 'sqlite';
         if ($date) {
             // Daily summary including running slices overlapping that day
             $startOfDay = date('Y-m-d 00:00:00', strtotime($date));
             $endOfDay = date('Y-m-d 23:59:59', strtotime($date));
 
-            $total = DB::table('task_progress_hours')
+            if ($isSqlite) {
+                $startBoundary = Carbon::parse($startOfDay);
+                $endBoundary = Carbon::parse($endOfDay);
+                $entries = TaskProgressHour::where('task_id', $task->id)
+                    ->where('start_datetime', '<', $endOfDay)
+                    ->where(function ($q) use ($startOfDay) {
+                        $q->whereNull('end_datetime')->orWhere('end_datetime', '>', $startOfDay);
+                    })
+                    ->get();
+
+                $totalStats = $this->summarizeEntries($entries, $startBoundary, $endBoundary);
+                $myStats = $this->summarizeEntries($entries->where('user_id', $user->id)->values(), $startBoundary, $endBoundary);
+
+                return response()->json([
+                    'period' => 'day',
+                    'date' => date('Y-m-d', strtotime($date)),
+                    'total_minutes' => $totalStats['minutes'],
+                    'my_minutes' => $myStats['minutes'],
+                    'total_segments' => $totalStats['segments'],
+                    'my_segments' => $myStats['segments'],
+                ]);
+            }
+
+            $baseQuery = DB::table('task_progress_hours')
                 ->selectRaw('COALESCE(SUM(TIMESTAMPDIFF(MINUTE, GREATEST(start_datetime, ?), LEAST(COALESCE(end_datetime, NOW()), ?))), 0) as minutes', [$startOfDay, $endOfDay])
                 ->where('task_id', $task->id)
                 ->where('start_datetime', '<', $endOfDay)
                 ->where(function ($q) use ($startOfDay) {
                     $q->whereNull('end_datetime')->orWhere('end_datetime', '>', $startOfDay);
-                })
+                });
+
+            $total = (clone $baseQuery)->value('minutes');
+
+            $mine = (clone $baseQuery)
+                ->where('user_id', $user->id)
                 ->value('minutes');
 
-            $mine = DB::table('task_progress_hours')
-                ->selectRaw('COALESCE(SUM(TIMESTAMPDIFF(MINUTE, GREATEST(start_datetime, ?), LEAST(COALESCE(end_datetime, NOW()), ?))), 0) as minutes', [$startOfDay, $endOfDay])
+            $segmentsBase = DB::table('task_progress_hours')
                 ->where('task_id', $task->id)
-                ->where('user_id', $user->id)
                 ->where('start_datetime', '<', $endOfDay)
                 ->where(function ($q) use ($startOfDay) {
                     $q->whereNull('end_datetime')->orWhere('end_datetime', '>', $startOfDay);
-                })
-                ->value('minutes');
+                });
+
+            $totalSegments = (clone $segmentsBase)->count();
+            $mySegments = (clone $segmentsBase)->where('user_id', $user->id)->count();
 
             return response()->json([
                 'period' => 'day',
                 'date' => date('Y-m-d', strtotime($date)),
                 'total_minutes' => (int)($total ?? 0),
                 'my_minutes' => (int)($mine ?? 0),
+                'total_segments' => (int) $totalSegments,
+                'my_segments' => (int) $mySegments,
             ]);
         } else {
             // Overall summary (closed slices only)
-            $total = DB::table('task_progress_hours')
+            if ($isSqlite) {
+                $entries = TaskProgressHour::where('task_id', $task->id)
+                    ->whereNotNull('end_datetime')
+                    ->get();
+
+                $totalStats = $this->summarizeEntries($entries);
+                $myStats = $this->summarizeEntries($entries->where('user_id', $user->id)->values());
+
+                return response()->json([
+                    'period' => 'all',
+                    'total_minutes' => $totalStats['minutes'],
+                    'my_minutes' => $myStats['minutes'],
+                    'total_segments' => $totalStats['segments'],
+                    'my_segments' => $myStats['segments'],
+                ]);
+            }
+
+            $baseClosed = DB::table('task_progress_hours')
                 ->selectRaw('COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_datetime, end_datetime)), 0) as minutes')
                 ->where('task_id', $task->id)
-                ->whereNotNull('end_datetime')
+                ->whereNotNull('end_datetime');
+
+            $total = (clone $baseClosed)->value('minutes');
+
+            $mine = (clone $baseClosed)
+                ->where('user_id', $user->id)
                 ->value('minutes');
 
-            $mine = DB::table('task_progress_hours')
-                ->selectRaw('COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_datetime, end_datetime)), 0) as minutes')
+            $totalSegments = DB::table('task_progress_hours')
+                ->where('task_id', $task->id)
+                ->whereNotNull('end_datetime')
+                ->count();
+
+            $mySegments = DB::table('task_progress_hours')
                 ->where('task_id', $task->id)
                 ->where('user_id', $user->id)
                 ->whereNotNull('end_datetime')
-                ->value('minutes');
+                ->count();
 
             return response()->json([
                 'period' => 'all',
                 'total_minutes' => (int)($total ?? 0),
                 'my_minutes' => (int)($mine ?? 0),
+                'total_segments' => (int) $totalSegments,
+                'my_segments' => (int) $mySegments,
             ]);
         }
     }
@@ -242,5 +342,38 @@ class TimeTrackingController extends Controller
             'closed_entries' => $closedEntries->values(),
             'task' => $task,
         ]);
+    }
+
+    private function summarizeEntries($entries, ?Carbon $startBoundary = null, ?Carbon $endBoundary = null): array
+    {
+        $minutes = 0;
+        $segments = 0;
+        $startBoundary = $startBoundary?->copy();
+        $endBoundary = $endBoundary?->copy();
+
+        foreach ($entries as $entry) {
+            $start = Carbon::parse($entry->start_datetime);
+            $end = $entry->end_datetime ? Carbon::parse($entry->end_datetime) : Carbon::now();
+
+            if ($startBoundary && $start->lt($startBoundary)) {
+                $start = $startBoundary->copy();
+            }
+
+            if ($endBoundary && $end->gt($endBoundary)) {
+                $end = $endBoundary->copy();
+            }
+
+            if ($end->lte($start)) {
+                continue;
+            }
+
+            $minutes += $start->diffInMinutes($end);
+            $segments++;
+        }
+
+        return [
+            'minutes' => $minutes,
+            'segments' => $segments,
+        ];
     }
 }

@@ -43,7 +43,18 @@ import { fetchUsers } from '../../Redux/Slices/userSlice';
 import { fetchClients } from '../../Redux/Slices/clientsSlice';
 import Swal from '../../utils/swal';
 import { fetchTaskComments, addTaskComment, updateTaskComment, deleteTaskComment } from '../../Redux/Slices/taskCommentsSlice';
-import { fetchActiveEntry, startTaskTimer, pauseTaskTimer, finishTask } from '../../Redux/Slices/timeTrackingSlice';
+import { fetchActiveEntry, startTaskTimer, pauseTaskTimer, finishTask, fetchDailySummary } from '../../Redux/Slices/timeTrackingSlice';
+
+const formatMinutesLabel = (value) => {
+  const total = Math.max(0, Number(value) || 0);
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  if (!hours) {
+    return `${minutes} min`;
+  }
+  const minutePart = minutes.toString().padStart(2, '0');
+  return `${hours}h ${minutePart}`;
+};
 
 const PRIVILEGED_ROLES = [
   'rh',
@@ -188,11 +199,12 @@ const TasksPhoneView = () => {
   const [editCommentInputs, setEditCommentInputs] = useState({});
   const [selectedTasksForReminder, setSelectedTasksForReminder] = useState([]);
   const [sendingBulkReminders, setSendingBulkReminders] = useState(false);
+  const [todayDate, setTodayDate] = useState(() => new Date().toISOString().slice(0, 10));
   const filterAssigneeCloseTimeout = useRef(null);
   const commentInputRefs = useRef({});
-  const justPausedTasksRef = useRef(new Set());
-  const pauseTimeoutsRef = useRef({});
-  const pauseCooldownsRef = useRef({});
+  const dailySummaryRequestsRef = useRef({});
+  const manualTimerControlRef = useRef(new Set());
+  const autoPausedTasksRef = useRef(new Set());
 
   const cancelFilterAssigneeClose = () => {
     if (filterAssigneeCloseTimeout.current) {
@@ -568,6 +580,14 @@ const TasksPhoneView = () => {
     cancelFilterAssigneeClose();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const next = new Date().toISOString().slice(0, 10);
+      setTodayDate((prev) => (prev === next ? prev : next));
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const normalizedAuthRoles = useMemo(() => {
     const collected = [
       ...(Array.isArray(authRoles) ? authRoles : []),
@@ -592,6 +612,10 @@ const TasksPhoneView = () => {
       setShowHundredIncompleteOnly(false);
     }
   }, [userHasAdvancedAccess, showHundredIncompleteOnly]);
+
+  useEffect(() => {
+    dailySummaryRequestsRef.current = {};
+  }, [todayDate]);
 
   const hasLimitedEmployeePermissions = useMemo(() => {
     return hasMinimalAccessRole && !userHasAdvancedAccess;
@@ -900,25 +924,36 @@ const TasksPhoneView = () => {
   }, [dispatch, paginatedTasks]);
 
   useEffect(() => {
-    return () => {
-      Object.values(pauseTimeoutsRef.current).forEach((timer) => clearTimeout(timer));
-    };
-  }, []);
+    if (!Array.isArray(paginatedTasks)) return;
+    paginatedTasks.forEach((t) => {
+      const id = t?.id;
+      if (!id) return;
+      const key = `${id}-${todayDate}`;
+      if (dailySummaryRequestsRef.current[key]) {
+        return;
+      }
+      dailySummaryRequestsRef.current[key] = true;
+      dispatch(fetchDailySummary({ taskId: id, date: todayDate }));
+    });
+  }, [dispatch, paginatedTasks, todayDate]);
 
   useEffect(() => {
-    Object.entries(activeByTask).forEach(([taskId, entry]) => {
-      const id = Number(taskId);
-      if (!entry || Number.isNaN(id)) return;
-      if (!justPausedTasksRef.current.has(id)) return;
-      const now = Date.now();
-      const last = pauseCooldownsRef.current[id] || 0;
-      if (now - last < 3000) return;
-      pauseCooldownsRef.current[id] = now;
+    if (!Array.isArray(paginatedTasks)) return;
+    paginatedTasks.forEach((task) => {
+      const id = task?.id;
+      if (!id) return;
+      const entry = activeByTask?.[id];
+      if (!entry) {
+        return;
+      }
+      if (manualTimerControlRef.current.has(id)) return;
+      if (autoPausedTasksRef.current.has(id)) return;
+      autoPausedTasksRef.current.add(id);
       dispatch(pauseTaskTimer(id))
         .then(() => dispatch(fetchActiveEntry(id)))
         .catch(() => {});
     });
-  }, [activeByTask, dispatch]);
+  }, [activeByTask, paginatedTasks, dispatch]);
 
   const resetForm = () => {
     setDescription('');
@@ -3851,12 +3886,23 @@ const TasksPhoneView = () => {
                             {/* Boutons Temps: Début / Pause / Terminer (sans compteur live), avec styles distincts pause vs terminé */}
                             {(() => {
                               const entry = activeByTask?.[task.id];
+                              const isAutoPaused = autoPausedTasksRef.current.has(task.id);
                               const percentValue = Number(task.pourcentage ?? task.progression ?? 0);
-                              const showPlay = !entry;
+                              const showPlay = !entry || isAutoPaused;
                               const isFinished = String(task.status || '').toLowerCase().includes('termin');
                               const isCancelled = String(task.status || '').toLowerCase().includes('annul');
                               const isDone = isFinished || percentValue >= 100;
                               const allowed = canWorkOnTask(task);
+                              const summary = dailyByTask?.[task.id];
+                              const canShowDaily = summary && summary.date === todayDate;
+                              const shouldRenderDailyBadge = false && canShowDaily;
+                              const myMinutesToday = summary?.my_minutes ?? 0;
+                              const mySegmentsToday = summary?.my_segments ?? 0;
+                              const sessionLabel = mySegmentsToday === 1 ? 'session' : 'sessions';
+                              const markManualControl = () => {
+                                manualTimerControlRef.current.add(task.id);
+                                autoPausedTasksRef.current.delete(task.id);
+                              };
                               const deny = (actionLabel) => {
                                 showSwal({ icon: 'error', title: 'Accès refusé', text: `Vous n'avez pas la permission de ${actionLabel} cette tâche`, toast: true, timer: 2200, position: 'top-end', showConfirmButton: false });
                               };
@@ -3865,14 +3911,9 @@ const TasksPhoneView = () => {
                                   deny('démarrer');
                                   return;
                                 }
-                                justPausedTasksRef.current.delete(task.id);
-                                if (pauseTimeoutsRef.current[task.id]) {
-                                  clearTimeout(pauseTimeoutsRef.current[task.id]);
-                                  delete pauseTimeoutsRef.current[task.id];
-                                }
                                 try {
+                                  markManualControl();
                                   await dispatch(startTaskTimer(task.id)).unwrap();
-                                  await dispatch(fetchActiveEntry(task.id));
                                 } catch (err) {
                                   showSwal({ icon: 'error', title: 'Impossible de démarrer', text: String(err || 'Erreur inconnue'), toast: true, timer: 2200, position: 'top-end', showConfirmButton: false });
                                 }
@@ -3883,16 +3924,8 @@ const TasksPhoneView = () => {
                                   return;
                                 }
                                 try {
+                                  markManualControl();
                                   await dispatch(pauseTaskTimer(task.id)).unwrap();
-                                  await dispatch(fetchActiveEntry(task.id));
-                                  justPausedTasksRef.current.add(task.id);
-                                  if (pauseTimeoutsRef.current[task.id]) {
-                                    clearTimeout(pauseTimeoutsRef.current[task.id]);
-                                  }
-                                  pauseTimeoutsRef.current[task.id] = setTimeout(() => {
-                                    justPausedTasksRef.current.delete(task.id);
-                                    delete pauseTimeoutsRef.current[task.id];
-                                  }, 5 * 60 * 1000);
                                 } catch (err) {
                                   showSwal({ icon: 'error', title: 'Impossible de mettre en pause', text: String(err || 'Aucune progression en cours'), toast: true, timer: 2200, position: 'top-end', showConfirmButton: false });
                                 }
@@ -3903,6 +3936,7 @@ const TasksPhoneView = () => {
                                   return;
                                 }
                                 try {
+                                  markManualControl();
                                   const choice = await showSwal({
                                     icon: 'question',
                                     title: 'Terminer la tâche ?',
@@ -3965,7 +3999,14 @@ const TasksPhoneView = () => {
                               }
                               return showPlay ? (
                                 <>
-                                  {/* Daily badge removed as requested */}
+                                  {shouldRenderDailyBadge && (
+                                    <div className="d-inline-flex align-items-center gap-1 mb-1 px-2 py-1 no-column"
+                                      style={{ borderRadius: 999, background: 'rgba(59,130,246,0.12)', color: '#1d4ed8', fontSize: '0.65rem', fontWeight: 600 }}>
+                                      <Icon icon="mdi:clock-time-three" style={{ fontSize: '0.9rem' }} />
+                                      Aujourd'hui : {formatMinutesLabel(myMinutesToday)}
+                                      <span style={{ opacity: 0.7 }}>· {mySegmentsToday} {sessionLabel}</span>
+                                    </div>
+                                  )}
                                   {/* En pause par défaut si aucune entrée active et non terminé/annulé */}
                                   {true && (
                                     <span
@@ -3998,7 +4039,14 @@ const TasksPhoneView = () => {
                                 </>
                               ) : (
                                 <>
-                                  {/* Daily badge removed as requested */}
+                                  {shouldRenderDailyBadge && (
+                                    <div className="d-inline-flex align-items-center gap-1 mb-1 px-2 py-1 no-column"
+                                      style={{ borderRadius: 999, background: 'rgba(59,130,246,0.12)', color: '#1d4ed8', fontSize: '0.65rem', fontWeight: 600 }}>
+                                      <Icon icon="mdi:clock-time-three" style={{ fontSize: '0.9rem' }} />
+                                      Aujourd'hui : {formatMinutesLabel(myMinutesToday)}
+                                      <span style={{ opacity: 0.7 }}>· {mySegmentsToday} {sessionLabel}</span>
+                                    </div>
+                                  )}
                                   <button
                                     type="button"
                                     className="btn btn-sm d-inline-flex align-items-center justify-content-center no-column"

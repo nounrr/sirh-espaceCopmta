@@ -9,6 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         // 1) Drop the stray varchar column if it exists
         if (Schema::hasColumn('users', 'type_contrat')) {
             Schema::table('users', function (Blueprint $table) {
@@ -24,6 +28,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Recreate the dropped varchar (optional rollback safety)
         if (!Schema::hasColumn('users', 'type_contrat')) {
             Schema::table('users', function (Blueprint $table) {
