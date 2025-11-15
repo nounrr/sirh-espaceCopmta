@@ -83,6 +83,63 @@ const MINIMAL_ACCESS_ROLES = [
   'ched_dep',
 ];
 
+const MAX_REPEAT_COUNT = 10;
+const REPEAT_FREQUENCY_OPTIONS = [
+  { value: 'manual', label: 'Personnalisé' },
+  { value: '5_minutes', label: 'Toutes les 5 minutes' },
+  { value: 'week', label: 'Chaque semaine' },
+  { value: 'month', label: 'Chaque mois' },
+  { value: '3_months', label: 'Tous les 3 mois' },
+  { value: '6_months', label: 'Tous les 6 mois' },
+  { value: 'year', label: 'Chaque année' },
+];
+
+const formatDateForInput = (value) => {
+  if (!value) {
+    return '';
+  }
+  const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const addIntervalToDate = (dateString, frequency, multiplier) => {
+  if (!dateString) return '';
+  const baseDate = new Date(dateString);
+  if (Number.isNaN(baseDate.getTime())) return '';
+  const steps = Number(multiplier) || 0;
+  switch (frequency) {
+    case '5_minutes':
+      baseDate.setMinutes(baseDate.getMinutes() + steps * 5);
+      break;
+    case 'week':
+      baseDate.setDate(baseDate.getDate() + steps * 7);
+      break;
+    case 'month':
+      baseDate.setMonth(baseDate.getMonth() + steps);
+      break;
+    case '3_months':
+      baseDate.setMonth(baseDate.getMonth() + steps * 3);
+      break;
+    case '6_months':
+      baseDate.setMonth(baseDate.getMonth() + steps * 6);
+      break;
+    case 'year':
+      baseDate.setFullYear(baseDate.getFullYear() + steps);
+      break;
+    default:
+      baseDate.setDate(baseDate.getDate());
+      break;
+  }
+  return formatDateForInput(baseDate);
+};
+const REPEAT_COUNT_OPTIONS = Array.from({ length: MAX_REPEAT_COUNT }, (_, index) => index + 1);
+
 const TasksPhoneView = () => {
   // Configuration globale et moderne pour tous les popups SweetAlert2
   const showSwal = (config) => {
@@ -142,6 +199,9 @@ const TasksPhoneView = () => {
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [repeatCount, setRepeatCount] = useState(1);
+  const [repeatRanges, setRepeatRanges] = useState([{ start: '', end: '' }]);
+  const [repeatFrequency, setRepeatFrequency] = useState('manual');
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedList, setSelectedList] = useState('');
   const [assigneeInput, setAssigneeInput] = useState('');
@@ -205,6 +265,108 @@ const TasksPhoneView = () => {
   const dailySummaryRequestsRef = useRef({});
   const manualTimerControlRef = useRef(new Set());
   const autoPausedTasksRef = useRef(new Set());
+
+  const handleRepeatCountChange = useCallback((rawValue) => {
+    const numericValue = Number(rawValue);
+    const parsed = Number.isNaN(numericValue) ? 1 : Math.floor(numericValue);
+    const clamped = Math.min(MAX_REPEAT_COUNT, Math.max(1, parsed));
+    setRepeatCount(clamped);
+    setRepeatRanges((prev) => {
+      const base = Array.isArray(prev) && prev.length > 0
+        ? prev
+        : [{ start: startDate || '', end: endDate || '' }];
+      const next = base.slice(0, clamped).map((range) => ({
+        start: range.start || '',
+        end: range.end || '',
+      }));
+      while (next.length < clamped) {
+        next.push({ start: '', end: '' });
+      }
+      if (next[0]) {
+        next[0] = {
+          start: next[0].start || startDate || '',
+          end: next[0].end || endDate || '',
+        };
+      }
+      if (repeatFrequency !== 'manual' && clamped > 1) {
+        const baseStart = next[0]?.start || startDate || '';
+        const baseEnd = next[0]?.end || endDate || '';
+        if (baseStart && baseEnd) {
+          for (let idx = 1; idx < clamped; idx += 1) {
+            next[idx] = {
+              start: addIntervalToDate(baseStart, repeatFrequency, idx),
+              end: addIntervalToDate(baseEnd, repeatFrequency, idx),
+            };
+          }
+        }
+      }
+      return next;
+    });
+  }, [startDate, endDate, repeatFrequency]);
+
+  const handleRepeatRangeChange = useCallback((index, field, value) => {
+    setRepeatRanges((prev) => {
+      const base = Array.isArray(prev) && prev.length > 0 ? prev : [{ start: '', end: '' }];
+      const next = base.map((range) => ({ ...range }));
+      if (!next[index]) {
+        next[index] = { start: '', end: '' };
+      }
+      next[index] = { ...next[index], [field]: value };
+      if (repeatFrequency !== 'manual' && repeatCount > 1 && index === 0) {
+        const baseStart = next[0]?.start || startDate || '';
+        const baseEnd = next[0]?.end || endDate || '';
+        if (baseStart && baseEnd) {
+          for (let idx = 1; idx < repeatCount; idx += 1) {
+            next[idx] = {
+              start: addIntervalToDate(baseStart, repeatFrequency, idx),
+              end: addIntervalToDate(baseEnd, repeatFrequency, idx),
+            };
+          }
+        }
+      }
+      return next;
+    });
+  }, [repeatFrequency, repeatCount, startDate, endDate]);
+
+  const handleRepeatFrequencyChange = useCallback((value) => {
+    setRepeatFrequency(value);
+    if (value === 'manual' || repeatCount <= 1) {
+      return;
+    }
+    setRepeatRanges((prev) => {
+      const baseStart = prev[0]?.start || startDate || '';
+      const baseEnd = prev[0]?.end || endDate || '';
+      if (!baseStart || !baseEnd) {
+        return prev;
+      }
+      const next = Array.from({ length: repeatCount }, (_, idx) => (
+        idx === 0
+          ? { start: baseStart, end: baseEnd }
+          : {
+              start: addIntervalToDate(baseStart, value, idx),
+              end: addIntervalToDate(baseEnd, value, idx),
+            }
+      ));
+      const hasChanged = next.length !== prev.length
+        || next.some((range, idx) => (
+          range.start !== (prev[idx]?.start || '')
+          || range.end !== (prev[idx]?.end || '')
+        ));
+      return hasChanged ? next : prev;
+    });
+  }, [repeatCount, startDate, endDate]);
+
+  useEffect(() => {
+    if (repeatCount !== 1) return;
+    const firstRange = repeatRanges[0];
+    if (!firstRange) return;
+    if (!startDate && firstRange.start) {
+      setStartDate(firstRange.start);
+    }
+    if (!endDate && firstRange.end) {
+      setEndDate(firstRange.end);
+    }
+  }, [repeatCount, repeatRanges, startDate, endDate]);
 
   const cancelFilterAssigneeClose = () => {
     if (filterAssigneeCloseTimeout.current) {
@@ -959,6 +1121,9 @@ const TasksPhoneView = () => {
     setDescription('');
     setStartDate('');
     setEndDate('');
+    setRepeatCount(1);
+    setRepeatRanges([{ start: '', end: '' }]);
+    setRepeatFrequency('manual');
     setSelectedProject('');
     setSelectedList('');
     setAssigneeInput('');
@@ -1049,7 +1214,45 @@ const TasksPhoneView = () => {
       });
       return;
     }
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+    const isRepeatingTask = repeatCount > 1;
+    const normalizedRepeatRanges = isRepeatingTask
+      ? repeatRanges.slice(0, repeatCount).map((range) => ({
+          start: range?.start || '',
+          end: range?.end || '',
+        }))
+      : [];
+
+    if (isRepeatingTask) {
+      const hasMissingDates = normalizedRepeatRanges.some((range) => !range.start || !range.end);
+      if (hasMissingDates) {
+        showSwal({
+          icon: 'warning',
+          title: 'Dates manquantes',
+          text: 'Chaque répétition doit avoir une date de début et une date de fin.',
+          confirmButtonText: 'OK',
+          toast: true,
+          position: 'top-end',
+          timer: 2400,
+          showConfirmButton: false,
+        });
+        return;
+      }
+
+      const hasInvalidRange = normalizedRepeatRanges.some((range) => new Date(range.start) > new Date(range.end));
+      if (hasInvalidRange) {
+        showSwal({
+          icon: 'warning',
+          title: 'Répétition invalide',
+          text: 'Pour chaque répétition, la date de fin doit être après la date de début.',
+          confirmButtonText: 'OK',
+          toast: true,
+          position: 'top-end',
+          timer: 2400,
+          showConfirmButton: false,
+        });
+        return;
+      }
+    } else if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       showSwal({ 
         icon: 'warning', 
         title: 'Dates invalides', 
@@ -1079,8 +1282,19 @@ const TasksPhoneView = () => {
       formData.append('pourcentage', String(effectivePourcentage));
 
 
-      if (startDate) formData.append('start_date', startDate);
-      if (endDate) formData.append('end_date', endDate);
+      const baseStartDate = isRepeatingTask ? normalizedRepeatRanges[0]?.start : startDate;
+      const baseEndDate = isRepeatingTask ? normalizedRepeatRanges[0]?.end : endDate;
+      if (baseStartDate) formData.append('start_date', baseStartDate);
+      if (baseEndDate) formData.append('end_date', baseEndDate);
+      if (isRepeatingTask) {
+        formData.append('repeat_count', String(repeatCount));
+        normalizedRepeatRanges.forEach((range, index) => {
+          formData.append(`repeat_ranges[${index}][start_date]`, range.start);
+          formData.append(`repeat_ranges[${index}][end_date]`, range.end);
+        });
+        formData.append('repeat_ranges_json', JSON.stringify(normalizedRepeatRanges));
+        formData.append('repeat_frequency', repeatFrequency);
+      }
       formData.append('assignees_present', '1');
       if (selectedAssignees.length > 0) {
         selectedAssignees.forEach((id) => {
@@ -1098,6 +1312,7 @@ const TasksPhoneView = () => {
       });
 
   const result = await dispatch(createTask({ listId: effectiveListId, data: formData })).unwrap();
+    const scheduledOccurrences = result?.scheduledDuplicates || [];
       // refresh lists to show the new task
       dispatch(fetchTodoLists());
 
@@ -1129,10 +1344,14 @@ const TasksPhoneView = () => {
 
       resetForm();
       setShowAdd(false);
+      const successCopy = scheduledOccurrences.length > 0
+        ? `${scheduledOccurrences.length} occurrence${scheduledOccurrences.length > 1 ? 's' : ''} supplémentaires seront créées automatiquement selon la fréquence choisie.`
+        : 'Votre tâche a été créée avec succès';
+
       showSwal({ 
         icon: 'success', 
         title: 'Tâche ajoutée', 
-        text: 'Votre tâche a été créée avec succès',
+        text: successCopy,
         toast: true, 
         position: 'top-end', 
         timer: 1400, 
@@ -2326,48 +2545,171 @@ const TasksPhoneView = () => {
                 />
               </div>
 
-              <div className="mb-3 row g-3">
-                <div className="col-6">
-                  <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
-                    <Icon icon="mdi:calendar-start" className="me-1" style={{ color: '#10b981', fontSize: '0.9rem' }} />
-                    Début
-                  </label>
-                  <input 
-                    type="date" 
-                    className="form-control border-0 shadow-sm" 
-                    value={startDate} 
-                    onChange={(e) => setStartDate(e.target.value)} 
-                    aria-label="Date de début"
-                    style={{ 
-                      borderRadius: '12px', 
-                      background: 'rgba(16, 185, 129, 0.04)',
-                      padding: '10px 12px',
-                      border: '1px solid rgba(16, 185, 129, 0.1)',
-                      fontSize: '0.85rem'
-                    }}
-                  />
-                </div>
-                <div className="col-6">
-                  <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
-                    <Icon icon="mdi:calendar-end" className="me-1" style={{ color: '#f59e0b', fontSize: '0.9rem' }} />
-                    Fin
-                  </label>
-                  <input 
-                    type="date" 
-                    className="form-control border-0 shadow-sm" 
-                    value={endDate} 
-                    onChange={(e) => setEndDate(e.target.value)} 
-                    aria-label="Date de fin"
-                    style={{ 
-                      borderRadius: '12px', 
-                      background: 'rgba(245, 158, 11, 0.04)',
-                      padding: '10px 12px',
-                      border: '1px solid rgba(245, 158, 11, 0.1)',
-                      fontSize: '0.85rem'
-                    }}
-                  />
+              <div className="mb-3">
+                <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                  <Icon icon="mdi:repeat" className="me-1" style={{ color: '#8b5cf6', fontSize: '0.95rem' }} />
+                  Répétitions
+                </label>
+                <div className="d-flex flex-column flex-md-row align-items-start gap-3">
+                  <div className="d-flex flex-column" style={{ minWidth: '120px' }}>
+                    <span className="text-muted small mb-1">Nombre</span>
+                    <select
+                      className="form-select border-0 shadow-sm"
+                      value={repeatCount}
+                      onChange={(e) => handleRepeatCountChange(e.target.value)}
+                      aria-label="Nombre de répétitions"
+                      style={{
+                        borderRadius: '12px',
+                        background: 'rgba(139, 92, 246, 0.04)',
+                        padding: '10px 12px',
+                        border: '1px solid rgba(139, 92, 246, 0.15)',
+                        minWidth: '120px',
+                      }}
+                    >
+                      {REPEAT_COUNT_OPTIONS.map((option) => (
+                        <option key={`repeat-count-${option}`} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="d-flex flex-column" style={{ minWidth: '160px' }}>
+                    <span className="text-muted small mb-1">Fréquence</span>
+                    <select
+                      className="form-select border-0 shadow-sm"
+                      value={repeatFrequency}
+                      onChange={(e) => handleRepeatFrequencyChange(e.target.value)}
+                      aria-label="Fréquence de répétition"
+                      disabled={repeatCount <= 1}
+                      style={{
+                        borderRadius: '12px',
+                        background: 'rgba(14, 165, 233, 0.04)',
+                        padding: '10px 12px',
+                        border: '1px solid rgba(14, 165, 233, 0.15)',
+                        minWidth: '160px',
+                        opacity: repeatCount <= 1 ? 0.6 : 1,
+                      }}
+                    >
+                      {REPEAT_FREQUENCY_OPTIONS.map((option) => (
+                        <option key={`repeat-frequency-${option.value}`} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-grow-1">
+                    <small className="text-muted" style={{ fontSize: '0.75rem' }}>
+                      Jusqu'à {MAX_REPEAT_COUNT} dates. Choisissez une fréquence pour remplir automatiquement les autres périodes.
+                    </small>
+                    {repeatCount > 1 && (
+                      <small className="text-muted d-block mt-1" style={{ fontSize: '0.75rem' }}>
+                        Les occurrences supplémentaires seront planifiées automatiquement et créées selon la fréquence sélectionnée (ex. toutes les 5 minutes).
+                      </small>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {repeatCount === 1 ? (
+                <div className="mb-3 row g-3">
+                  <div className="col-6">
+                    <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                      <Icon icon="mdi:calendar-start" className="me-1" style={{ color: '#10b981', fontSize: '0.9rem' }} />
+                      Début
+                    </label>
+                    <input 
+                      type="date" 
+                      className="form-control border-0 shadow-sm" 
+                      value={startDate} 
+                      onChange={(e) => setStartDate(e.target.value)} 
+                      aria-label="Date de début"
+                      style={{ 
+                        borderRadius: '12px', 
+                        background: 'rgba(16, 185, 129, 0.04)',
+                        padding: '10px 12px',
+                        border: '1px solid rgba(16, 185, 129, 0.1)',
+                        fontSize: '0.85rem'
+                      }}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                      <Icon icon="mdi:calendar-end" className="me-1" style={{ color: '#f59e0b', fontSize: '0.9rem' }} />
+                      Fin
+                    </label>
+                    <input 
+                      type="date" 
+                      className="form-control border-0 shadow-sm" 
+                      value={endDate} 
+                      onChange={(e) => setEndDate(e.target.value)} 
+                      aria-label="Date de fin"
+                      style={{ 
+                        borderRadius: '12px', 
+                        background: 'rgba(245, 158, 11, 0.04)',
+                        padding: '10px 12px',
+                        border: '1px solid rgba(245, 158, 11, 0.1)',
+                        fontSize: '0.85rem'
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-3">
+                  <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                    <Icon icon="mdi:calendar-range" className="me-1" style={{ color: '#f97316', fontSize: '0.95rem' }} />
+                    Dates des répétitions
+                  </label>
+                  <div className="d-flex flex-column gap-3">
+                    {repeatRanges.slice(0, repeatCount).map((range, index) => (
+                      <div key={`repeat-range-${index}`} className="row g-2 align-items-end">
+                        <div className="col-6">
+                          <label className="form-label small mb-1 fw-semibold text-muted">
+                            Début #{index + 1}
+                          </label>
+                          <input
+                            type="date"
+                            className="form-control border-0 shadow-sm"
+                            value={range.start}
+                            onChange={(e) => handleRepeatRangeChange(index, 'start', e.target.value)}
+                            aria-label={`Date de début répétition ${index + 1}`}
+                            disabled={repeatFrequency !== 'manual' && index > 0}
+                            style={{
+                              borderRadius: '12px',
+                              background: 'rgba(16, 185, 129, 0.04)',
+                              padding: '10px 12px',
+                              border: '1px solid rgba(16, 185, 129, 0.1)',
+                              fontSize: '0.85rem',
+                              opacity: repeatFrequency !== 'manual' && index > 0 ? 0.8 : 1,
+                            }}
+                          />
+                        </div>
+                        <div className="col-6">
+                          <label className="form-label small mb-1 fw-semibold text-muted">
+                            Fin #{index + 1}
+                          </label>
+                          <input
+                            type="date"
+                            className="form-control border-0 shadow-sm"
+                            value={range.end}
+                            onChange={(e) => handleRepeatRangeChange(index, 'end', e.target.value)}
+                            aria-label={`Date de fin répétition ${index + 1}`}
+                            disabled={repeatFrequency !== 'manual' && index > 0}
+                            style={{
+                              borderRadius: '12px',
+                              background: 'rgba(245, 158, 11, 0.04)',
+                              padding: '10px 12px',
+                              border: '1px solid rgba(245, 158, 11, 0.1)',
+                              fontSize: '0.85rem',
+                              opacity: repeatFrequency !== 'manual' && index > 0 ? 0.8 : 1,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {repeatFrequency !== 'manual' && repeatCount > 1 && (
+                    <small className="text-muted fst-italic d-block mt-2">
+                      Les répétitions #2 et suivantes sont calculées automatiquement à partir de la première période et seront ajoutées dans le temps, pas instantanément.
+                    </small>
+                  )}
+                </div>
+              )}
 
               <div className="mb-3">
                 <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>

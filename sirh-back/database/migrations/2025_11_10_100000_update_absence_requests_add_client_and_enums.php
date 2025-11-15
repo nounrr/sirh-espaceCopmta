@@ -8,10 +8,6 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration {
     public function up(): void
     {
-        if (!Schema::hasTable('absence_requests')) {
-            return;
-        }
-
         // Add client_id column (nullable) referencing users
         Schema::table('absence_requests', function (Blueprint $table) {
             if (!Schema::hasColumn('absence_requests', 'client_id')) {
@@ -37,10 +33,6 @@ return new class extends Migration {
 
     public function down(): void
     {
-        if (!Schema::hasTable('absence_requests')) {
-            return;
-        }
-
         // Revert statut enum removal of 'En demande'
         try {
             DB::statement("ALTER TABLE `absence_requests` MODIFY `statut` ENUM('en_attente','validé','rejeté','approuvé') NOT NULL DEFAULT 'en_attente'");

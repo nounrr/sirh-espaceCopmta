@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\CreateRepeatTodoTask;
 use Illuminate\Http\Request;
 use App\Models\TodoList;
 use App\Models\TodoTask;
@@ -10,6 +11,7 @@ use App\Models\TodoTaskAttachment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class TodoTaskController extends Controller
 {
@@ -51,6 +53,12 @@ class TodoTaskController extends Controller
                 'attachments.*' => 'file|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,xlsm,txt|max:20480',
                 'assignees' => 'nullable|array',
                 'assignees.*' => 'integer|distinct|exists:users,id',
+                'repeat_count' => 'nullable|integer|min:1|max:10',
+                'repeat_frequency' => 'nullable|string|in:manual,5_minutes,week,month,3_months,6_months,year',
+                'repeat_ranges' => 'nullable|array',
+                'repeat_ranges.*.start_date' => 'nullable|date',
+                'repeat_ranges.*.end_date' => 'nullable|date',
+                'repeat_ranges_json' => 'nullable|string',
             ]);
 
             $assigneeIds = $this->resolveAssigneeIds($request);
@@ -77,39 +85,87 @@ class TodoTaskController extends Controller
                 'priority' => $request->input('priority', 'normale'),
             ];
 
-            $task = DB::transaction(function () use ($request, $payload, $assigneeIds) {
-                $task = TodoTask::create($payload);
+            $repeatCount = $this->sanitizeRepeatCount($request->input('repeat_count'));
+            $repeatRanges = $this->extractRepeatRanges($request, $repeatCount);
+
+            if (empty($repeatRanges)) {
+                $repeatRanges[] = [
+                    'start_date' => $payload['start_date'],
+                    'end_date' => $payload['end_date'],
+                ];
+            }
+
+            if (!empty($repeatRanges)) {
+                if (!$payload['start_date'] && !empty($repeatRanges[0]['start_date'])) {
+                    $payload['start_date'] = $repeatRanges[0]['start_date'];
+                }
+                if (!$payload['end_date'] && !empty($repeatRanges[0]['end_date'])) {
+                    $payload['end_date'] = $repeatRanges[0]['end_date'];
+                }
+            }
+
+            if ($repeatCount > count($repeatRanges) && !empty($repeatRanges)) {
+                $lastRange = end($repeatRanges);
+                while (count($repeatRanges) < $repeatCount) {
+                }
+            }
+
+            $duplicateRanges = $repeatCount > 1 ? array_slice($repeatRanges, 1) : [];
+
+            $storedAttachmentsMeta = [];
+
+            $task = DB::transaction(function () use ($request, $payload, $assigneeIds, &$storedAttachmentsMeta) {
+                $primaryTask = TodoTask::create($payload);
 
                 if (!empty($assigneeIds)) {
-                    $task->assignees()->sync($assigneeIds);
+                    $primaryTask->assignees()->sync($assigneeIds);
                 }
 
                 if ($request->hasFile('attachments')) {
                     foreach ($request->file('attachments') as $file) {
                         $path = $file->store('todo_tasks', 'public');
-                        $task->attachments()->create([
+                        $meta = [
                             'uploaded_by' => optional(Auth::user())->id,
                             'original_name' => $file->getClientOriginalName(),
                             'stored_path' => $path,
                             'mime_type' => $file->getMimeType(),
                             'size' => $file->getSize(),
-                        ]);
+                        ];
+                        $primaryTask->attachments()->create($meta);
+                        $storedAttachmentsMeta[] = $meta;
                     }
                 }
 
-                return $task;
+                return $primaryTask;
             });
 
-            $task->load([
+            $scheduledDuplicates = [];
+
+            if (!empty($duplicateRanges)) {
+                $scheduledDuplicates = $this->scheduleRepeatTasks(
+                    $payload,
+                    $duplicateRanges,
+                    $assigneeIds,
+                    $storedAttachmentsMeta,
+                    $request->input('repeat_frequency')
+                );
+            }
+
+            $relations = [
                 'attachments',
                 'comments',
                 'assignees',
                 'cancellationRequests.requester',
                 'assignedUser:id,name,prenom,tel',
                 'list:id,created_by',
-            ]);
+            ];
 
-            return response()->json(['task' => $task], 201);
+            $task->load($relations);
+
+            return response()->json([
+                'task' => $task,
+                'scheduled_duplicates' => $scheduledDuplicates,
+            ], 201);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'error' => 'La liste de tâches avec ID ' . $todoListId . ' n\'existe pas.'
@@ -446,7 +502,6 @@ class TodoTaskController extends Controller
         if ($raw === null) {
             $raw = [];
         }
-
         if (!is_array($raw)) {
             $raw = [$raw];
         }
@@ -457,5 +512,134 @@ class TodoTaskController extends Controller
             ->unique()
             ->values()
             ->all();
+    }
+
+    protected function scheduleRepeatTasks(array $basePayload, array $duplicateRanges, array $assigneeIds, array $attachmentsMeta, ?string $frequency): array
+    {
+        $scheduled = [];
+        $baseStart = $this->normalizeDateInput($basePayload['start_date'] ?? null);
+        $baseStartCarbon = $baseStart ? Carbon::parse($baseStart) : null;
+
+        foreach ($duplicateRanges as $index => $range) {
+            $runAt = $this->determineRunAtForDuplicate($index + 1, $frequency, $baseStartCarbon, $range);
+
+            $pendingDispatch = CreateRepeatTodoTask::dispatch(
+                $basePayload,
+                $assigneeIds,
+                $attachmentsMeta,
+                $range
+            );
+
+            if ($runAt) {
+                $pendingDispatch->delay($runAt);
+            }
+
+            $scheduled[] = [
+                'sequence' => $index + 2,
+                'start_date' => $range['start_date'] ?? null,
+                'end_date' => $range['end_date'] ?? null,
+                'scheduled_for' => $runAt?->toIso8601String(),
+            ];
+        }
+
+        return $scheduled;
+    }
+
+    protected function determineRunAtForDuplicate(int $iteration, ?string $frequency, ?Carbon $baseStart, array $range): ?Carbon
+    {
+        if (!$frequency || $frequency === 'manual') {
+            if ($baseStart && !empty($range['start_date'])) {
+                try {
+                    $target = Carbon::parse($range['start_date']);
+                    $diffInSeconds = $baseStart->diffInSeconds($target, false);
+
+                    if ($diffInSeconds > 0) {
+                        return now()->copy()->addSeconds($diffInSeconds);
+                    }
+                } catch (\Throwable $e) {
+                    // Ignore parse errors and fallback to default interval
+                }
+            }
+
+            return now()->copy()->addMinutes($iteration);
+        }
+
+        $now = now();
+
+        return match ($frequency) {
+            '5_minutes' => $now->copy()->addMinutes(5 * $iteration),
+            'week' => $now->copy()->addWeeks($iteration),
+            'month' => $now->copy()->addMonths($iteration),
+            '3_months' => $now->copy()->addMonths(3 * $iteration),
+            '6_months' => $now->copy()->addMonths(6 * $iteration),
+            'year' => $now->copy()->addYears($iteration),
+            default => $now->copy()->addDays($iteration),
+        };
+    }
+
+    protected function sanitizeRepeatCount($value): int
+    {
+        $count = (int) ($value ?? 1);
+
+        if ($count < 1) {
+            return 1;
+        }
+
+        return (int) min($count, 10);
+    }
+
+    protected function extractRepeatRanges(Request $request, int $repeatCount): array
+    {
+        $ranges = [];
+        $rawRanges = $request->input('repeat_ranges');
+
+        if (is_array($rawRanges)) {
+            $ranges = $rawRanges;
+        } elseif ($request->filled('repeat_ranges_json')) {
+            $decoded = json_decode($request->input('repeat_ranges_json'), true);
+            if (is_array($decoded)) {
+                $ranges = $decoded;
+            }
+        }
+
+        $normalized = [];
+
+        foreach ($ranges as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $start = $entry['start'] ?? $entry['start_date'] ?? null;
+            $end = $entry['end'] ?? $entry['end_date'] ?? null;
+
+            $startNormalized = $this->normalizeDateInput($start);
+            $endNormalized = $this->normalizeDateInput($end);
+
+            if ($startNormalized && $endNormalized) {
+                $normalized[] = [
+                    'start_date' => $startNormalized,
+                    'end_date' => $endNormalized,
+                ];
+            }
+
+            if (count($normalized) >= $repeatCount) {
+                break;
+            }
+        }
+
+        return $normalized;
+    }
+
+    protected function normalizeDateInput($value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->toDateString();
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 }

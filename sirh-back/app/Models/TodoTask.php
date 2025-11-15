@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\DB;
 use App\Models\TodoTaskProof;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use App\Models\TaskProgressHour;
 
 /**
  * @property-read \Illuminate\Database\Eloquent\Collection<int, User> $assignees
@@ -152,11 +151,6 @@ class TodoTask extends Model
         return $this->hasMany(TodoTaskProof::class, 'todo_task_id')
             ->orderBy('created_at', 'desc')
             ->with(['uploader:id,name,prenom']);
-    }
-
-    public function progressHours()
-    {
-        return $this->hasMany(TaskProgressHour::class, 'task_id')->orderBy('start_datetime', 'desc');
     }
 
     public function cancellationRequests()

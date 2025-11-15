@@ -35,7 +35,11 @@ export const createTask = createAsyncThunk(
       
       // Si la réponse a task directement (nouveau format)
       if (res.data && res.data.task) {
-        return { listId, task: res.data.task };
+        return {
+          listId,
+          task: res.data.task,
+          scheduledDuplicates: res.data.scheduled_duplicates || [],
+        };
       }
       
       // Si la réponse est directement la task (ancien format)

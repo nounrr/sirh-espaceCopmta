@@ -32,7 +32,6 @@ use App\Http\Controllers\CongeExportController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\SalaireController;
 use App\Http\Controllers\ChargePersonnelController;
-use App\Http\Controllers\TimeTrackingController;
 use App\Http\Middleware\RoleMiddleware;
 
 Route::resource('jours-feries', JourFerieController::class);
@@ -156,16 +155,6 @@ Route::delete('/user-docs/{userId}/{typeDocId}', [UserTypeDocController::class, 
     Route::put('/comments/{commentId}', [TaskCommentController::class, 'update']);
     Route::delete('/comments/{commentId}', [TaskCommentController::class, 'destroy']);
 
-    // Time tracking for tasks
-    Route::post('/tasks/{task}/start', [TimeTrackingController::class, 'start']);
-    Route::post('/tasks/{task}/stop', [TimeTrackingController::class, 'stop']);
-    Route::post('/tasks/{task}/pause', [TimeTrackingController::class, 'pause']);
-    Route::post('/tasks/{task}/finish', [TimeTrackingController::class, 'finish']);
-    Route::get('/tasks/{task}/active-entry', [TimeTrackingController::class, 'activeEntry']);
-    Route::get('/tasks/{task}/time-summary', [TimeTrackingController::class, 'timeSummary']);
-    Route::get('/my/active-entry', [TimeTrackingController::class, 'myActiveEntry']);
-    Route::get('/my/active-entries', [TimeTrackingController::class, 'myActiveEntries']);
-
     //pub et vote
     Route::get('/publications', [PublicationController::class, 'index']);
     Route::get('/publications/{id}', [PublicationController::class, 'show']);
@@ -197,8 +186,8 @@ Route::get('/export-conges', [CongeExportController::class, 'exportCongés']);
 
 Route::middleware(['auth:sanctum', 'role:RH'])->group(function () {
     Route::post('/assign-role', [AuthController::class, 'assignRole']);
-    Route::get('/user_permission', function (Request $request) {
-        $user = $request->user();
+    Route::get('/user_permission', function () {
+        $user = auth()->user();
         return response()->json([
             'user' => $user->name,
             'roles' => $user->getRoleNames(),
