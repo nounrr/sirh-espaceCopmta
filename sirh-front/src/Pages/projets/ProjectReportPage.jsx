@@ -1038,7 +1038,7 @@ const ProjectReportPage = () => {
           <div className="d-flex flex-wrap align-items-center gap-2">
             <Form.Select
               size="sm"
-              className="w-auto"
+              className="w-auto analytics-export-select"
               value={exportDataset}
               onChange={handleExportDatasetChange}
             >

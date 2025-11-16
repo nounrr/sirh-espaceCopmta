@@ -221,6 +221,41 @@
   box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
 }
 
+.analytics-export-select {
+  appearance: none;
+  background-color: #edf5ff;
+  border: 1.5px solid #0b5ed7 !important;
+  color: #0b5ed7 !important;
+  font-weight: 600;
+  padding-right: 2.75rem !important;
+  min-width: 220px;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.08);
+  background-image:
+    linear-gradient(45deg, transparent 50%, #0b5ed7 50%),
+    linear-gradient(135deg, #0b5ed7 50%, transparent 50%),
+    linear-gradient(#0b5ed7, #0b5ed7);
+  background-position:
+    calc(100% - 18px) calc(50% - 2px),
+    calc(100% - 12px) calc(50% - 2px),
+    calc(100% - 2.25rem) 50%;
+  background-size: 6px 6px, 6px 6px, 1px 60%;
+  background-repeat: no-repeat;
+}
+
+.analytics-export-select:focus,
+.analytics-export-select:hover {
+  border-color: #084298 !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+  background-color: #e0edff;
+  color: #0a58ca !important;
+}
+
+.analytics-export-select option {
+  color: #212529;
+  font-weight: 500;
+}
+
 .bg-light {
   background-color: #f8f9fa !important;
 }
