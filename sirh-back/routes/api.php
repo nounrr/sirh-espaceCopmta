@@ -24,6 +24,7 @@ use App\Http\Controllers\VoteController;
 use App\Http\Controllers\CongeController;
 use App\Http\Controllers\TodoListController;
 use App\Http\Controllers\TodoTaskController;
+use App\Http\Controllers\TaskAnalyticsController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TodoTaskCancellationRequestController;
 use App\Http\Controllers\UserTypeDocController;
@@ -148,6 +149,12 @@ Route::delete('/user-docs/{userId}/{typeDocId}', [UserTypeDocController::class, 
 
     // Bulk task reminders
     Route::post('/todo-tasks/bulk-reminders', [TodoTaskController::class, 'sendBulkReminders']);
+
+    // Analytics & reporting
+    Route::get('/analytics/tasks/overview', [TaskAnalyticsController::class, 'overview']);
+    Route::get('/analytics/reports/collaborators', [TaskAnalyticsController::class, 'exportCollaborators']);
+    Route::get('/analytics/reports/export', [TaskAnalyticsController::class, 'export']);
+    Route::get('/analytics/reports/periodic', [TaskAnalyticsController::class, 'periodicSummary']);
 
     // Task Comments Routes
     Route::get('/tasks/{taskId}/comments', [TaskCommentController::class, 'index']);

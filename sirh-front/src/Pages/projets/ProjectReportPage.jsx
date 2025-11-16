@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Card, Row, Col, Form, Button, Badge, ProgressBar, Table, Modal } from 'react-bootstrap';
+import { Card, Row, Col, Form, Button, Badge, ProgressBar, Table, Modal, ButtonGroup } from 'react-bootstrap';
 import { Icon } from '@iconify/react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList, AreaChart, Area } from 'recharts';
 import ProjectDetailView from './ProjectDetailView';
 import { fetchProjects, updateProject, deleteProject } from '../../Redux/Slices/projectSlice';
 import { fetchTodoLists } from '../../Redux/Slices/todoListSlice';
 import { fetchUsers } from '../../Redux/Slices/userSlice';
+import api from '../../config/axios';
 import Swal from 'sweetalert2';
 import './ProjectReportPage.css';
 
@@ -20,6 +21,12 @@ const COLORS = {
 };
 
 const CHART_COLORS = [COLORS.completed, COLORS.inProgress, COLORS.notStarted];
+const EXPORT_DATASETS = [
+  { value: 'collaborators', label: 'Performance collaborateurs' },
+  { value: 'clients', label: 'Temps par client' },
+  { value: 'overdue_tasks', label: 'Tâches en retard' },
+  { value: 'info_requests', label: 'Demandes clients' },
+];
 
 const ProjectReportPage = () => {
   const dispatch = useDispatch();
@@ -67,6 +74,11 @@ const ProjectReportPage = () => {
     notStarted: true,
     rate: true
   });
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState(null);
+  const [exportDataset, setExportDataset] = useState('collaborators');
+  const [exportLoading, setExportLoading] = useState(false);
 
   const toggleSeries = (key) => {
     setVisibleSeries(prev => ({ ...prev, [key]: !prev[key] }));
@@ -91,6 +103,77 @@ const ProjectReportPage = () => {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const fetchAnalytics = async () => {
+      setAnalyticsLoading(true);
+      setAnalyticsError(null);
+
+      const params = buildAnalyticsParams();
+
+      try {
+        const { data } = await api.get('/analytics/tasks/overview', {
+          params,
+          signal: controller.signal,
+        });
+        setAnalyticsData(data);
+      } catch (error) {
+        if (error?.name === 'CanceledError') return;
+        setAnalyticsError(error?.response?.data?.error || "Impossible de charger les statistiques.");
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+
+    return () => controller.abort();
+  }, [filters.selectedEmployee, filters.selectedProject]);
+
+  const buildAnalyticsParams = () => {
+    const params = {};
+    if (filters.selectedEmployee !== 'all') {
+      params.collaborator_id = filters.selectedEmployee;
+    }
+    if (filters.selectedProject !== 'all') {
+      params.project_id = filters.selectedProject;
+    }
+    return params;
+  };
+
+  const handleAnalyticsExport = async (dataset, format = 'csv') => {
+    try {
+      setExportLoading(true);
+      const params = { ...buildAnalyticsParams(), dataset, format };
+      const response = await api.get('/analytics/reports/export', {
+        params,
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `analytics-${dataset}.${format === 'xlsx' ? 'xlsx' : format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Export impossible',
+        text: error?.response?.data?.error || 'Veuillez réessayer plus tard.',
+      });
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleExportDatasetChange = (event) => {
+    setExportDataset(event.target.value);
+  };
 
   // Fonctions pour gérer l'édition des projets
   const handleEditProject = (project) => {
@@ -529,7 +612,7 @@ const ProjectReportPage = () => {
       // Trier par efficacité desc
       employeeEfficiency.sort((a,b)=> b.rate - a.rate);
 
-      return {
+      const stats = {
         totalProjects: actualFilteredProjects.length,
         totalLists: actualRelatedLists.length,
         totalTasks: activeTasks.length, // tâches actives uniquement
@@ -541,17 +624,60 @@ const ProjectReportPage = () => {
         notStartedTasks,
         pendingTasks,
         projectStats,
-  averageCompletion,
-  employeeSuccessRate, // peut être null si pas de filtre employé
-  employeeDueTasksCount,
-  employeeCompletedDueTasksCount,
+        averageCompletion,
+        employeeSuccessRate, // peut être null si pas de filtre employé
+        employeeDueTasksCount,
+        employeeCompletedDueTasksCount,
         totalCancelledTasks: cancelledTasksGlobal,
-        employeeEfficiency
+        employeeEfficiency,
+        statusDistribution: null,
+        timeByCollaborator: [],
+        timeByClient: [],
+        timeByCategory: [],
+        costSummary: null,
+        billingVsWorkload: null,
+        taskHoursByUser: [],
+        dailyTimeTracking: null,
+        teamPerformance: [],
+        overdueTasks: [],
+        clientInformationRequests: { totals: null, recent: [] },
+        periodicCollaborators: [],
+        periodicClients: [],
       };
+
+      if (analyticsData) {
+        if (Array.isArray(analyticsData.employee_efficiency)) {
+          stats.employeeEfficiency = analyticsData.employee_efficiency.map((emp) => ({
+            userId: emp.user_id,
+            name: emp.name,
+            completed: emp.completed,
+            inProgress: emp.inProgress,
+            notStarted: emp.notStarted,
+            cancelled: emp.cancelled,
+            totalDenom: emp.totalDenom,
+            rate: emp.rate,
+          }));
+        }
+        stats.statusDistribution = analyticsData.status_distribution || null;
+        stats.timeByCollaborator = analyticsData.time_by_collaborator || [];
+        stats.timeByClient = analyticsData.time_by_client || [];
+        stats.timeByCategory = analyticsData.time_by_category || [];
+        stats.costSummary = analyticsData.cost_summary;
+        stats.billingVsWorkload = analyticsData.billing_vs_workload;
+        stats.taskHoursByUser = analyticsData.task_hours_by_user || [];
+        stats.dailyTimeTracking = analyticsData.daily_time_tracking || null;
+        stats.teamPerformance = analyticsData.team_performance || [];
+        stats.overdueTasks = analyticsData.overdue_tasks || [];
+        stats.clientInformationRequests = analyticsData.client_information_requests || { totals: null, recent: [] };
+        stats.periodicCollaborators = analyticsData.periodic_collaborators || [];
+        stats.periodicClients = analyticsData.periodic_clients || [];
+      }
+
+      return stats;
     }
 
     // Données vides si pas de projets réels
-    return {
+    const emptyStats = {
       totalProjects: 0,
       totalLists: 0,
       totalTasks: 0,
@@ -562,12 +688,143 @@ const ProjectReportPage = () => {
       inProgressTasks: 0,
       notStartedTasks: 0,
       pendingTasks: 0,
-  averageCompletion: 0,
-  projectStats: [],
-  totalCancelledTasks: 0,
-  employeeEfficiency: []
+      averageCompletion: 0,
+      projectStats: [],
+      totalCancelledTasks: 0,
+      employeeEfficiency: [],
+      statusDistribution: analyticsData?.status_distribution || null,
+      timeByCollaborator: analyticsData?.time_by_collaborator || [],
+      timeByClient: analyticsData?.time_by_client || [],
+      timeByCategory: analyticsData?.time_by_category || [],
+      costSummary: analyticsData?.cost_summary || null,
+      billingVsWorkload: analyticsData?.billing_vs_workload || null,
+      taskHoursByUser: analyticsData?.task_hours_by_user || [],
+      dailyTimeTracking: analyticsData?.daily_time_tracking || null,
+      teamPerformance: analyticsData?.team_performance || [],
+      overdueTasks: analyticsData?.overdue_tasks || [],
+      clientInformationRequests: analyticsData?.client_information_requests || { totals: null, recent: [] },
+      periodicCollaborators: analyticsData?.periodic_collaborators || [],
+      periodicClients: analyticsData?.periodic_clients || [],
     };
-  }, [projects, todoLists, filters.selectedProject, filters.selectedEmployee, filters.statusFilter]);
+
+    if (analyticsData?.employee_efficiency) {
+      emptyStats.employeeEfficiency = analyticsData.employee_efficiency.map((emp) => ({
+        userId: emp.user_id,
+        name: emp.name,
+        completed: emp.completed,
+        inProgress: emp.inProgress,
+        notStarted: emp.notStarted,
+        cancelled: emp.cancelled,
+        totalDenom: emp.totalDenom,
+        rate: emp.rate,
+      }));
+    }
+
+    return emptyStats;
+  }, [projects, todoLists, filters.selectedProject, filters.selectedEmployee, filters.statusFilter, analyticsData]);
+
+  const taskHoursByUser = statistics.taskHoursByUser || [];
+  const topTaskHours = useMemo(() => taskHoursByUser.slice(0, 8), [taskHoursByUser]);
+  const dailyTracking = statistics.dailyTimeTracking;
+  const dailyTrackingChartData = useMemo(() => {
+    if (!dailyTracking?.days) {
+      return [];
+    }
+
+    return dailyTracking.days.map((day) => ({
+      label: new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }),
+      date: day.date,
+      hours: day.hours,
+      entries: day.entries,
+    }));
+  }, [dailyTracking]);
+  const dailyRangeLabel = dailyTracking
+    ? `${new Date(dailyTracking.start_date).toLocaleDateString('fr-FR')} - ${new Date(dailyTracking.end_date).toLocaleDateString('fr-FR')}`
+    : '';
+  const hasMoreTaskHours = taskHoursByUser.length > topTaskHours.length;
+  const busiestDay = useMemo(() => {
+    if (!dailyTracking?.days) {
+      return null;
+    }
+    return dailyTracking.days.reduce((peak, day) => {
+      if (!peak || day.hours > (peak.hours ?? 0)) {
+        return day;
+      }
+      return peak;
+    }, null);
+  }, [dailyTracking]);
+  const dailyEntryCount = useMemo(() => {
+    if (!dailyTracking?.days) {
+      return 0;
+    }
+    return dailyTracking.days.reduce((sum, day) => sum + (day.entries ?? 0), 0);
+  }, [dailyTracking]);
+
+  const costSummary = statistics.costSummary || null;
+  const billingVsWorkload = statistics.billingVsWorkload || null;
+  const teamPerformance = statistics.teamPerformance || [];
+  const overdueTasks = statistics.overdueTasks || [];
+  const clientInformationRequests = statistics.clientInformationRequests || { totals: null, recent: [] };
+  const clientInfoTotals = clientInformationRequests?.totals || {};
+  const recentInfoRequests = clientInformationRequests?.recent || [];
+  const timeByClient = statistics.timeByClient || [];
+  const timeByCategory = statistics.timeByCategory || [];
+  const periodicCollaborators = statistics.periodicCollaborators || [];
+  const periodicClients = statistics.periodicClients || [];
+  const topClients = useMemo(() => timeByClient.slice(0, 6), [timeByClient]);
+  const totalClientHours = useMemo(() => timeByClient.reduce((sum, item) => sum + (item.hours || 0), 0), [timeByClient]);
+  const topCategories = useMemo(() => timeByCategory.slice(0, 6), [timeByCategory]);
+  const topPeriodicCollaborators = useMemo(() => periodicCollaborators.slice(0, 8), [periodicCollaborators]);
+  const topPeriodicClients = useMemo(() => periodicClients.slice(0, 8), [periodicClients]);
+  const maxClientHours = useMemo(() => {
+    if (!topClients.length) return 1;
+    return Math.max(...topClients.map((item) => item.hours || 0), 1);
+  }, [topClients]);
+  const maxCategoryHours = useMemo(() => {
+    if (!topCategories.length) return 1;
+    return Math.max(...topCategories.map((item) => item.hours || 0), 1);
+  }, [topCategories]);
+
+  const currencyFormatter = useMemo(() => new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }), []);
+
+  const formatCurrency = (value) => {
+    const safeValue = Number.isFinite(value) ? value : 0;
+    return currencyFormatter.format(safeValue);
+  };
+
+  const formatHoursLabel = (value) => {
+    if (value === null || value === undefined) return '—';
+    return `${Number(value).toFixed(1)} h`;
+  };
+
+  const formatMinutesLabel = (minutes, { signed = false } = {}) => {
+    if (minutes === null || minutes === undefined) return '—';
+    if (Math.abs(minutes) >= 60) {
+      const hours = minutes / 60;
+      const prefix = signed && hours > 0 ? '+' : '';
+      return `${prefix}${hours.toFixed(1)} h`;
+    }
+    const prefix = signed && minutes > 0 ? '+' : '';
+    return `${prefix}${minutes.toFixed(0)} min`;
+  };
+
+  const workloadTotals = billingVsWorkload
+    ? {
+        plannedHours: +(billingVsWorkload.planned_minutes ?? 0) / 60,
+        actualHours: +(billingVsWorkload.actual_minutes ?? 0) / 60,
+        varianceMinutes: billingVsWorkload.variance_minutes ?? 0,
+      }
+    : null;
+
+  const requestStatusBreakdown = [
+    { key: 'pending', label: 'En attente', variant: 'warning' },
+    { key: 'in_progress', label: 'En cours', variant: 'info' },
+    { key: 'resolved', label: 'Résolues', variant: 'success' },
+  ];
 
   // Helper pour calcul efficacité employé
   function computeEmpEfficiency(user, tasks) {
@@ -770,7 +1027,7 @@ const ProjectReportPage = () => {
     <div className="project-report-page">
       {/* En-tête */}
       <div className="page-header">
-        <div className="d-flex justify-content-between align-items-center flex-wrap">
+        <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
           <div>
             <h2 className="page-title mb-1">
               <Icon icon="fluent:chart-multiple-24-filled" className="me-2" />
@@ -778,15 +1035,48 @@ const ProjectReportPage = () => {
             </h2>
             <p className="text-muted mb-0">Statistiques et analyse détaillée des projets et tâches</p>
           </div>
-          <div className="d-flex gap-2">
-            <Button variant="outline-primary" size="sm">
-              <Icon icon="fluent:arrow-export-24-filled" className="me-1" />
-              Exporter
-            </Button>
-            <Button variant="primary" size="sm">
-              <Icon icon="fluent:arrow-sync-24-filled" className="me-1" />
-              Actualiser
-            </Button>
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            <Form.Select
+              size="sm"
+              className="w-auto"
+              value={exportDataset}
+              onChange={handleExportDatasetChange}
+            >
+              {EXPORT_DATASETS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Form.Select>
+            <ButtonGroup size="sm">
+              <Button
+                variant="outline-primary"
+                disabled={exportLoading}
+                onClick={() => handleAnalyticsExport(exportDataset, 'csv')}
+              >
+                <Icon icon="fluent:document-arrow-down-24-filled" className="me-1" /> CSV
+              </Button>
+              <Button
+                variant="outline-primary"
+                disabled={exportLoading}
+                onClick={() => handleAnalyticsExport(exportDataset, 'xlsx')}
+              >
+                <Icon icon="fluent:document-table-24-filled" className="me-1" /> Excel
+              </Button>
+              <Button
+                variant="outline-primary"
+                disabled={exportLoading}
+                onClick={() => handleAnalyticsExport(exportDataset, 'pdf')}
+              >
+                <Icon icon="fluent:document-pdf-24-filled" className="me-1" /> PDF
+              </Button>
+            </ButtonGroup>
+            {exportLoading && (
+              <span className="text-muted small d-flex align-items-center gap-1">
+                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                Préparation...
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -1494,6 +1784,12 @@ const ProjectReportPage = () => {
               </h6>
               <small className="text-muted">Taux = réalisées / (échues + terminées)</small>
             </div>
+            {analyticsLoading && (
+              <div className="text-muted small">Chargement des statistiques...</div>
+            )}
+            {analyticsError && (
+              <div className="alert alert-warning py-2 px-3 small mb-3">{analyticsError}</div>
+            )}
             {statistics.employeeEfficiency && statistics.employeeEfficiency.length > 0 ? (
               <div className="table-responsive rounded-3 border" style={{background:'#fff'}}>
                 <Table hover className="mb-0 align-middle" style={{fontSize:'0.92rem'}}>
@@ -1620,6 +1916,592 @@ const ProjectReportPage = () => {
         .series-filter .form-check-input:checked::after { content:'\\2713'; position:absolute; top:50%; left:50%; transform:translate(-50%,-55%); font-size:0.85rem; color:#fff; font-weight:600; }
         .series-filter .badge { font-weight:500; }
       `}</style>
+
+      {/* Suivi temps par collaborateur & journalier */}
+      <Row className="mb-4">
+        <Col lg={6} className="mb-4 mb-lg-0">
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 pb-0">
+              <div className="d-flex justify-content-between align-items-center">
+                <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                  <Icon icon="fluent:clock-person-20-filled" /> Heures par collaborateur
+                </h6>
+                {hasMoreTaskHours && (
+                  <Badge bg="light" text="dark" className="border">
+                    Top {topTaskHours.length}/{taskHoursByUser.length}
+                  </Badge>
+                )}
+              </div>
+            </Card.Header>
+            <Card.Body>
+              {analyticsLoading && (
+                <div className="text-muted small mb-2">Actualisation des heures en cours...</div>
+              )}
+              {topTaskHours.length > 0 ? (
+                <div className="table-responsive">
+                  <Table hover size="sm" className="align-middle mb-0">
+                    <thead style={{background:'#f8f9fa'}}>
+                      <tr>
+                        <th className="text-muted fw-semibold">Collaborateur</th>
+                        <th className="text-muted fw-semibold text-center">Total (h)</th>
+                        <th className="text-muted fw-semibold text-center">Tâches suivies</th>
+                        <th className="text-muted fw-semibold">Principales tâches</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topTaskHours.map((item, index) => (
+                        <tr key={`hours-${item.user_id ?? index}`}>
+                          <td>
+                            <div className="d-flex flex-column">
+                              <span className="fw-semibold">{item.name}</span>
+                              <small className="text-muted">ID {item.user_id ?? '—'}</small>
+                            </div>
+                          </td>
+                          <td className="text-center">
+                            <span className="badge bg-primary bg-opacity-10 text-primary fw-semibold px-3">
+                              {Number(item.total_hours ?? 0).toFixed(2)} h
+                            </span>
+                          </td>
+                          <td className="text-center fw-semibold">
+                            {item.tasks_count ?? item.tasks?.length ?? 0}
+                          </td>
+                          <td>
+                            {item.tasks && item.tasks.length > 0 ? (
+                              <div className="d-flex flex-wrap gap-2">
+                                {item.tasks.slice(0, 3).map(task => (
+                                  <span
+                                    key={`${item.user_id}-${task.task_id}`}
+                                    className="badge bg-light text-dark border"
+                                    title={task.task_label}
+                                  >
+                                    {task.task_label?.length > 32 ? `${task.task_label.substring(0, 32)}…` : task.task_label}
+                                    <span className="text-muted"> • {Number(task.hours ?? 0).toFixed(1)}h</span>
+                                  </span>
+                                ))}
+                                {item.tasks.length > 3 && (
+                                  <small className="text-muted">+{item.tasks.length - 3} autres</small>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted small">Aucune saisie associée</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                  <small className="text-muted d-block mt-2">Basé sur les pointages enregistrés sur la période filtrée.</small>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted small">
+                  <Icon icon="fluent:people-checkmark-20-regular" className="mb-2" style={{fontSize:'32px'}} />
+                  <p className="mb-0">Aucune saisie de temps disponible pour le moment.</p>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col lg={6}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 pb-0">
+              <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                <Icon icon="fluent:line-chart-20-filled" /> Suivi quotidien des heures
+              </h6>
+            </Card.Header>
+            <Card.Body>
+              {dailyTrackingChartData.length > 0 ? (
+                <>
+                  <div className="d-flex flex-wrap gap-4 mb-3">
+                    <div>
+                      <p className="text-muted small mb-1">Total période</p>
+                      <h4 className="fw-bold mb-0">{Number(dailyTracking?.total_hours ?? 0).toFixed(1)} h</h4>
+                      <small className="text-muted">{dailyRangeLabel || '14 derniers jours'}</small>
+                    </div>
+                    <div>
+                      <p className="text-muted small mb-1">Moyenne / jour</p>
+                      <h4 className="fw-bold mb-0">{Number(dailyTracking?.average_hours_per_day ?? 0).toFixed(1)} h</h4>
+                      <small className="text-muted">{dailyEntryCount} pointage{dailyEntryCount > 1 ? 's' : ''}</small>
+                    </div>
+                    {busiestDay && (
+                      <div>
+                        <p className="text-muted small mb-1">Jour le plus chargé</p>
+                        <h4 className="fw-bold mb-0">{Number(busiestDay.hours ?? 0).toFixed(1)} h</h4>
+                        <small className="text-muted">
+                          {new Date(busiestDay.date).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'short' })}
+                        </small>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ width: '100%', height: 280 }}>
+                    <ResponsiveContainer>
+                      <AreaChart data={dailyTrackingChartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="dailyHoursGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.35} />
+                            <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0.02} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
+                        <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
+                        <YAxis allowDecimals tickFormatter={(value) => `${value}h`} tickLine={false} axisLine={false} width={60} />
+                        <Tooltip formatter={(value) => [`${value} h`, 'Heures']} labelFormatter={(label) => label} />
+                        <Legend />
+                        <Area
+                          type="monotone"
+                          dataKey="hours"
+                          name="Heures suivies"
+                          stroke={COLORS.primary}
+                          fill="url(#dailyHoursGradient)"
+                          strokeWidth={3}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-4 text-muted small">
+                  <Icon icon="fluent:clock-16-regular" className="mb-2" style={{fontSize:'32px'}} />
+                  <p className="mb-0">Aucun pointage journalier sur la période sélectionnée.</p>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Performance avancée & synthèse coûts */}
+      <Row className="mb-4">
+        <Col xl={7} className="mb-4 mb-xl-0">
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 pb-0 d-flex justify-content-between align-items-center">
+              <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                <Icon icon="fluent:person-feedback-24-regular" /> Performance avancée de l'équipe
+              </h6>
+              <Badge bg="light" text="dark">{teamPerformance.length} profils</Badge>
+            </Card.Header>
+            <Card.Body>
+              {teamPerformance.length > 0 ? (
+                <div className="table-responsive">
+                  <Table hover size="sm" className="align-middle mb-0">
+                    <thead className="bg-light">
+                      <tr>
+                        <th className="text-muted fw-semibold">Collaborateur</th>
+                        <th className="text-muted fw-semibold text-center">Terminées</th>
+                        <th className="text-muted fw-semibold text-center">En cours</th>
+                        <th className="text-muted fw-semibold text-center">Retards actifs</th>
+                        <th className="text-muted fw-semibold text-center">Cycle moyen</th>
+                        <th className="text-muted fw-semibold text-center">Retard moyen</th>
+                        <th className="text-muted fw-semibold text-center">Livraisons à l'heure</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teamPerformance.slice(0, 12).map((row) => {
+                        const badgeVariant = row.on_time_rate >= 85 ? 'success' : row.on_time_rate >= 60 ? 'warning' : 'danger';
+                        return (
+                          <tr key={`team-performance-${row.user_id}`}>
+                            <td>
+                              <div className="fw-semibold">{row.name}</div>
+                              <small className="text-muted">{row.completed} livraisons</small>
+                            </td>
+                            <td className="text-center text-success fw-semibold">{row.completed}</td>
+                            <td className="text-center text-warning fw-semibold">{row.in_progress}</td>
+                            <td className="text-center text-danger fw-semibold">{row.overdue_active}</td>
+                            <td className="text-center">{formatHoursLabel(row.avg_cycle_hours)}</td>
+                            <td className="text-center">{formatMinutesLabel(row.avg_delay_minutes, { signed: true })}</td>
+                            <td className="text-center">
+                              {row.on_time_rate !== null ? (
+                                <Badge bg={badgeVariant} className="px-3">{row.on_time_rate}%</Badge>
+                              ) : (
+                                <span className="text-muted">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted small">
+                  Pas assez de tâches finalisées pour calculer ces indicateurs.
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xl={5}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 pb-0">
+              <div className="d-flex justify-content-between align-items-center">
+                <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                  <Icon icon="fluent:money-hand-24-regular" /> Synthèse coûts & facturation
+                </h6>
+                {costSummary?.profitability_ratio && (
+                  <Badge bg={costSummary.profitability_ratio >= 1 ? 'success' : 'danger'}>
+                    Profitabilité&nbsp;×{costSummary.profitability_ratio}
+                  </Badge>
+                )}
+              </div>
+            </Card.Header>
+            <Card.Body>
+              {costSummary ? (
+                <>
+                  <div className="d-flex flex-wrap gap-4 mb-3">
+                    <div>
+                      <p className="text-muted small mb-1">Heures suivies</p>
+                      <h4 className="fw-bold mb-0">{formatHoursLabel(costSummary.total_hours)}</h4>
+                    </div>
+                    <div>
+                      <p className="text-muted small mb-1">Coût interne</p>
+                      <h4 className="fw-bold mb-0">{formatCurrency(costSummary.total_cost)}</h4>
+                    </div>
+                    <div>
+                      <p className="text-muted small mb-1">Heures facturables</p>
+                      <h4 className="fw-bold mb-0">{formatHoursLabel(costSummary.billable_hours)}</h4>
+                    </div>
+                    <div>
+                      <p className="text-muted small mb-1">Facturation estimée</p>
+                      <h4 className="fw-bold mb-0">{formatCurrency(costSummary.billing_amount)}</h4>
+                    </div>
+                  </div>
+                  {workloadTotals && (
+                    <div className="mb-4">
+                      <div className="d-flex justify-content-between text-muted small">
+                        <span>Charge planifiée</span>
+                        <strong>{formatHoursLabel(workloadTotals.plannedHours)}</strong>
+                      </div>
+                      <div className="d-flex justify-content-between text-muted small">
+                        <span>Charge réelle</span>
+                        <strong>{formatHoursLabel(workloadTotals.actualHours)}</strong>
+                      </div>
+                      <ProgressBar
+                        now={workloadTotals.plannedHours ? Math.min(110, Math.round((workloadTotals.actualHours / workloadTotals.plannedHours) * 100)) : 0}
+                        className="my-2"
+                        variant={workloadTotals.varianceMinutes > 0 ? 'danger' : 'success'}
+                      />
+                      <div className="text-muted small text-end">
+                        Variance {formatMinutesLabel(workloadTotals.varianceMinutes, { signed: true })}
+                      </div>
+                    </div>
+                  )}
+                  {costSummary?.by_user?.length > 0 && (
+                    <div>
+                      <h6 className="fw-semibold small text-uppercase text-muted mb-2">Top contributeurs</h6>
+                      <div className="table-responsive">
+                        <Table size="sm" className="align-middle mb-0">
+                          <thead>
+                            <tr>
+                              <th className="text-muted small">Collaborateur</th>
+                              <th className="text-muted small text-end">Heures</th>
+                              <th className="text-muted small text-end">Coût</th>
+                              <th className="text-muted small text-end">Facturation</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {costSummary.by_user.slice(0, 5).map((item, index) => (
+                              <tr key={`cost-user-${item.user_id ?? index}`}>
+                                <td className="fw-semibold">{item.name || `Utilisateur ${item.user_id}`}</td>
+                                <td className="text-end">{formatHoursLabel(item.hours)}</td>
+                                <td className="text-end">{formatCurrency(item.cost)}</td>
+                                <td className="text-end">{formatCurrency(item.billing)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-4 text-muted small">
+                  Aucun pointage facturable sur la période sélectionnée.
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Répartition des temps par client et catégorie */}
+      <Row className="mb-4">
+        <Col xl={7} className="mb-4 mb-xl-0">
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 pb-0">
+              <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                <Icon icon="fluent:people-team-32-regular" /> Temps par client
+              </h6>
+            </Card.Header>
+            <Card.Body>
+              {topClients.length > 0 ? (
+                <div className="table-responsive">
+                  <Table hover size="sm" className="align-middle mb-0">
+                    <thead className="bg-light">
+                      <tr>
+                        <th className="text-muted fw-semibold">Client</th>
+                        <th className="text-muted fw-semibold">Heures</th>
+                        <th className="text-muted fw-semibold">Part</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topClients.map((client) => (
+                        <tr key={`client-${client.client_id}`}>
+                          <td>
+                            <div className="fw-semibold">{client.client_name}</div>
+                            <small className="text-muted">{client.minutes} min suivies</small>
+                          </td>
+                          <td className="fw-semibold">{client.hours?.toFixed(2)} h</td>
+                          <td style={{ minWidth: 180 }}>
+                            <ProgressBar
+                              now={(client.hours / maxClientHours) * 100}
+                              variant="primary"
+                              className="mb-1"
+                              style={{ height: 8 }}
+                            />
+                            <small className="text-muted">
+                              {((client.hours / Math.max(1, totalClientHours)) * 100).toFixed(1)}%
+                            </small>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted small">
+                  Aucun temps n'a été suivi pour les clients sur cette période.
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xl={5}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 pb-0">
+              <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                <Icon icon="fluent:content-view-32-regular" /> Répartition par catégorie
+              </h6>
+            </Card.Header>
+            <Card.Body>
+              {topCategories.length > 0 ? (
+                <ul className="list-unstyled mb-0">
+                  {topCategories.map((category) => (
+                    <li key={category.category} className="mb-3">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <span className="fw-semibold">{category.category}</span>
+                          <small className="d-block text-muted">{category.minutes} min</small>
+                        </div>
+                        <span className="badge bg-light text-dark border">{category.hours?.toFixed(1)} h</span>
+                      </div>
+                      <ProgressBar
+                        now={(category.hours / maxCategoryHours) * 100}
+                        variant="info"
+                        className="mt-2"
+                        style={{ height: 6 }}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center py-4 text-muted small">
+                  Aucune catégorie renseignée.
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Tâches en retard & demandes clients */}
+      <Row className="mb-4">
+        <Col xl={7} className="mb-4 mb-xl-0">
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 pb-0 d-flex justify-content-between align-items-center">
+              <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                <Icon icon="fluent:alert-urgent-24-regular" /> Tâches en retard critiques
+              </h6>
+              <Badge bg="danger" className="text-uppercase">{overdueTasks.length}</Badge>
+            </Card.Header>
+            <Card.Body>
+              {overdueTasks.length > 0 ? (
+                <div className="table-responsive">
+                  <Table hover size="sm" className="align-middle mb-0">
+                    <thead className="bg-light">
+                      <tr>
+                        <th className="text-muted fw-semibold">Tâche</th>
+                        <th className="text-muted fw-semibold">Assigné à</th>
+                        <th className="text-muted fw-semibold">Client</th>
+                        <th className="text-muted fw-semibold text-center">Échéance</th>
+                        <th className="text-muted fw-semibold text-center">Retard</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {overdueTasks.slice(0, 10).map((task) => (
+                        <tr key={`overdue-${task.task_id}`}>
+                          <td>
+                            <div className="fw-semibold">{task.description}</div>
+                            <Badge bg="light" text="dark" className="border mt-1">{task.status || 'Non précisé'}</Badge>
+                          </td>
+                          <td>{task.assigned_to}</td>
+                          <td>{task.client || '—'}</td>
+                          <td className="text-center text-muted">
+                            {task.end_date ? new Date(task.end_date).toLocaleDateString('fr-FR') : '—'}
+                          </td>
+                          <td className="text-center fw-semibold text-danger">
+                            {formatMinutesLabel(task.delay_minutes, { signed: true })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted small">
+                  Aucune tâche en retard 🎉
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xl={5}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 pb-0">
+              <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                <Icon icon="fluent:mail-inbox-add-24-regular" /> Demandes d'informations clients
+              </h6>
+            </Card.Header>
+            <Card.Body>
+              <div className="d-flex flex-wrap gap-3 mb-3">
+                <div className="flex-grow-1">
+                  <p className="text-muted small mb-1">Total demandes</p>
+                  <h4 className="fw-bold mb-0">{clientInfoTotals.all ?? 0}</h4>
+                </div>
+                <div>
+                  <p className="text-muted small mb-1">Délai moyen</p>
+                  <h4 className="fw-bold mb-0">{formatMinutesLabel(clientInfoTotals.avg_response_minutes)}</h4>
+                </div>
+              </div>
+              <div className="d-flex flex-wrap gap-2 mb-3">
+                {requestStatusBreakdown.map((status) => (
+                  <Badge key={status.key} bg={status.variant} className="px-3 py-2">
+                    {clientInfoTotals[status.key] ?? 0} {status.label}
+                  </Badge>
+                ))}
+              </div>
+              {recentInfoRequests.length > 0 ? (
+                <div className="list-group list-group-flush">
+                  {recentInfoRequests.slice(0, 5).map((request) => (
+                    <div key={request.id} className="list-group-item px-0">
+                      <div className="d-flex justify-content-between">
+                        <div>
+                          <div className="fw-semibold">{request.subject}</div>
+                          <small className="text-muted">{request.client} · {request.channel || 'Canal inconnu'}</small>
+                        </div>
+                        <Badge bg="secondary" className="text-capitalize">{request.status}</Badge>
+                      </div>
+                      <small className="text-muted d-block mt-1">
+                        {request.requested_at ? new Date(request.requested_at).toLocaleString('fr-FR') : 'Date inconnue'}
+                      </small>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted small">
+                  Aucune demande récente.
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Bilan périodique */}
+      <Row className="mb-4">
+        <Col xl={6} className="mb-4 mb-xl-0">
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 pb-0">
+              <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                <Icon icon="fluent:calendar-checkmark-20-regular" /> Bilan périodique collaborateurs
+              </h6>
+            </Card.Header>
+            <Card.Body>
+              {topPeriodicCollaborators.length > 0 ? (
+                <div className="table-responsive">
+                  <Table hover size="sm" className="align-middle mb-0">
+                    <thead className="bg-light">
+                      <tr>
+                        <th className="text-muted fw-semibold">Collaborateur</th>
+                        <th className="text-muted fw-semibold text-center">Total</th>
+                        <th className="text-muted fw-semibold text-center">Terminées</th>
+                        <th className="text-muted fw-semibold text-center">Retards</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topPeriodicCollaborators.map((user) => (
+                        <tr key={`periodic-collab-${user.key}`}>
+                          <td>
+                            <div className="fw-semibold">{user.label}</div>
+                            <small className="text-muted">Retard moyen {formatMinutesLabel(user.avg_delay_minutes, { signed: true })}</small>
+                          </td>
+                          <td className="text-center fw-semibold">{user.tasks_total}</td>
+                          <td className="text-center text-success fw-semibold">{user.tasks_completed}</td>
+                          <td className="text-center text-danger fw-semibold">{user.tasks_overdue}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted small">
+                  Pas d'activité sur la période.
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xl={6}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Header className="bg-white border-0 pb-0">
+              <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                <Icon icon="fluent:briefcase-24-regular" /> Bilan périodique clients
+              </h6>
+            </Card.Header>
+            <Card.Body>
+              {topPeriodicClients.length > 0 ? (
+                <div className="table-responsive">
+                  <Table hover size="sm" className="align-middle mb-0">
+                    <thead className="bg-light">
+                      <tr>
+                        <th className="text-muted fw-semibold">Client</th>
+                        <th className="text-muted fw-semibold text-center">Tâches</th>
+                        <th className="text-muted fw-semibold text-center">Terminées</th>
+                        <th className="text-muted fw-semibold text-center">Retards</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topPeriodicClients.map((client) => (
+                        <tr key={`periodic-client-${client.key}`}>
+                          <td>
+                            <div className="fw-semibold">{client.label}</div>
+                            <small className="text-muted">Retard moyen {formatMinutesLabel(client.avg_delay_minutes, { signed: true })}</small>
+                          </td>
+                          <td className="text-center fw-semibold">{client.tasks_total}</td>
+                          <td className="text-center text-success fw-semibold">{client.tasks_completed}</td>
+                          <td className="text-center text-danger fw-semibold">{client.tasks_overdue}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted small">
+                  Aucun client actif sur cette période.
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
 
       {/* Tableau des projets */}
       <Row>

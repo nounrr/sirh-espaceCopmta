@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use App\Models\TodoTaskProof;
+use App\Models\TaskProgressHour;
+use App\Models\TaskProgressLog;
+use App\Models\TimeEntry;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -14,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 
 class TodoTask extends Model
 {
-    protected $fillable = ['todo_list_id', 'description', 'status', 'start_date', 'end_date', 'assigned_to', 'pourcentage', 'type', 'origine', 'client_id', 'priority'];
+    protected $fillable = ['todo_list_id', 'description', 'status', 'completed_at', 'completion_delay_minutes', 'start_date', 'end_date', 'assigned_to', 'pourcentage', 'type', 'origine', 'client_id', 'priority', 'planned_minutes', 'actual_minutes_cache', 'is_billable', 'billing_rate'];
 
     protected $with = ['comments', 'attachments', 'assignees', 'cancellationRequests', 'proofs'];
 
@@ -119,6 +122,21 @@ class TodoTask extends Model
     public function list()
     {
         return $this->belongsTo(TodoList::class, 'todo_list_id');
+    }
+
+    public function timeEntries()
+    {
+        return $this->hasMany(TimeEntry::class, 'todo_task_id');
+    }
+
+    public function progressLogs()
+    {
+        return $this->hasMany(TaskProgressLog::class, 'todo_task_id')->orderBy('created_at');
+    }
+
+    public function progressHours()
+    {
+        return $this->hasMany(TaskProgressHour::class, 'todo_task_id');
     }
 
     public function comments()

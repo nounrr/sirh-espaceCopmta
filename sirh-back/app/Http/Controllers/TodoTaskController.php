@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\CreateRepeatTodoTask;
 use Illuminate\Http\Request;
 use App\Models\TodoList;
+use App\Models\TaskProgressLog;
 use App\Models\TodoTask;
 use App\Models\TodoTaskAttachment;
 use Illuminate\Support\Facades\DB;
@@ -162,6 +163,8 @@ class TodoTaskController extends Controller
 
             $task->load($relations);
 
+            $this->syncCompletionMetadata($task);
+
             return response()->json([
                 'task' => $task,
                 'scheduled_duplicates' => $scheduledDuplicates,
@@ -246,7 +249,19 @@ class TodoTaskController extends Controller
             'remove_attachments.*' => 'integer|exists:todo_task_attachments,id',
             'assignees' => 'nullable|array',
             'assignees.*' => 'integer|distinct|exists:users,id',
+            'progress_comment' => 'nullable|string|max:2000',
         ]);
+
+        $progressComment = $validated['progress_comment'] ?? null;
+
+        if (array_key_exists('pourcentage', $validated)) {
+            $newPourcentage = (int) $validated['pourcentage'];
+            if ($newPourcentage !== (int) $task->pourcentage && empty($progressComment)) {
+                return response()->json([
+                    'error' => 'Un commentaire est requis pour mettre à jour le taux d\'avancement.'
+                ], 422);
+            }
+        }
 
         if ($hasLimitedEmployeePermissions) {
             $allowedKeys = ['status', 'pourcentage'];
@@ -282,6 +297,10 @@ class TodoTaskController extends Controller
 
         if (array_key_exists('pourcentage', $data)) {
             $data['pourcentage'] = (int) $data['pourcentage'];
+            if ($data['pourcentage'] >= 100) {
+                $data['pourcentage'] = 100;
+                $data['status'] = $data['status'] ?? 'Terminée';
+            }
         }
 
         if (array_key_exists('todo_list_id', $data)) {
@@ -375,6 +394,19 @@ class TodoTaskController extends Controller
                     }
             }
         });
+
+        $task->refresh();
+        $this->syncCompletionMetadata($task, $oldStatus);
+
+        if ($progressComment || array_key_exists('pourcentage', $data) || array_key_exists('status', $data)) {
+            TaskProgressLog::create([
+                'todo_task_id' => $task->id,
+                'user_id' => optional(Auth::user())->id,
+                'pourcentage' => (int) $task->pourcentage,
+                'status' => $task->status,
+                'comment' => $progressComment,
+            ]);
+        }
 
         // Note: Cancellation notifications are now handled by the TodoTask model observer
         // when the status changes to "Annulé" to avoid duplication
@@ -640,5 +672,48 @@ class TodoTaskController extends Controller
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    protected function syncCompletionMetadata(TodoTask $task, ?string $previousStatus = null): void
+    {
+        $wasCompleted = $this->isCompletedStatus($previousStatus);
+        $isCompleted = $this->isCompletedStatus($task->status);
+
+        if ($isCompleted) {
+            $completedAt = $task->completed_at ? Carbon::parse($task->completed_at) : now();
+            $task->forceFill([
+                'completed_at' => $completedAt,
+                'completion_delay_minutes' => $this->calculateCompletionDelay($task, $completedAt),
+            ])->saveQuietly();
+        } elseif ($wasCompleted && !$isCompleted) {
+            $task->forceFill([
+                'completed_at' => null,
+                'completion_delay_minutes' => null,
+            ])->saveQuietly();
+        }
+    }
+
+    protected function calculateCompletionDelay(TodoTask $task, Carbon $completedAt): ?int
+    {
+        if (!$task->end_date) {
+            return null;
+        }
+
+        $expectedEnd = Carbon::parse($task->end_date)->endOfDay();
+
+        return $expectedEnd->diffInMinutes($completedAt, false);
+    }
+
+    protected function isCompletedStatus(?string $status): bool
+    {
+        if (!$status) {
+            return false;
+        }
+
+        $normalized = function_exists('mb_strtolower')
+            ? mb_strtolower(trim($status), 'UTF-8')
+            : strtolower(trim($status));
+
+        return in_array($normalized, ['terminée', 'terminee', 'terminé', 'termine'], true);
     }
 }

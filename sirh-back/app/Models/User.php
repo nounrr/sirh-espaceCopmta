@@ -28,7 +28,8 @@ class User extends Authenticatable
         'raison_sociale','rc','ice','identifiant_fiscale','domaine_activite','revenu_mensuel_net',
         'chiffre_affaires_dernier_ex','exercice_annee','forme_juridique','date_creation','capital_social',
         'associes','statut_juridique','regime_fiscal','date_debut_collaboration','type_mission','representant',
-        'montant_total'
+    'montant_total',
+    'hourly_rate'
     ];
 
 
@@ -97,6 +98,7 @@ public function todoListsCreated()
             'chiffre_affaires_dernier_ex' => 'decimal:2',
             'capital_social' => 'decimal:2',
             'montant_total' => 'decimal:2',
+            'hourly_rate' => 'decimal:2',
         ];
     }
 
