@@ -40,17 +40,15 @@ const PointageRow = ({
 }) => (
   <tr
     style={{
-      backgroundColor: (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "#FFF8E8" : isTemp ? "#F4F7FF" : "#FFFFFF",
-      borderRadius: "8px",
-      marginBottom: "8px",
-      transition: "background-color 0.3s ease",
-      borderLeft: (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "4px solid #F59E0B" : "none",
+      backgroundColor: (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "var(--ds-warning-light)" : isTemp ? "#F4F7FF" : "white",
+      transition: "all 0.3s ease",
+      borderLeft: (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "4px solid var(--ds-warning)" : "none",
     }}
-    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "#FFF3D3" : "#F3F4F6"}
-    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "#FFF8E8" : (isTemp ? "#F4F7FF" : "#FFFFFF")}
+    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "#FFF3D3" : "var(--ds-bg-secondary)"}
+    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "var(--ds-warning-light)" : (isTemp ? "#F4F7FF" : "white")}
   >
     {/* Checkbox sélection */}
-  <td style={{ padding: "12px", width: "32px", minWidth: "32px", maxWidth: "32px" }}>
+  <td style={{ padding: "var(--ds-spacing-3)", width: "32px", minWidth: "32px", maxWidth: "32px" }}>
       <input
         type="checkbox"
         className="form-check-input shadow-sm border border-primary"
@@ -59,61 +57,28 @@ const PointageRow = ({
       />
     </td>
     {/* Nom employé */}
-    <td style={{ padding: "12px", fontWeight: "500", color: "#374151" }}>
-      <div className="d-flex flex-column">
+    <td style={{ padding: "var(--ds-spacing-3)", fontWeight: "500", color: "var(--ds-text-primary)" }}>
+      <div className="d-flex flex-column gap-1">
         <div>{user.name} {user.prenom}</div>
         {(user.typeContrat || '').toLowerCase() === 'temporaire' && (
-          <span 
-            style={{
-              fontSize: "11px",
-              backgroundColor: "#F59E0B", 
-              color: "#FFFFFF", 
-              padding: "2px 6px",
-              borderRadius: "12px",
-              fontWeight: "500",
-              display: "inline-block",
-              marginTop: "4px",
-              width: "fit-content"
-            }}
-          >
+          <span className="ds-badge ds-badge-warning">
             Temporaire
           </span>
         )}
         {pointage.isNightShift && (
-          <span 
-            style={{
-              fontSize: "11px",
-              backgroundColor: "#3B82F6", 
-              color: "#FFFFFF", 
-              padding: "2px 6px",
-              borderRadius: "12px",
-              fontWeight: "500",
-              display: "inline-block",
-              marginTop: "4px",
-              width: "fit-content"
-            }}
-          >
+          <span className="ds-badge ds-badge-info">
             Équipe de nuit ({pointage.originalDate})
           </span>
         )}
       </div>
     </td>
     {/* Statut */}
-    <td style={{ padding: "12px" }}>
+    <td style={{ padding: "var(--ds-spacing-3)" }}>
       <select
-        className="form-select"
+        className="ds-select"
         value={pointage.statutJour || ''}
         onChange={e => onFieldChange('statutJour', e.target.value)}
   disabled={disabledStatut || pointage.isAbsent || pointage.valider === 1}
-        style={{
-          backgroundColor: "#FFFFFF",
-          border: "1px solid #E5E7EB",
-          borderRadius: "8px",
-          padding: "8px 12px",
-          fontSize: "14px",
-          width: "100%",
-          minWidth: "100px",
-        }}
       >
         <option value="">Sélectionner...</option>
         <option value="present">Présent</option>
@@ -122,7 +87,7 @@ const PointageRow = ({
       </select>
     </td>
     {/* Heure d'entrée */}
-    <td style={{ padding: "12px" }}>
+    <td style={{ padding: "var(--ds-spacing-3)" }}>
       <DatePicker
   disabled={disabledStatut || pointage.isAbsent || pointage.valider === 1 || pointage.statutJour === 'absent'}
         selected={
@@ -147,7 +112,7 @@ const PointageRow = ({
         dateFormat="HH:mm"
         timeFormat="HH:mm"
         placeholderText="HH:mm"
-        className="form-control"
+        className="ds-input"
         onKeyDown={e => e.preventDefault()}
         popperPlacement="bottom"
   // Fenêtre ±5 min seulement pour non-RH, sinon pleine journée
@@ -156,7 +121,7 @@ const PointageRow = ({
       />
     </td>
     {/* Heure de sortie */}
-    <td style={{ padding: "12px", minWidth: 170 }}>
+    <td style={{ padding: "var(--ds-spacing-3)", minWidth: 170 }}>
       <DatePicker
   disabled={disabledStatut || pointage.isAbsent || pointage.valider === 1 || pointage.statutJour === 'absent'}
         selected={
@@ -184,17 +149,17 @@ const PointageRow = ({
         dateFormat="HH:mm"
         timeFormat="HH:mm"
         timeCaption="Heure"
-        className="form-control"
+        className="ds-input"
         placeholderText="HH:mm"
         onKeyDown={e => e.preventDefault()}
         popperPlacement="bottom"
       />
     </td>
     {/* Heures supp */}
-    <td style={{ padding: "12px" }}>
+    <td style={{ padding: "var(--ds-spacing-3)" }}>
       <input
         type="number"
-        className="form-control"
+        className="ds-input"
         value={
           pointage.heureEntree && pointage.heureSortie
             ? calcOvertime(pointage.heureEntree, pointage.heureSortie, pointage.date)
@@ -204,16 +169,9 @@ const PointageRow = ({
       />
     </td>
     {/* Actions */}
-    <td className={`d-flex align-items-center gap-2 flex-wrap`} style={{ padding: "12px" }}>
+    <td className="d-flex align-items-center gap-2 flex-wrap" style={{ padding: "var(--ds-spacing-3)" }}>
       <button
-      className={` ${pointage.valider === 1 ? 'd-none' : ''}`}
-        style={{
-          backgroundColor: "#BFDBFE",
-          color: "#1D4ED8",
-          padding: "6px 12px",
-          borderRadius: "8px",
-          fontWeight: "500"
-        }}
+      className={`ds-btn ds-btn-sm ds-btn-primary ${pointage.valider === 1 ? 'd-none' : ''}`}
         onClick={onSave}
 disabled={pointage.isAbsent || !pointage.statutJour || pointage.valider === 1}
         title="Enregistrer"
@@ -224,13 +182,7 @@ disabled={pointage.isAbsent || !pointage.statutJour || pointage.valider === 1}
       {/* Boutons valider/invalider si applicables */}
       {Boolean(canValidate) && (
         <button
-          style={{
-            backgroundColor: "#D1FAE5",
-            color: "#059669",
-            padding: "6px 12px",
-            borderRadius: "8px",
-            fontWeight: "500"
-          }}
+          className="ds-btn ds-btn-sm ds-btn-success"
           onClick={onValidate}
           title="Valider"
           disabled={
@@ -245,13 +197,7 @@ disabled={pointage.isAbsent || !pointage.statutJour || pointage.valider === 1}
       )}
       {canInvalidate && (
         <button
-          style={{
-            backgroundColor: "#FEE2E2",
-            color: "#DC2626",
-            padding: "6px 12px",
-            borderRadius: "8px",
-            fontWeight: "500"
-          }}
+          className="ds-btn ds-btn-sm ds-btn-danger"
           onClick={onInvalidate}
           title="Invalider"
         >
@@ -270,14 +216,7 @@ disabled={pointage.isAbsent || !pointage.statutJour || pointage.valider === 1}
         )
       ) && (
         <button
-          style={{
-            backgroundColor: "#FEF2F2",
-            color: "#B91C1C",
-            border: "1px solid #FCA5A5",
-            padding: "6px 12px",
-            borderRadius: "8px",
-            fontWeight: "500"
-          }}
+          className="ds-btn ds-btn-sm ds-btn-danger ds-btn-outline"
           onClick={onDelete}
           title={
             isTemp 
@@ -1588,7 +1527,7 @@ const handleValiderPointage = async (pointageId, key) => {
   if (loading === 'loading') {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
-        <div className="spinner-border text-primary" role="status">
+        <div className="ds-spinner-lg">
           <span className="visually-hidden">Loading...</span>
         </div>
       </div>
@@ -1600,7 +1539,7 @@ const handleValiderPointage = async (pointageId, key) => {
       <div className="container-fluid">
         <div className="row">
           <div className="col-12">
-            <div className="alert alert-danger" role="alert">
+            <div className="ds-alert ds-alert-danger">
               <div className="d-flex align-items-center">
                 <Icon icon="mdi:alert-circle" className="me-2" />
                 <div>
@@ -1616,19 +1555,42 @@ const handleValiderPointage = async (pointageId, key) => {
   }
 
   return (
-    <div className="container-fluid px-4">
-      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-        <h1 className="fw-bold mb-0 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>
-          Pointages
-        </h1>
+    <div className="container-fluid px-4" style={{ background: 'var(--ds-bg-secondary)', minHeight: '100vh' }}>
+      {/* Modern Header Card */}
+      <div className="ds-card mb-4" style={{ 
+        background: 'linear-gradient(135deg, var(--ds-primary) 0%, var(--ds-primary-dark) 100%)',
+        color: 'white',
+        border: 'none',
+        overflow: 'hidden'
+      }}>
+        <div className="p-4">
+          <div className="d-flex align-items-center gap-3">
+            <div className="p-3 rounded-circle" style={{ background: 'rgba(255,255,255,0.2)' }}>
+              <Icon icon="mdi:clock-time-eight" style={{ fontSize: '2rem' }} />
+            </div>
+            <div>
+              <h1 className="fw-bold mb-1" style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)' }}>
+                Gestion des Pointages
+              </h1>
+              <p className="mb-0 opacity-90">Suivez et gérez les présences de votre équipe</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div className="d-flex flex-wrap gap-2 align-items-center" style={{ flex: "1 1 100%", justifyContent: "space-between" }}>
-          <div className="row gy-2 align-items-center mb-2">
+      {/* Filters Card */}
+      <div className="ds-card mb-4">
+        <div className="ds-card-header">
+          <div className="d-flex align-items-center gap-2">
+            <Icon icon="mdi:filter-variant" style={{ fontSize: '1.3rem', color: 'var(--ds-primary)' }} />
+            <h5 className="mb-0 fw-bold">Filtres et Actions</h5>
+          </div>
+        </div>
+        <div className="ds-card-body">
+          <div className="row gy-3 align-items-end">
             {/* Date */}
-            <div className="col-12 col-md-auto">
-              <label className='form-label d-block'> Date</label>
+            <div className="col-12 col-md-6 col-lg-3">
+              <label className='ds-label'>Date</label>
               <DatePicker
                 selected={selectedDate ? new Date(selectedDate) : today}
                 onChange={date =>
@@ -1638,7 +1600,7 @@ const handleValiderPointage = async (pointageId, key) => {
                 }
                 dateFormat="dd/MM/yyyy"
                 locale="fr"
-                className="form-control w-auto"
+                className="ds-input"
                 maxDate={!isRH ? today : null}
                 minDate={!isRH ? today : null}
                 placeholderText="jj/mm/aaaa"
@@ -1664,18 +1626,18 @@ const handleValiderPointage = async (pointageId, key) => {
             </div>
 
             {/* Recherche */}
-            <div className="col-12 col-md">
-              <label className='form-label'> Recherche</label>
-              <div className="position-relative w-100">
+            <div className="col-12 col-md-6 col-lg-4">
+              <label className='ds-label'>Recherche</label>
+              <div className="position-relative">
                 <Icon 
                   icon="mdi:magnify"
-                  className="position-absolute start-0 top-50 translate-middle-y ms-2 text-secondary"
-                  style={{ fontSize: "18px" }}
+                  className="position-absolute start-0 top-50 translate-middle-y ms-3 text-secondary"
+                  style={{ fontSize: "1.2rem" }}
                 />
                 <input
                   type="text"
-                  className="form-control ps-5 py-2"
-                  placeholder="Rechercher par Nom, Prénom ou CIN..."
+                  className="ds-input ps-5"
+                  placeholder="Nom, Prénom ou CIN..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -1683,20 +1645,12 @@ const handleValiderPointage = async (pointageId, key) => {
             </div>
 
             {/* Statut */}
-            <div className="col-12 col-md-auto">
-              <label className='form-label'> Statut</label>
+            <div className="col-12 col-md-6 col-lg-3">
+              <label className='ds-label'>Statut</label>
               <select
-                className="form-select"
+                className="ds-select"
                 value={filters.onlyPresentOrRetard}
                 onChange={e => setFilters(prev => ({ ...prev, onlyPresentOrRetard: e.target.value }))}
-                style={{
-                  borderRadius: "8px",
-                  padding: "8px 12px",
-                  backgroundColor: "#F1F3F5",
-                  color: "#374151",
-                  border: "1px solid #E2E8F0",
-                  minWidth: 150
-                }}
               >
                 <option value="">Tous</option>
                 <option value="present">Présents seulement</option>
@@ -1705,9 +1659,10 @@ const handleValiderPointage = async (pointageId, key) => {
                 <option value="present_retard">Présents et Retards</option>
               </select>
             </div>
+            
             {/* Non pointé seulement */}
-            <div className="col-12 col-md-auto d-flex align-items-end">
-              <div className="form-check mt-4">
+            <div className="col-12 col-md-6 col-lg-2">
+              <div className="form-check">
                 <input
                   id="onlyNonPointe"
                   className="form-check-input"
@@ -1715,7 +1670,7 @@ const handleValiderPointage = async (pointageId, key) => {
                   checked={filters.onlyNonPointe}
                   onChange={(e) => setFilters(prev => ({ ...prev, onlyNonPointe: e.target.checked }))}
                 />
-                <label className="form-check-label ms-1" htmlFor="onlyNonPointe">
+                <label className="form-check-label" htmlFor="onlyNonPointe">
                   Non pointé
                 </label>
               </div>
@@ -1724,40 +1679,24 @@ const handleValiderPointage = async (pointageId, key) => {
             {/* Filtre Type de Contrat et Rôle */}
             {isRH && (
               <>
-                <div className="col-12 col-md-auto">
-                  <label className='form-label'> Type de Contrat</label>
+                <div className="col-12 col-md-6 col-lg-3">
+                  <label className='ds-label'>Type de Contrat</label>
                   <select
-                    className="form-select"
+                    className="ds-select"
                     value={filters.typeContrat}
                     onChange={e => setFilters(prev => ({ ...prev, typeContrat: e.target.value }))}
-                    style={{
-                      borderRadius: "8px",
-                      padding: "8px 12px",
-                      backgroundColor: "#F1F3F5",
-                      color: "#374151",
-                      border: "1px solid #E2E8F0",
-                      minWidth: 150
-                    }}
                   >
                     <option value="">Tous</option>
                     <option value="temporaire">Temporaires</option>
                     <option value="permanent">Permanents</option>
                   </select>
                 </div>
-                <div className="col-12 col-md-auto">
-                  <label className='form-label'>Rôle</label>
+                <div className="col-12 col-md-6 col-lg-3">
+                  <label className='ds-label'>Rôle</label>
                   <select
-                    className="form-select"
+                    className="ds-select"
                     value={filters.role || ''}
                     onChange={e => setFilters(prev => ({ ...prev, role: e.target.value }))}
-                    style={{
-                      borderRadius: "8px",
-                      padding: "8px 12px",
-                      backgroundColor: "#F1F3F5",
-                      color: "#374151",
-                      border: "1px solid #E2E8F0",
-                      minWidth: 150
-                    }}
                   >
                     <option value="">Tous</option>
                     <option value="Chef_Dep">Chef Département</option>
@@ -1772,19 +1711,12 @@ const handleValiderPointage = async (pointageId, key) => {
 
             {/* Département */}
             {isRH && (
-              <div className="col-12 col-md-auto">
-                <label className='form-label'> Département</label>
+              <div className="col-12 col-md-6 col-lg-3">
+                <label className='ds-label'>Département</label>
                 <select
-                  className="form-select"
+                  className="ds-select"
                   value={selectedDepartment}
                   onChange={(e) => setSelectedDepartment(e.target.value)}
-                  style={{
-                    borderRadius: "8px",
-                    padding: "8px 12px",
-                    backgroundColor: "#F1F3F5",
-                    color: "#374151",
-                    border: "1px solid #E2E8F0",
-                  }}
                 >
                   <option value="">Tous</option>
                   {departments.map((dept) => (
@@ -1798,26 +1730,28 @@ const handleValiderPointage = async (pointageId, key) => {
 
             {/* Filtre items par page + compteur employés */}
             <div className="col-12">
-              <div className="d-flex align-items-center gap-2 flex-wrap">
-                <label className='form-label mb-0'>Employées par page:</label>
-                <select
-                  className="form-select"
-                  style={{ minWidth: 100, maxWidth: 120 }}
-                  value={itemsPerPage === filteredEditableKeys.length ? 'all' : itemsPerPage}
-                  onChange={e => {
-                    const val = e.target.value === 'all' ? filteredEditableKeys.length : Number(e.target.value);
-                    setItemsPerPage(val);
-                    setCurrentPage(1);
-                  }}
-                  disabled={selectedKeys.length > 0}
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                  <option value="all">Tout</option>
-                </select>
-                <span className="badge bg-info text-white">
+              <div className="d-flex align-items-center gap-3 flex-wrap">
+                <div className="d-flex align-items-center gap-2">
+                  <label className='ds-label mb-0'>Employés par page:</label>
+                  <select
+                    className="ds-select"
+                    style={{ minWidth: 100, maxWidth: 120 }}
+                    value={itemsPerPage === filteredEditableKeys.length ? 'all' : itemsPerPage}
+                    onChange={e => {
+                      const val = e.target.value === 'all' ? filteredEditableKeys.length : Number(e.target.value);
+                      setItemsPerPage(val);
+                      setCurrentPage(1);
+                    }}
+                    disabled={selectedKeys.length > 0}
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value="all">Tout</option>
+                  </select>
+                </div>
+                <span className="ds-badge ds-badge-info">
                   {selectedKeys.length > 0 
                     ? `${selectedKeys.length} sélectionné${selectedKeys.length > 1 ? 's' : ''} / ${filteredEditableKeys.length} employé${filteredEditableKeys.length > 1 ? 's' : ''}` 
                     : itemsPerPage === filteredEditableKeys.length 
@@ -1830,18 +1764,10 @@ const handleValiderPointage = async (pointageId, key) => {
 
             {/* BOUTONS: actions */}
             <div className="col-12">
-              <label className='form-label'> Actions</label>
+              <label className='ds-label'>Actions</label>
               <div className="d-flex align-items-center gap-2 flex-wrap">
                 <button 
-                  className="btn d-flex align-items-center gap-2"
-                  style={{
-                    backgroundColor: "#BFDBFE",
-                    color: "#1D4ED8",
-                    borderRadius: "8px",
-                    padding: "8px",
-                    fontWeight: 500,
-                    border: "none",
-                  }} 
+                  className="ds-btn ds-btn-primary"
                   onClick={handleSaveAll}
                 >
                   <Icon icon="mdi:content-save-all" className="fs-5" />
@@ -1850,15 +1776,7 @@ const handleValiderPointage = async (pointageId, key) => {
 
                 {canValidateAll && (
                   <button 
-                    className="btn d-flex align-items-center gap-2"
-                    style={{
-                      backgroundColor: "#D1FAE5",
-                      color: "#059669",
-                      borderRadius: "8px",
-                      padding: "8px",
-                      fontWeight: 500,
-                      border: "none",
-                    }}
+                    className="ds-btn ds-btn-success"
                     onClick={handleValiderTout}
                     disabled={
                       selectedKeys.length === 0 ||
@@ -1879,15 +1797,7 @@ const handleValiderPointage = async (pointageId, key) => {
 
                 {canInvalidateAllForRH && (
                   <button 
-                    className="btn d-flex align-items-center gap-2"
-                    style={{
-                      backgroundColor: "#FEE2E2",
-                      color: "#DC2626",
-                      borderRadius: "8px",
-                      padding: "8px",
-                      fontWeight: 500,
-                      border: "none",
-                    }}
+                    className="ds-btn ds-btn-danger"
                     onClick={handleInvaliderTout}
                   >
                     <Icon icon="mdi:close-octagon-outline" className="fs-5" />
@@ -1900,15 +1810,7 @@ const handleValiderPointage = async (pointageId, key) => {
                   const { deletable, validated, notPointed } = getDeletableCount();
                   return deletable > 0 ? (
                     <button 
-                      className="btn d-flex align-items-center gap-2"
-                      style={{
-                        backgroundColor: "#FEF2F2",
-                        color: "#B91C1C",
-                        borderRadius: "8px",
-                        padding: "8px",
-                        fontWeight: 500,
-                        border: "1px solid #FCA5A5",
-                      }}
+                      className="ds-btn ds-btn-danger ds-btn-outline"
                       onClick={handleDeleteSelected}
                       title={
                         (() => {
@@ -1936,15 +1838,7 @@ const handleValiderPointage = async (pointageId, key) => {
                 
                 {isRH && selectedKeys.length > 0 && (
                   <button 
-                    className="btn d-flex align-items-center gap-2"
-                    style={{
-                      backgroundColor: "#E0F2FE",
-                      color: "#0284C7",
-                      borderRadius: "8px",
-                      padding: "8px",
-                      fontWeight: 500,
-                      border: "none",
-                    }}
+                    className="ds-btn ds-btn-secondary"
                     onClick={handleSetUnassignedDepartment}
                   >
                     <Icon icon="fluent:building-multiple-24-filled" className="fs-5" />
@@ -1953,14 +1847,11 @@ const handleValiderPointage = async (pointageId, key) => {
                 )}
                 
                 <button 
-                  className="btn d-flex align-items-center gap-2"
+                  className="ds-btn"
                   style={{
-                    backgroundColor: "rgb(249 223 255)",
-                    color: "rgb(181 38 220)",
-                    borderRadius: "8px",
-                    padding: "8px",
-                    fontWeight: 500,
-                    border: "none",
+                    background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+                    color: 'white',
+                    border: 'none'
                   }}
                   onClick={handleAddMultiplePointages} 
                   disabled={selectedKeys.length === 0}
@@ -2139,11 +2030,11 @@ const handleValiderPointage = async (pointageId, key) => {
       )}
 
       {/* Tableau des pointages */}
-      <div className="card card-body shadow-sm border">
+      <div className="ds-card">
         <div className="table-responsive">
-          <table className="table table-hover align-middle">
+          <table className="ds-table">
             <thead>
-              <tr style={{ backgroundColor: "#F9FAFB" }}>
+              <tr>
                 <th style={{ width: "32px", minWidth: "32px", maxWidth: "32px" }}>
                   <input
                     type="checkbox"
@@ -2163,10 +2054,11 @@ const handleValiderPointage = async (pointageId, key) => {
             <tbody>
               {filteredEditableKeys.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-4">
+                  <td colSpan="7" className="text-center py-5">
                     <div className="d-flex flex-column align-items-center">
-                      <Icon icon="mdi:alert-circle" className="mb-2" style={{ fontSize: "36px", color: "#6B7280" }} />
-                      <span className="text-muted">Aucun pointage trouvé pour cette date.</span>
+                      <Icon icon="mdi:clipboard-remove-outline" className="mb-3" style={{ fontSize: "3rem", color: "var(--ds-text-tertiary)" }} />
+                      <h5 className="text-muted mb-1">Aucun pointage trouvé</h5>
+                      <span className="text-muted">Aucun pointage trouvé pour cette date et ces filtres.</span>
                     </div>
                   </td>
                 </tr>
@@ -2219,35 +2111,62 @@ const handleValiderPointage = async (pointageId, key) => {
       </div>
 
       {/* Pagination */}
-      <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-4">
-        <div>
-          <span className="text-muted">
-            Affichage de {filteredEditableKeys.length > 0 ? indexOfFirstItem + 1 : 0} à {Math.min(indexOfLastItem, filteredEditableKeys.length)} sur {filteredEditableKeys.length} pointages
-          </span>
+      <div className="ds-card mt-4">
+        <div className="ds-card-body">
+          <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div className="d-flex align-items-center gap-2">
+              <Icon icon="mdi:information-outline" style={{ color: 'var(--ds-primary)' }} />
+              <span className="text-muted">
+                Affichage de <strong>{filteredEditableKeys.length > 0 ? indexOfFirstItem + 1 : 0}</strong> à <strong>{Math.min(indexOfLastItem, filteredEditableKeys.length)}</strong> sur <strong>{filteredEditableKeys.length}</strong> pointages
+              </span>
+            </div>
+            {itemsPerPage !== filteredEditableKeys.length && (
+              <nav>
+                <ul className="pagination mb-0">
+                  <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                    <button className="page-link" onClick={() => setCurrentPage(1)}>
+                      <Icon icon="mdi:chevron-double-left" />
+                    </button>
+                  </li>
+                  <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                    <button className="page-link" onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}>
+                      <Icon icon="mdi:chevron-left" />
+                    </button>
+                  </li>
+                  {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <li key={i} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
+                        <button className="page-link" onClick={() => setCurrentPage(pageNum)}>
+                          {pageNum}
+                        </button>
+                      </li>
+                    );
+                  })}
+                  <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                    <button className="page-link" onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}>
+                      <Icon icon="mdi:chevron-right" />
+                    </button>
+                  </li>
+                  <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                    <button className="page-link" onClick={() => setCurrentPage(totalPages)}>
+                      <Icon icon="mdi:chevron-double-right" />
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            )}
+          </div>
         </div>
-        {itemsPerPage !== filteredEditableKeys.length && (
-          <nav>
-            <ul className="pagination mb-0">
-              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                <button className="page-link" onClick={() => setCurrentPage(1)}>
-                  <Icon icon="mdi:chevron-left" />
-                </button>
-              </li>
-              {[...Array(totalPages)].map((_, i) => (
-                <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                  <button className="page-link" onClick={() => setCurrentPage(i + 1)}>
-                    {i + 1}
-                  </button>
-                </li>
-              ))}
-              <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                <button className="page-link" onClick={() => setCurrentPage(totalPages)}>
-                  <Icon icon="mdi:chevron-right" />
-                </button>
-              </li>
-            </ul>
-          </nav>
-        )}
       </div>
     </div>
   );

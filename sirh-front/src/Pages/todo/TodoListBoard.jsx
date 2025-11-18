@@ -214,47 +214,42 @@ const TodoListBoard = () => {
   };
 
   return (
-    <div className="container-fluid py-4" style={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', minHeight: '100vh' }}>
+    <div className="container-fluid py-4" style={{ background: 'var(--ds-bg-secondary)', minHeight: '100vh' }}>
       <div className="container-fluid">
         {/* Bouton de retour simple */}
         <button 
-          className="btn d-flex align-items-center gap-2 mb-3"
+          className="ds-btn ds-btn-ghost mb-3"
           onClick={() => navigate(-1)}
-          style={{ 
-            background: 'none',
-            border: 'none',
-            color: '#6c757d',
-            padding: '0.5rem 0'
-          }}
         >
           <Icon icon="mdi:arrow-left" />
           Retour
         </button>
 
         {/* En-tête moderne comme dans les projets */}
-        <div className="card border-0 shadow-lg rounded-4 mb-4 overflow-hidden">
-          <div className="card-body p-4" style={{ 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white'
-          }}>
+        <div className="ds-card mb-4" style={{ 
+          background: 'linear-gradient(135deg, var(--ds-primary) 0%, var(--ds-primary-dark) 100%)',
+          color: 'white',
+          border: 'none',
+          overflow: 'hidden'
+        }}>
+          <div className="p-4">
             <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
               <div className="d-flex align-items-center gap-3">
-                <div className="p-3 rounded-circle bg-white bg-opacity-20">
+                <div className="p-3 rounded-circle" style={{ background: 'rgba(255,255,255,0.2)' }}>
                   <Icon icon="mdi:clipboard-check-outline" style={{ fontSize: '2rem' }} />
                 </div>
                 <div>
-                  <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Mes Tâches</h1>
+                  <h1 className="fw-bold mb-1" style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)' }}>Mes Tâches</h1>
                   <p className="mb-0 opacity-90">Gérez et suivez l'avancement de vos tâches assignées</p>
                 </div>
               </div>
               <div className="d-flex align-items-center gap-3">
-                <span className="badge d-flex align-items-center gap-1 px-3 py-2" style={{
+                <span className="ds-badge" style={{
                   background: 'rgba(255, 255, 255, 0.2)',
                   color: 'white',
                   backdropFilter: 'blur(10px)',
                   border: '1px solid rgba(255, 255, 255, 0.3)',
-                  borderRadius: '25px',
-                  fontWeight: '600'
+                  padding: 'var(--ds-spacing-2) var(--ds-spacing-4)'
                 }}>
                   <Icon icon="mdi:clipboard-list" />
                   {filteredTasks.length} tâche{filteredTasks.length > 1 ? 's' : ''}
@@ -272,7 +267,7 @@ const TodoListBoard = () => {
                 />
                 <input
                   type="text"
-                  className="form-control ps-5 rounded-pill border-0"
+                  className="ds-input ps-5"
                   placeholder="Rechercher une tâche..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
@@ -291,13 +286,13 @@ const TodoListBoard = () => {
         {/* Contenu */}
         {loading ? (
           <div className="text-center py-5">
-            <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+            <div className="ds-spinner-lg">
               <span className="visually-hidden">Chargement...</span>
             </div>
             <p className="mt-3 text-muted">Chargement de vos to-do lists...</p>
           </div>
     ) : error ? (
-          <div className="alert alert-danger d-flex align-items-center gap-3" role="alert">
+          <div className="ds-alert ds-alert-danger">
             <Icon icon="mdi:alert-circle" style={{ fontSize: '1.5rem' }} />
             <div>
               <h6 className="mb-1">Erreur de chargement</h6>
@@ -305,20 +300,20 @@ const TodoListBoard = () => {
             </div>
           </div>
         ) : !currentUser?.id ? (
-          <div className="card border-0 shadow-lg rounded-4">
-            <div className="card-body text-center py-5">
+          <div className="ds-card">
+            <div className="ds-card-body text-center py-5">
               <div className="mb-4">
-                <Icon icon="mdi:account-alert" style={{ fontSize: '4rem', color: '#e9ecef' }} />
+                <Icon icon="mdi:account-alert" style={{ fontSize: '4rem', color: 'var(--ds-text-tertiary)' }} />
               </div>
               <h5 className="text-muted mb-3">Utilisateur non connecté</h5>
               <p className="text-muted">Veuillez vous connecter pour voir vos tâches assignées.</p>
             </div>
           </div>
         ) : filteredTasks.length === 0 ? (
-          <div className="card border-0 shadow-lg rounded-4">
-            <div className="card-body text-center py-5">
+          <div className="ds-card">
+            <div className="ds-card-body text-center py-5">
               <div className="mb-4">
-                <Icon icon="mdi:clipboard-remove-outline" style={{ fontSize: '4rem', color: '#e9ecef' }} />
+                <Icon icon="mdi:clipboard-remove-outline" style={{ fontSize: '4rem', color: 'var(--ds-text-tertiary)' }} />
               </div>
               <h5 className="text-muted mb-3">Aucune tâche assignée</h5>
               <p className="text-muted mb-4">
@@ -329,7 +324,7 @@ const TodoListBoard = () => {
               </p>
               {/* Debug info */}
               {process.env.NODE_ENV === 'development' && (
-                <div className="mt-3 p-3 bg-light rounded">
+                <div className="mt-3 p-3 rounded" style={{ background: 'var(--ds-bg-secondary)' }}>
                   <small className="text-muted">
                     <strong>Debug:</strong><br />
                     Total tâches: {myTasks.length}<br />
@@ -352,67 +347,70 @@ const TodoListBoard = () => {
             </div>
           </div>
         ) : (
-          <div className="card border-0 shadow-lg rounded-4">
-            <div className="card-header bg-white border-0 p-4">
-              <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <div className="d-flex align-items-center gap-3">
-                  <div className="p-2 rounded-circle" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                    <Icon icon="mdi:clipboard-list" className="text-white" style={{ fontSize: '1.5rem' }} />
-                  </div>
-                  <div>
-                    <h4 className="mb-1 fw-bold">Mes Tâches par Statut</h4>
-                    <p className="text-muted small mb-0">Organisez et suivez l'avancement de vos tâches</p>
-                  </div>
+          <div className="ds-card">
+            <div className="ds-card-header">
+              <div className="d-flex align-items-center gap-3">
+                <div className="p-2 rounded-circle" style={{ background: 'var(--ds-gradient-primary)' }}>
+                  <Icon icon="mdi:clipboard-list" className="text-white" style={{ fontSize: '1.5rem' }} />
+                </div>
+                <div>
+                  <h4 className="mb-1 fw-bold">Mes Tâches par Statut</h4>
+                  <p className="text-muted small mb-0">Organisez et suivez l'avancement de vos tâches</p>
                 </div>
               </div>
             </div>
 
-            <div className="card-body p-4">
+            <div className="ds-card-body p-4">
               <div className="row g-4">
                 {/* Colonnes par statut */}
                 {Object.entries(tasksByStatus).map(([status, tasks]) => {
                   const statusConfig = {
                     'Non commencée': { 
-                      color: '#6c757d', 
+                      color: 'var(--ds-gray-600)', 
                       icon: 'mdi:pause-circle',
-                      gradient: 'linear-gradient(135deg, #6c757d 0%, #495057 100%)'
+                      gradient: 'linear-gradient(135deg, var(--ds-gray-600) 0%, var(--ds-gray-700) 100%)'
                     },
                     'En cours': { 
-                      color: '#ffc107', 
+                      color: 'var(--ds-warning)', 
                       icon: 'mdi:clock-outline',
-                      gradient: 'linear-gradient(135deg, #ffc107 0%, #fd7e14 100%)'
+                      gradient: 'var(--ds-gradient-warning)'
                     },
                     'Terminée': { 
-                      color: '#28a745', 
+                      color: 'var(--ds-success)', 
                       icon: 'mdi:check-circle',
-                      gradient: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)'
+                      gradient: 'var(--ds-gradient-success)'
                     }
                   };
 
                   return (
                     <div key={status} className="col-12 col-lg-4">
-                      <div className="card h-100 border-0 shadow-sm position-relative overflow-hidden">
+                      <div className="ds-card h-100">
                         {/* En-tête de la colonne avec style projet */}
-                        <div className="card-header border-0 p-3" style={{
+                        <div className="ds-card-header" style={{
                           background: statusConfig[status].gradient,
-                          color: 'white'
+                          color: 'white',
+                          border: 'none'
                         }}>
                           <div className="d-flex align-items-center justify-content-between">
                             <div className="d-flex align-items-center gap-2">
                               <Icon icon={statusConfig[status].icon} style={{ fontSize: '1.3rem' }} />
                               <h5 className="fw-bold mb-0">{status}</h5>
                             </div>
-                            <span className="badge bg-white bg-opacity-20 px-2 py-1 fw-bold">
+                            <span className="ds-badge" style={{
+                              background: 'rgba(255,255,255,0.2)',
+                              color: 'white',
+                              fontWeight: 'bold'
+                            }}>
                               {tasks.length}
                             </span>
                           </div>
                         </div>
 
                         {/* Liste des tâches */}
-                        <div className="card-body p-0" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                        <div className="ds-card-body p-0" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
                           {tasks.length === 0 ? (
                             <div className="p-4 text-center text-muted">
-                              <Icon icon="mdi:clipboard-remove-outline" style={{ fontSize: '2.5rem', color: '#e9ecef' }} className="mb-3" />
+                              <Icon icon="mdi:clipboard-remove-outline" style={{ fontSize: '2.5rem', color: 'var(--ds-text-tertiary)' }} className="mb-3" />
                               <p className="mb-0 text-muted">
                                 {status === 'Non commencée' ? 'Aucune tâche non commencée' : 
                                  status === 'En cours' ? 'Aucune tâche en cours' :
@@ -427,19 +425,19 @@ const TodoListBoard = () => {
                                 return (
                                   <div key={`${task.listId}-${task.id}`} className="list-group-item border-0 p-3">
                                     <div 
-                                      className="card border-0 shadow-sm position-relative"
+                                      className="ds-card position-relative"
                                       style={{
                                         borderLeft: `4px solid ${statusColor.bg}`,
-                                        background: task.status === 'Terminée' ? 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                                        background: task.status === 'Terminée' ? 'linear-gradient(135deg, var(--ds-bg-primary) 0%, var(--ds-bg-secondary) 100%)' : 'white',
                                         transition: 'all 0.3s ease'
                                       }}
                                       onMouseEnter={(e) => {
                                         e.currentTarget.style.transform = 'translateY(-3px) scale(1.01)';
-                                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1), 0 3px 10px rgba(0,0,0,0.05)';
+                                        e.currentTarget.style.boxShadow = 'var(--ds-shadow-lg)';
                                       }}
                                       onMouseLeave={(e) => {
                                         e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                                        e.currentTarget.style.boxShadow = 'var(--ds-shadow-sm)';
                                       }}
                                     >
                                       {/* Checkboxes de statut modernes en haut - disposition horizontale */}
@@ -461,7 +459,7 @@ const TodoListBoard = () => {
                                             <label 
                                               htmlFor={`status-pending-${task.id}`}
                                               className="custom-checkbox-label horizontal"
-                                              style={{ '--color': '#6c757d' }}
+                                              style={{ '--color': 'var(--ds-gray-600)' }}
                                               title="Non commencée"
                                             >
                                               <div className="checkbox-icon">
@@ -482,7 +480,7 @@ const TodoListBoard = () => {
                                             <label 
                                               htmlFor={`status-progress-${task.id}`}
                                               className="custom-checkbox-label horizontal"
-                                              style={{ '--color': '#ffc107' }}
+                                              style={{ '--color': 'var(--ds-warning)' }}
                                               title="En cours"
                                             >
                                               <div className="checkbox-icon">
@@ -503,7 +501,7 @@ const TodoListBoard = () => {
                                             <label 
                                               htmlFor={`status-done-${task.id}`}
                                               className="custom-checkbox-label horizontal"
-                                              style={{ '--color': '#28a745' }}
+                                              style={{ '--color': 'var(--ds-success)' }}
                                               title="Terminée"
                                             >
                                               <div className="checkbox-icon">
@@ -514,17 +512,15 @@ const TodoListBoard = () => {
                                         </div>
                                       </div>
 
-                                      <div className="card-body p-3">
-                                        {/* Titre de la tâche avec largeur maximale */}
-                                        <h6 className="" style={{ 
-                                          fontSize: '0.5rem',
+                                      <div className="ds-card-body">
+                                        {/* Titre de la tâche */}
+                                        <h6 className="mb-2" style={{ 
+                                          fontSize: '1rem',
                                           lineHeight: '1.4',
                                           textDecoration: task.status === 'Terminée' ? 'line-through' : 'none',
-                                          color: task.status === 'Terminée' ? '#6c757d' : '#212529',
-                                          paddingTop: '20px', // Espace pour les checkboxes en haut
-                                          width: '100%',
-                                          maxWidth: '100%',
-                                          wordWrap: 'break-word'
+                                          color: task.status === 'Terminée' ? 'var(--ds-text-tertiary)' : 'var(--ds-text-primary)',
+                                          paddingTop: '20px',
+                                          paddingRight: '40px'
                                         }}>
                                           {task.title || task.description}
                                         </h6>
@@ -540,7 +536,7 @@ const TodoListBoard = () => {
                                             </div>
                                             <span className="fw-semibold" style={{ 
                                               fontSize: '0.95rem',
-                                              color: '#495057'
+                                              color: 'var(--ds-text-secondary)'
                                             }}>
                                               {task.listTitle}
                                             </span>
@@ -553,11 +549,11 @@ const TodoListBoard = () => {
                                             <div className="row g-2">
                                               {task.start_date && (
                                                 <div className="col-6">
-                                                  <div className="d-flex align-items-center gap-2 p-2 rounded" style={{ backgroundColor: '#e3f2fd' }}>
-                                                    <Icon icon="mdi:calendar-start" style={{ fontSize: '0.9rem', color: '#1976d2' }} />
+                                                  <div className="d-flex align-items-center gap-2 p-2 rounded" style={{ backgroundColor: 'var(--ds-info-light)' }}>
+                                                    <Icon icon="mdi:calendar-start" style={{ fontSize: '0.9rem', color: 'var(--ds-info)' }} />
                                                     <div>
-                                                      <div className="fw-semibold text-muted" style={{ fontSize: '0.8rem' }}>Début</div>
-                                                      <div className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>
+                                                      <div className="fw-semibold text-muted" style={{ fontSize: '0.75rem' }}>Début</div>
+                                                      <div className="fw-bold" style={{ fontSize: '0.85rem', color: 'var(--ds-text-primary)' }}>
                                                         {new Date(task.start_date).toLocaleDateString('fr-FR')}
                                                       </div>
                                                     </div>
@@ -567,11 +563,11 @@ const TodoListBoard = () => {
                                               
                                               {task.end_date && (
                                                 <div className="col-6">
-                                                  <div className="d-flex align-items-center gap-2 p-2 rounded" style={{ backgroundColor: '#ffebee' }}>
-                                                    <Icon icon="mdi:calendar-end" style={{ fontSize: '0.9rem', color: '#d32f2f' }} />
+                                                  <div className="d-flex align-items-center gap-2 p-2 rounded" style={{ backgroundColor: 'var(--ds-danger-light)' }}>
+                                                    <Icon icon="mdi:calendar-end" style={{ fontSize: '0.9rem', color: 'var(--ds-danger)' }} />
                                                     <div>
-                                                      <div className="fw-semibold text-muted" style={{ fontSize: '0.8rem' }}>Fin</div>
-                                                      <div className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>
+                                                      <div className="fw-semibold text-muted" style={{ fontSize: '0.75rem' }}>Fin</div>
+                                                      <div className="fw-bold" style={{ fontSize: '0.85rem', color: 'var(--ds-text-primary)' }}>
                                                         {new Date(task.end_date).toLocaleDateString('fr-FR')}
                                                       </div>
                                                     </div>
@@ -585,18 +581,13 @@ const TodoListBoard = () => {
                                         {/* Bouton commentaires */}
                                         <div className="d-flex justify-content-between align-items-center mt-3">
                                           <button
-                                            className="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
+                                            className="ds-btn ds-btn-sm ds-btn-primary ds-btn-outline"
                                             onClick={() => setSelectedTask(task)}
-                                            style={{
-                                              borderRadius: '20px',
-                                              fontSize: '0.8rem',
-                                              padding: '6px 12px'
-                                            }}
                                           >
                                             <Icon icon="mdi:comment-outline" style={{ fontSize: '0.9rem' }} />
                                             <span>Commentaires</span>
                                             {task.comments && task.comments.length > 0 && (
-                                              <span className="badge bg-primary rounded-pill">
+                                              <span className="ds-badge ds-badge-primary">
                                                 {task.comments.length}
                                               </span>
                                             )}
