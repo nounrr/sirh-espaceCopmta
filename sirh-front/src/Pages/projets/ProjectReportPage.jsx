@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Card, Row, Col, Form, Button, Badge, ProgressBar, Table, Modal, ButtonGroup } from 'react-bootstrap';
+import { Card, Row, Col, Form, Button, Badge, ProgressBar, Table, Modal, ButtonGroup, Spinner, Alert, Placeholder } from 'react-bootstrap';
 import { Icon } from '@iconify/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList, AreaChart, Area } from 'recharts';
 import ProjectDetailView from './ProjectDetailView';
@@ -9,6 +9,8 @@ import { fetchTodoLists } from '../../Redux/Slices/todoListSlice';
 import { fetchUsers } from '../../Redux/Slices/userSlice';
 import api from '../../config/axios';
 import Swal from 'sweetalert2';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './ProjectReportPage.css';
 
 // Couleurs pour les graphiques
@@ -27,6 +29,144 @@ const EXPORT_DATASETS = [
   { value: 'overdue_tasks', label: 'Tâches en retard' },
   { value: 'info_requests', label: 'Demandes clients' },
 ];
+const PERIOD_OPTIONS = [
+  { value: 'last_7', label: '7 derniers jours' },
+  { value: 'last_14', label: '14 derniers jours' },
+  { value: 'last_30', label: '30 derniers jours' },
+  { value: 'month_to_date', label: 'Depuis début du mois' },
+  { value: 'custom', label: 'Période personnalisée' },
+];
+
+// 🎨 Enhanced Loading Skeletons with Shimmer Effect
+const StatCardSkeleton = () => (
+  <Card className="border-0 shadow-sm h-100 skeleton-shimmer">
+    <Card.Body className="p-4">
+      <div className="d-flex align-items-center mb-3">
+        <Placeholder as="div" animation="glow" className="me-3">
+          <Placeholder style={{ width: 48, height: 48, borderRadius: 12 }} />
+        </Placeholder>
+        <div className="flex-grow-1">
+          <Placeholder as="div" animation="glow" className="mb-2">
+            <Placeholder xs={6} size="sm" />
+          </Placeholder>
+          <Placeholder as="div" animation="glow">
+            <Placeholder xs={4} style={{ height: 32 }} />
+          </Placeholder>
+        </div>
+      </div>
+      <Placeholder as="div" animation="glow">
+        <Placeholder xs={8} size="xs" />
+      </Placeholder>
+    </Card.Body>
+  </Card>
+);
+
+const ChartSkeleton = ({ height = 300 }) => (
+  <Card className="border-0 shadow-sm h-100">
+    <Card.Header className="bg-white border-0 pb-0">
+      <Placeholder as="div" animation="glow">
+        <Placeholder xs={5} />
+      </Placeholder>
+    </Card.Header>
+    <Card.Body>
+      <div className="skeleton-chart d-flex align-items-end justify-content-around" style={{ height }}>
+        {[...Array(6)].map((_, i) => (
+          <Placeholder 
+            key={i}
+            animation="wave"
+            style={{ 
+              width: '12%', 
+              height: `${Math.random() * 60 + 40}%`,
+              borderRadius: '4px 4px 0 0',
+              opacity: 0.3
+            }} 
+          />
+        ))}
+      </div>
+    </Card.Body>
+  </Card>
+);
+
+const TableSkeleton = ({ rows = 5 }) => (
+  <Card className="border-0 shadow-sm h-100">
+    <Card.Header className="bg-white border-0 pb-0">
+      <Placeholder as="div" animation="glow">
+        <Placeholder xs={6} />
+      </Placeholder>
+    </Card.Header>
+    <Card.Body>
+      <Table hover size="sm">
+        <thead className="bg-light">
+          <tr>
+            {[...Array(4)].map((_, i) => (
+              <th key={i}>
+                <Placeholder as="div" animation="glow">
+                  <Placeholder xs={8} size="sm" />
+                </Placeholder>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {[...Array(rows)].map((_, rowIndex) => (
+            <tr key={rowIndex}>
+              {[...Array(4)].map((_, colIndex) => (
+                <td key={colIndex}>
+                  <Placeholder as="div" animation="glow">
+                    <Placeholder xs={colIndex === 0 ? 10 : 6} size="sm" />
+                  </Placeholder>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </Card.Body>
+  </Card>
+);
+
+// 🎯 Empty State Components with Illustrations
+const EmptyState = ({ icon, title, message, action }) => (
+  <div className="text-center py-5 empty-state">
+    <div className="empty-state-icon mb-4">
+      <Icon icon={icon} style={{ fontSize: 80, color: '#6c757d', opacity: 0.3 }} />
+    </div>
+    <h5 className="text-muted mb-2">{title}</h5>
+    <p className="text-muted small mb-4">{message}</p>
+    {action && (
+      <Button variant="outline-primary" size="sm" onClick={action.onClick}>
+        <Icon icon={action.icon} className="me-2" />
+        {action.label}
+      </Button>
+    )}
+  </div>
+);
+
+// ⚡ Error Display Components
+const ErrorAlert = ({ error, onRetry, onDismiss }) => (
+  <Alert variant="danger" dismissible={!!onDismiss} onClose={onDismiss} className="mb-4 error-alert">
+    <div className="d-flex align-items-start">
+      <Icon icon="fluent:error-circle-24-filled" style={{ fontSize: 24, color: '#ffffff' }} className="me-3 flex-shrink-0" />
+      <div className="flex-grow-1">
+        <Alert.Heading as="h6" className="mb-2" style={{ color: '#ffffff' }}>Une erreur est survenue</Alert.Heading>
+        <p className="mb-2 small" style={{ color: '#ffffff' }}>{error || "Impossible de charger les données. Veuillez réessayer."}</p>
+        {onRetry && (
+          <Button variant="outline-light" size="sm" onClick={onRetry}>
+            <Icon icon="fluent:arrow-clockwise-24-filled" className="me-2" />
+            Réessayer
+          </Button>
+        )}
+      </div>
+    </div>
+  </Alert>
+);
+
+const InlineError = ({ message, compact = false }) => (
+  <div className={`text-danger small d-flex align-items-center ${compact ? 'gap-1' : 'gap-2'}`}>
+    <Icon icon="fluent:warning-24-filled" />
+    <span>{message}</span>
+  </div>
+);
 
 const ProjectReportPage = () => {
   const dispatch = useDispatch();
@@ -41,8 +181,12 @@ const ProjectReportPage = () => {
     dateRange: 'all',
     searchTerm: '',
     statusFilter: 'all',
-    selectedProject: 'all', // Nouveau filtre pour la sélection de projet
-    selectedEmployee: 'all' // Nouveau filtre pour la sélection d'employé
+    selectedProject: 'all',
+    selectedEmployee: 'all',
+    selectedClient: 'all',
+    periodPreset: 'last_14',
+    customDateFrom: '',
+    customDateTo: '',
   });
 
   // États pour l'affichage détaillé d'un projet
@@ -67,6 +211,8 @@ const ProjectReportPage = () => {
   // États pour la recherche d'employés avec select
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
   // Visibilité des séries du graphique multi-barres (toutes cochées par défaut)
   const [visibleSeries, setVisibleSeries] = useState({
     completed: true,
@@ -79,10 +225,166 @@ const ProjectReportPage = () => {
   const [analyticsError, setAnalyticsError] = useState(null);
   const [exportDataset, setExportDataset] = useState('collaborators');
   const [exportLoading, setExportLoading] = useState(false);
+  const [sectionFilters, setSectionFilters] = useState({
+    collaboratorHours: 'all',
+    dailyHours: 'all',
+    teamPerformance: 'all',
+    clientTimes: 'all',
+  });
+  const [retryCount, setRetryCount] = useState(0);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // 🎯 Advanced Toast Notification System
+  const showToast = {
+    success: (message, options = {}) => {
+      toast.success(message, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        style: { color: '#ffffff' },
+        icon: <Icon icon="fluent:checkmark-circle-24-filled" style={{ color: '#ffffff' }} />,
+        ...options
+      });
+    },
+    error: (message, options = {}) => {
+      toast.error(message, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        style: { color: '#ffffff' },
+        icon: <Icon icon="fluent:error-circle-24-filled" style={{ color: '#ffffff' }} />,
+        ...options
+      });
+    },
+    info: (message, options = {}) => {
+      toast.info(message, {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        style: { color: '#ffffff' },
+        icon: <Icon icon="fluent:info-24-filled" style={{ color: '#ffffff' }} />,
+        ...options
+      });
+    },
+    warning: (message, options = {}) => {
+      toast.warning(message, {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        style: { color: '#ffffff' },
+        icon: <Icon icon="fluent:warning-24-filled" style={{ color: '#ffffff' }} />,
+        ...options
+      });
+    },
+    loading: (message) => {
+      return toast.loading(message, {
+        position: "top-right",
+        style: { color: '#ffffff' },
+      });
+    }
+  };
 
   const toggleSeries = (key) => {
     setVisibleSeries(prev => ({ ...prev, [key]: !prev[key] }));
   };
+
+  const handleSectionFilterChange = (sectionKey, value) => {
+    setSectionFilters(prev => ({ ...prev, [sectionKey]: value }));
+  };
+
+  // 🛡️ Data Sanitization & Validation
+  const sanitizeAnalyticsData = (data) => {
+    if (!data || typeof data !== 'object') {
+      console.warn('[ANALYTICS] Invalid data received:', data);
+      return null;
+    }
+
+    const sanitized = {};
+
+    // Ensure arrays are valid
+    const sanitizeArray = (arr, fieldName) => {
+      if (!Array.isArray(arr)) {
+        console.warn(`[ANALYTICS] ${fieldName} is not an array:`, arr);
+        return [];
+      }
+      return arr.filter(item => item !== null && item !== undefined);
+    };
+
+    // Ensure numeric values are valid
+    const sanitizeNumber = (val, defaultValue = 0) => {
+      const num = Number(val);
+      return Number.isFinite(num) ? num : defaultValue;
+    };
+
+    // Sanitize each field with defensive programming
+    try {
+      sanitized.status_distribution = data.status_distribution || null;
+      sanitized.time_by_collaborator = sanitizeArray(data.time_by_collaborator, 'time_by_collaborator');
+      sanitized.time_by_client = sanitizeArray(data.time_by_client, 'time_by_client');
+      sanitized.time_by_category = sanitizeArray(data.time_by_category, 'time_by_category');
+      sanitized.cost_summary = data.cost_summary || null;
+      sanitized.billing_vs_workload = data.billing_vs_workload || null;
+      sanitized.task_hours_by_user = sanitizeArray(data.task_hours_by_user, 'task_hours_by_user');
+      sanitized.daily_time_tracking = data.daily_time_tracking || null;
+      sanitized.team_performance = sanitizeArray(data.team_performance, 'team_performance');
+      sanitized.overdue_tasks = sanitizeArray(data.overdue_tasks, 'overdue_tasks');
+      
+      // Complex nested object
+      if (data.client_information_requests && typeof data.client_information_requests === 'object') {
+        sanitized.client_information_requests = {
+          totals: data.client_information_requests.totals || null,
+          recent: sanitizeArray(data.client_information_requests.recent, 'client_information_requests.recent')
+        };
+      } else {
+        sanitized.client_information_requests = { totals: null, recent: [] };
+      }
+
+      sanitized.periodic_collaborators = sanitizeArray(data.periodic_collaborators, 'periodic_collaborators');
+      sanitized.periodic_clients = sanitizeArray(data.periodic_clients, 'periodic_clients');
+
+      // Validate employee efficiency with extra safety
+      if (data.employee_efficiency && Array.isArray(data.employee_efficiency)) {
+        sanitized.employee_efficiency = data.employee_efficiency
+          .filter(emp => emp && typeof emp === 'object')
+          .map(emp => ({
+            user_id: emp.user_id,
+            name: emp.name || 'Inconnu',
+            completed: sanitizeNumber(emp.completed, 0),
+            inProgress: sanitizeNumber(emp.inProgress, 0),
+            notStarted: sanitizeNumber(emp.notStarted, 0),
+            cancelled: sanitizeNumber(emp.cancelled, 0),
+            totalDenom: sanitizeNumber(emp.totalDenom, 0),
+            rate: sanitizeNumber(emp.rate, 0),
+          }));
+      } else {
+        sanitized.employee_efficiency = [];
+      }
+
+      return sanitized;
+    } catch (error) {
+      console.error('[ANALYTICS] Error sanitizing data:', error);
+      showToast.error('Erreur lors du traitement des données');
+      return null;
+    }
+  };
+
+  // Apply sanitization to analytics data
+  const safeAnalyticsData = useMemo(() => {
+    if (!analyticsData) return null;
+    return sanitizeAnalyticsData(analyticsData);
+  }, [analyticsData]);
 
   // Charger les données au montage du composant
   useEffect(() => {
@@ -91,12 +393,33 @@ const ProjectReportPage = () => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
+  // 🌐 Network Status Detection
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      showToast.success('Connexion rétablie');
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      showToast.error('Connexion perdue. Vérifiez votre réseau.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   // Gérer la fermeture du dropdown quand on clique à l'extérieur
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.position-relative')) {
         setShowProjectDropdown(false);
         setShowEmployeeDropdown(false);
+        setShowClientDropdown(false);
       }
     };
 
@@ -107,29 +430,85 @@ const ProjectReportPage = () => {
   useEffect(() => {
     const controller = new AbortController();
     const fetchAnalytics = async () => {
+      if (!isOnline) {
+        setAnalyticsError("Pas de connexion Internet");
+        return;
+      }
+
       setAnalyticsLoading(true);
       setAnalyticsError(null);
 
       const params = buildAnalyticsParams();
 
-      try {
-        const { data } = await api.get('/analytics/tasks/overview', {
-          params,
-          signal: controller.signal,
-        });
-        setAnalyticsData(data);
-      } catch (error) {
-        if (error?.name === 'CanceledError') return;
-        setAnalyticsError(error?.response?.data?.error || "Impossible de charger les statistiques.");
-      } finally {
-        setAnalyticsLoading(false);
-      }
+      // ⏱️ Retry logic with exponential backoff
+      const maxRetries = 3;
+      let currentRetry = 0;
+
+      const attemptFetch = async () => {
+        try {
+          const { data } = await api.get('/analytics/tasks/overview', {
+            params,
+            signal: controller.signal,
+            timeout: 15000, // 15 second timeout
+          });
+          setAnalyticsData(data);
+          setRetryCount(0);
+          
+          // Show success toast only on retry success
+          if (currentRetry > 0) {
+            showToast.success('Données chargées avec succès');
+          }
+        } catch (error) {
+          if (error?.name === 'CanceledError') return;
+          
+          // Network or timeout error - retry with exponential backoff
+          if (currentRetry < maxRetries && (
+            error.code === 'ECONNABORTED' || 
+            error.code === 'ERR_NETWORK' ||
+            !error.response
+          )) {
+            currentRetry++;
+            const delay = Math.min(1000 * Math.pow(2, currentRetry), 10000); // Max 10s
+            
+            showToast.warning(`Tentative ${currentRetry}/${maxRetries}...`, { autoClose: 2000 });
+            
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return attemptFetch();
+          }
+
+          // Final error handling
+          const errorMsg = error?.response?.data?.error || 
+                          error?.response?.data?.message ||
+                          (error.code === 'ECONNABORTED' ? 'Délai d\'attente dépassé' : 
+                           error.code === 'ERR_NETWORK' ? 'Erreur réseau' :
+                           'Impossible de charger les statistiques');
+          
+          setAnalyticsError(errorMsg);
+          setRetryCount(retryCount + 1);
+          
+          showToast.error(errorMsg, {
+            autoClose: 6000,
+          });
+        } finally {
+          setAnalyticsLoading(false);
+        }
+      };
+
+      attemptFetch();
     };
 
     fetchAnalytics();
 
     return () => controller.abort();
-  }, [filters.selectedEmployee, filters.selectedProject]);
+  }, [
+    filters.selectedEmployee,
+    filters.selectedProject,
+    filters.selectedClient,
+    filters.periodPreset,
+    filters.customDateFrom,
+    filters.customDateTo,
+    isOnline,
+  ]);
 
   const buildAnalyticsParams = () => {
     const params = {};
@@ -139,32 +518,146 @@ const ProjectReportPage = () => {
     if (filters.selectedProject !== 'all') {
       params.project_id = filters.selectedProject;
     }
+    if (filters.selectedClient !== 'all') {
+      params.client_id = filters.selectedClient;
+    }
+
+    const periodRange = resolvePeriodRange();
+    if (periodRange.date_from) {
+      params.date_from = periodRange.date_from;
+    }
+    if (periodRange.date_to) {
+      params.date_to = periodRange.date_to;
+    }
     return params;
   };
 
+  const resolvePeriodRange = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let fromDate = null;
+    let toDate = new Date(today);
+
+    const applyOffsetDays = (daysBack) => {
+      const from = new Date(today);
+      from.setDate(from.getDate() - daysBack);
+      return from;
+    };
+
+    switch (filters.periodPreset) {
+      case 'last_7':
+        fromDate = applyOffsetDays(6);
+        break;
+      case 'last_14':
+        fromDate = applyOffsetDays(13);
+        break;
+      case 'last_30':
+        fromDate = applyOffsetDays(29);
+        break;
+      case 'month_to_date':
+        fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        break;
+      case 'custom': {
+        const fromInput = filters.customDateFrom ? new Date(filters.customDateFrom) : null;
+        const toInput = filters.customDateTo ? new Date(filters.customDateTo) : null;
+        if (fromInput) {
+          fromInput.setHours(0, 0, 0, 0);
+        }
+        if (toInput) {
+          toInput.setHours(23, 59, 59, 999);
+        }
+        if (fromInput && toInput && fromInput > toInput) {
+          [fromDate, toDate] = [toInput, fromInput];
+        } else {
+          fromDate = fromInput;
+          toDate = toInput || toDate;
+        }
+        break;
+      }
+      default:
+        fromDate = applyOffsetDays(13);
+        break;
+    }
+
+    return {
+      date_from: fromDate ? formatDateInput(fromDate) : undefined,
+      date_to: toDate ? formatDateInput(toDate) : undefined,
+    };
+  };
+
+  const formatDateInput = (date) => {
+    if (!date || Number.isNaN(date.getTime())) {
+      return undefined;
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleAnalyticsExport = async (dataset, format = 'csv') => {
+    if (!isOnline) {
+      showToast.error('Pas de connexion Internet');
+      return;
+    }
+
+    const toastId = showToast.loading('Préparation de l\'export...');
+    
     try {
       setExportLoading(true);
       const params = { ...buildAnalyticsParams(), dataset, format };
+      
       const response = await api.get('/analytics/reports/export', {
         params,
         responseType: 'blob',
+        timeout: 30000, // 30 seconds for exports
+        onDownloadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          toast.update(toastId, { 
+            render: `Téléchargement... ${percentCompleted}%`,
+            type: 'info',
+            isLoading: percentCompleted < 100
+          });
+        }
       });
 
-      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
+      const blob = new Blob([response.data], { 
+        type: response.headers['content-type'] || 'application/octet-stream' 
+      });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `analytics-${dataset}.${format === 'xlsx' ? 'xlsx' : format}`;
+      link.download = `analytics-${dataset}-${new Date().toISOString().split('T')[0]}.${format === 'xlsx' ? 'xlsx' : format}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      
+      toast.update(toastId, { 
+        render: '✅ Export réussi!',
+        type: 'success',
+        isLoading: false,
+        autoClose: 3000
+      });
     } catch (error) {
+      const errorMsg = error?.response?.data?.error || 
+                      (error.code === 'ECONNABORTED' ? 'Délai d\'export dépassé' : 
+                       'Export impossible. Veuillez réessayer.');
+      
+      toast.update(toastId, { 
+        render: errorMsg,
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000
+      });
+
+      // Also show SweetAlert for critical export errors
       Swal.fire({
         icon: 'error',
         title: 'Export impossible',
-        text: error?.response?.data?.error || 'Veuillez réessayer plus tard.',
+        text: errorMsg,
+        confirmButtonText: 'Compris',
+        confirmButtonColor: '#007bff',
       });
     } finally {
       setExportLoading(false);
@@ -214,7 +707,12 @@ const ProjectReportPage = () => {
   };
 
   const handleSaveProject = async () => {
-    if (!validateEditForm()) return;
+    if (!validateEditForm()) {
+      showToast.warning('Veuillez corriger les erreurs dans le formulaire');
+      return;
+    }
+
+    const loadingToast = showToast.loading('💾 Enregistrement en cours...');
 
     try {
       await dispatch(updateProject({ 
@@ -225,6 +723,14 @@ const ProjectReportPage = () => {
       setShowEditModal(false);
       setEditingProject(null);
       
+      toast.update(loadingToast, {
+        render: `✨ Projet "${editForm.titre}" mis à jour!`,
+        type: 'success',
+        isLoading: false,
+        autoClose: 3000,
+        icon: <Icon icon="fluent:checkmark-circle-24-filled" style={{ color: '#28a745' }} />
+      });
+
       Swal.fire({
         icon: 'success',
         title: 'Projet modifié avec succès !',
@@ -234,6 +740,13 @@ const ProjectReportPage = () => {
         position: 'top-end'
       });
     } catch (error) {
+      toast.update(loadingToast, {
+        render: error?.message || 'Échec de la mise à jour',
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000
+      });
+
       Swal.fire({
         icon: 'error',
         title: 'Erreur lors de la modification',
@@ -248,39 +761,43 @@ const ProjectReportPage = () => {
 
   const handleDeleteProject = async (project) => {
     const result = await Swal.fire({
-      title: 'Supprimer ce projet ?',
-      text: `Êtes-vous sûr de vouloir supprimer le projet "${project.titre || project.title}" ? Cette action est irréversible.`,
+      title: '⚠️ Supprimer ce projet ?',
+      html: `Êtes-vous sûr de vouloir supprimer le projet<br/><strong>"${project.titre || project.title}"</strong> ?<br/><br/><small class="text-danger">⚡ Cette action est irréversible.</small>`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Oui, supprimer',
+      confirmButtonText: '<i class="bi bi-trash"></i> Oui, supprimer',
       cancelButtonText: 'Annuler',
       confirmButtonColor: '#dc3545',
-      cancelButtonColor: '#6c757d'
+      cancelButtonColor: '#6c757d',
+      focusCancel: true,
+      showLoaderOnConfirm: true,
+      preConfirm: async () => {
+        try {
+          await dispatch(deleteProject(project.id)).unwrap();
+          return true;
+        } catch (error) {
+          Swal.showValidationMessage(
+            `❌ Échec: ${error?.message || 'Erreur inconnue'}`
+          );
+          return false;
+        }
+      },
+      allowOutsideClick: () => !Swal.isLoading()
     });
 
     if (result.isConfirmed) {
-      try {
-        await dispatch(deleteProject(project.id)).unwrap();
-        
-        Swal.fire({
-          icon: 'success',
-          title: 'Projet supprimé',
-          timer: 1500,
-          showConfirmButton: false,
-          toast: true,
-          position: 'top-end'
-        });
-      } catch (error) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Erreur lors de la suppression',
-          text: error.message || 'Une erreur est survenue',
-          toast: true,
-          position: 'top-end',
-          timer: 2000,
-          showConfirmButton: false
-        });
-      }
+      showToast.success(`🗑️ Projet "${project.titre || project.title}" supprimé`, {
+        autoClose: 3000
+      });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Projet supprimé',
+        timer: 1500,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
     }
   };
 
@@ -294,11 +811,6 @@ const ProjectReportPage = () => {
     return `Utilisateur ${userId}`;
   };
 
-  const getUserDetails = (userId) => {
-    if (!userId) return null;
-    return users.find(u => u.id.toString() === userId.toString());
-  };
-
   // Calculer des statistiques avec les vraies données ou des données par défaut
   const statistics = useMemo(() => {
     console.log('Projects data:', projects);
@@ -310,57 +822,114 @@ const ProjectReportPage = () => {
     
     // Si nous avons des projets réels, les utiliser
   if (projects && projects.length > 0) {
+      const selectedProjectId = filters.selectedProject !== 'all'
+        ? parseInt(filters.selectedProject, 10)
+        : null;
+
       // Filtrer les projets selon la sélection
       let filteredProjects = projects;
-      if (filters.selectedProject !== 'all') {
-        filteredProjects = projects.filter(p => p.id === parseInt(filters.selectedProject));
+      if (selectedProjectId) {
+        filteredProjects = projects.filter(p => p.id === selectedProjectId);
       }
       
       const projectIds = filteredProjects.map(p => p.id);
       const relatedLists = todoLists.filter(list => 
         list.project_id && projectIds.includes(list.project_id)
       );
-      
-      // Filtrer les tâches selon l'employé sélectionné
-  let allTasks = relatedLists.reduce((acc, list) => {
+
+      const clientFilterValue = filters.selectedClient !== 'all'
+        ? filters.selectedClient.toString()
+        : null;
+      const employeeFilterValue = filters.selectedEmployee !== 'all'
+        ? filters.selectedEmployee.toString()
+        : null;
+      const periodRange = resolvePeriodRange();
+      const normalizeRangeDate = (value, endOfDay = false) => {
+        if (!value) return null;
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return null;
+        if (endOfDay) {
+          parsed.setHours(23, 59, 59, 999);
+        } else {
+          parsed.setHours(0, 0, 0, 0);
+        }
+        return parsed;
+      };
+      const rangeStartDate = normalizeRangeDate(periodRange.date_from);
+      const rangeEndDate = normalizeRangeDate(periodRange.date_to, true);
+
+      const matchesClient = (task) => {
+        if (!clientFilterValue) return true;
+        const taskClient = task?.client_id != null ? task.client_id.toString() : null;
+        return taskClient === clientFilterValue;
+      };
+
+      const parseTaskDate = (value, endOfDay = false) => {
+        if (!value) return null;
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return null;
+        if (endOfDay) {
+          parsed.setHours(23, 59, 59, 999);
+        } else {
+          parsed.setHours(0, 0, 0, 0);
+        }
+        return parsed;
+      };
+
+      const matchesDateRange = (task) => {
+        if (!rangeStartDate && !rangeEndDate) return true;
+        const taskStart = parseTaskDate(task?.start_date) || parseTaskDate(task?.created_at);
+        const taskEnd = parseTaskDate(task?.end_date, true) || parseTaskDate(task?.start_date, true) || parseTaskDate(task?.created_at, true);
+
+        if (rangeStartDate && taskEnd && taskEnd < rangeStartDate) {
+          return false;
+        }
+        if (rangeEndDate && taskStart && taskStart > rangeEndDate) {
+          return false;
+        }
+        return true;
+      };
+
+      const matchesEmployee = (task) => {
+        if (!employeeFilterValue) return true;
+        return task?.assigned_to && task.assigned_to.toString() === employeeFilterValue;
+      };
+
+      const applyTaskFilters = (tasks) => {
+        if (!tasks || !Array.isArray(tasks)) {
+          return [];
+        }
+        return tasks.filter(task => matchesClient(task) && matchesDateRange(task) && matchesEmployee(task));
+      };
+
+      let actualRelatedLists = relatedLists
+        .map(list => ({
+          ...list,
+          tasks: applyTaskFilters(list.tasks)
+        }))
+        .filter(list => list.tasks.length > 0);
+
+      let allTasks = actualRelatedLists.reduce((acc, list) => {
         if (list.tasks && Array.isArray(list.tasks)) {
           return [...acc, ...list.tasks];
         }
         return acc;
       }, []);
 
-      // Appliquer le filtre employé sur les tâches
-      if (filters.selectedEmployee !== 'all') {
-        allTasks = allTasks.filter(task => 
-          task.assigned_to && task.assigned_to.toString() === filters.selectedEmployee.toString()
-        );
-      }
-
-      // Si un employé est sélectionné, recalculer les projets et listes impliqués
+      const projectIdsWithFilteredLists = new Set(
+        actualRelatedLists
+          .map(list => Number(list.project_id))
+          .filter(id => !Number.isNaN(id))
+      );
       let actualFilteredProjects = filteredProjects;
-      let actualRelatedLists = relatedLists;
 
-      if (filters.selectedEmployee !== 'all') {
-        // Trouver les listes qui contiennent des tâches de cet employé
-        const listsWithEmployeeTasks = relatedLists.filter(list => 
-          list.tasks && list.tasks.some(task => 
-            task.assigned_to && task.assigned_to.toString() === filters.selectedEmployee.toString()
-          )
-        );
-        
-        // Trouver les projets qui contiennent ces listes
-        const projectIdsWithEmployeeTasks = [...new Set(listsWithEmployeeTasks.map(list => list.project_id))];
-        const projectsWithEmployeeTasks = filteredProjects.filter(project => 
-          projectIdsWithEmployeeTasks.includes(project.id)
-        );
-
-        actualFilteredProjects = projectsWithEmployeeTasks;
-        actualRelatedLists = listsWithEmployeeTasks;
-        
-        console.log(`🔍 Employé sélectionné: ${getUserName(filters.selectedEmployee)}`);
-        console.log(`📋 Listes avec tâches de l'employé: ${listsWithEmployeeTasks.length}`);
-        console.log(`🗂️ Projets impliquant l'employé: ${projectsWithEmployeeTasks.length}`);
-        console.log(`✅ Tâches de l'employé: ${allTasks.length}`);
+      if (filters.selectedProject === 'all') {
+        actualFilteredProjects = filteredProjects.filter(project => projectIdsWithFilteredLists.has(project.id));
+      } else if (!projectIdsWithFilteredLists.has(selectedProjectId)) {
+        const selectedProject = projects.find(p => p.id === selectedProjectId);
+        actualFilteredProjects = selectedProject ? [selectedProject] : [];
+      } else {
+        actualFilteredProjects = filteredProjects.filter(project => projectIdsWithFilteredLists.has(project.id));
       }
 
   // Helpers normalisation statut / pourcentage
@@ -612,8 +1181,12 @@ const ProjectReportPage = () => {
       // Trier par efficacité desc
       employeeEfficiency.sort((a,b)=> b.rate - a.rate);
 
+      const totalProjectsCount = filters.selectedProject === 'all'
+        ? projectIdsWithFilteredLists.size
+        : (projectIdsWithFilteredLists.has(selectedProjectId) ? 1 : 0);
+
       const stats = {
-        totalProjects: actualFilteredProjects.length,
+        totalProjects: totalProjectsCount,
         totalLists: actualRelatedLists.length,
         totalTasks: activeTasks.length, // tâches actives uniquement
         completedProjects,
@@ -692,23 +1265,23 @@ const ProjectReportPage = () => {
       projectStats: [],
       totalCancelledTasks: 0,
       employeeEfficiency: [],
-      statusDistribution: analyticsData?.status_distribution || null,
-      timeByCollaborator: analyticsData?.time_by_collaborator || [],
-      timeByClient: analyticsData?.time_by_client || [],
-      timeByCategory: analyticsData?.time_by_category || [],
-      costSummary: analyticsData?.cost_summary || null,
-      billingVsWorkload: analyticsData?.billing_vs_workload || null,
-      taskHoursByUser: analyticsData?.task_hours_by_user || [],
-      dailyTimeTracking: analyticsData?.daily_time_tracking || null,
-      teamPerformance: analyticsData?.team_performance || [],
-      overdueTasks: analyticsData?.overdue_tasks || [],
-      clientInformationRequests: analyticsData?.client_information_requests || { totals: null, recent: [] },
-      periodicCollaborators: analyticsData?.periodic_collaborators || [],
-      periodicClients: analyticsData?.periodic_clients || [],
+      statusDistribution: safeAnalyticsData?.status_distribution || null,
+      timeByCollaborator: safeAnalyticsData?.time_by_collaborator || [],
+      timeByClient: safeAnalyticsData?.time_by_client || [],
+      timeByCategory: safeAnalyticsData?.time_by_category || [],
+      costSummary: safeAnalyticsData?.cost_summary || null,
+      billingVsWorkload: safeAnalyticsData?.billing_vs_workload || null,
+      taskHoursByUser: safeAnalyticsData?.task_hours_by_user || [],
+      dailyTimeTracking: safeAnalyticsData?.daily_time_tracking || null,
+      teamPerformance: safeAnalyticsData?.team_performance || [],
+      overdueTasks: safeAnalyticsData?.overdue_tasks || [],
+      clientInformationRequests: safeAnalyticsData?.client_information_requests || { totals: null, recent: [] },
+      periodicCollaborators: safeAnalyticsData?.periodic_collaborators || [],
+      periodicClients: safeAnalyticsData?.periodic_clients || [],
     };
 
-    if (analyticsData?.employee_efficiency) {
-      emptyStats.employeeEfficiency = analyticsData.employee_efficiency.map((emp) => ({
+    if (safeAnalyticsData?.employee_efficiency) {
+      emptyStats.employeeEfficiency = safeAnalyticsData.employee_efficiency.map((emp) => ({
         userId: emp.user_id,
         name: emp.name,
         completed: emp.completed,
@@ -721,11 +1294,57 @@ const ProjectReportPage = () => {
     }
 
     return emptyStats;
-  }, [projects, todoLists, filters.selectedProject, filters.selectedEmployee, filters.statusFilter, analyticsData]);
+  }, [
+    projects,
+    todoLists,
+    filters.selectedProject,
+    filters.selectedEmployee,
+    filters.selectedClient,
+    filters.periodPreset,
+    filters.customDateFrom,
+    filters.customDateTo,
+    filters.statusFilter,
+    safeAnalyticsData
+  ]);
 
   const taskHoursByUser = statistics.taskHoursByUser || [];
-  const topTaskHours = useMemo(() => taskHoursByUser.slice(0, 8), [taskHoursByUser]);
-  const dailyTracking = statistics.dailyTimeTracking;
+  const filteredTaskHours = useMemo(() => {
+    if (!sectionFilters.collaboratorHours || sectionFilters.collaboratorHours === 'all') {
+      return taskHoursByUser;
+    }
+    return taskHoursByUser.filter((item) => String(item.user_id) === sectionFilters.collaboratorHours);
+  }, [taskHoursByUser, sectionFilters.collaboratorHours]);
+  const topTaskHours = useMemo(() => filteredTaskHours.slice(0, 8), [filteredTaskHours]);
+  const dailyTracking = useMemo(() => {
+    const base = statistics.dailyTimeTracking;
+    if (!base) return null;
+    if (!sectionFilters.dailyHours || sectionFilters.dailyHours === 'all') {
+      return base;
+    }
+
+    const filteredDays = (base.days || []).map((day) => {
+      const allowedUsers = (day.users || []).filter(
+        (user) => String(user.user_id) === sectionFilters.dailyHours
+      );
+      const hours = allowedUsers.reduce((sum, user) => sum + (user.hours ?? 0), 0);
+      return {
+        ...day,
+        hours: Number(hours.toFixed(2)),
+        users: allowedUsers,
+        entries: allowedUsers.length ? Math.max(1, day.entries ?? 0) : 0,
+      };
+    });
+
+    const totalHours = filteredDays.reduce((sum, day) => sum + (day.hours ?? 0), 0);
+    const average = filteredDays.length ? totalHours / filteredDays.length : 0;
+
+    return {
+      ...base,
+      total_hours: Number(totalHours.toFixed(2)),
+      average_hours_per_day: Number(average.toFixed(2)),
+      days: filteredDays,
+    };
+  }, [statistics.dailyTimeTracking, sectionFilters.dailyHours]);
   const dailyTrackingChartData = useMemo(() => {
     if (!dailyTracking?.days) {
       return [];
@@ -741,7 +1360,7 @@ const ProjectReportPage = () => {
   const dailyRangeLabel = dailyTracking
     ? `${new Date(dailyTracking.start_date).toLocaleDateString('fr-FR')} - ${new Date(dailyTracking.end_date).toLocaleDateString('fr-FR')}`
     : '';
-  const hasMoreTaskHours = taskHoursByUser.length > topTaskHours.length;
+  const hasMoreTaskHours = filteredTaskHours.length > topTaskHours.length;
   const busiestDay = useMemo(() => {
     if (!dailyTracking?.days) {
       return null;
@@ -763,16 +1382,28 @@ const ProjectReportPage = () => {
   const costSummary = statistics.costSummary || null;
   const billingVsWorkload = statistics.billingVsWorkload || null;
   const teamPerformance = statistics.teamPerformance || [];
+  const filteredTeamPerformance = useMemo(() => {
+    if (!sectionFilters.teamPerformance || sectionFilters.teamPerformance === 'all') {
+      return teamPerformance;
+    }
+    return teamPerformance.filter((row) => String(row.user_id) === sectionFilters.teamPerformance);
+  }, [teamPerformance, sectionFilters.teamPerformance]);
   const overdueTasks = statistics.overdueTasks || [];
   const clientInformationRequests = statistics.clientInformationRequests || { totals: null, recent: [] };
   const clientInfoTotals = clientInformationRequests?.totals || {};
   const recentInfoRequests = clientInformationRequests?.recent || [];
   const timeByClient = statistics.timeByClient || [];
+  const filteredTimeByClient = useMemo(() => {
+    if (!sectionFilters.clientTimes || sectionFilters.clientTimes === 'all') {
+      return timeByClient;
+    }
+    return timeByClient.filter((client) => String(client.client_id) === sectionFilters.clientTimes);
+  }, [timeByClient, sectionFilters.clientTimes]);
   const timeByCategory = statistics.timeByCategory || [];
   const periodicCollaborators = statistics.periodicCollaborators || [];
   const periodicClients = statistics.periodicClients || [];
-  const topClients = useMemo(() => timeByClient.slice(0, 6), [timeByClient]);
-  const totalClientHours = useMemo(() => timeByClient.reduce((sum, item) => sum + (item.hours || 0), 0), [timeByClient]);
+  const topClients = useMemo(() => filteredTimeByClient.slice(0, 6), [filteredTimeByClient]);
+  const totalClientHours = useMemo(() => filteredTimeByClient.reduce((sum, item) => sum + (item.hours || 0), 0), [filteredTimeByClient]);
   const topCategories = useMemo(() => timeByCategory.slice(0, 6), [timeByCategory]);
   const topPeriodicCollaborators = useMemo(() => periodicCollaborators.slice(0, 8), [periodicCollaborators]);
   const topPeriodicClients = useMemo(() => periodicClients.slice(0, 8), [periodicClients]);
@@ -784,6 +1415,30 @@ const ProjectReportPage = () => {
     if (!topCategories.length) return 1;
     return Math.max(...topCategories.map((item) => item.hours || 0), 1);
   }, [topCategories]);
+  const clientFilterOptions = useMemo(() => {
+    const options = [];
+    const seen = new Set();
+    timeByClient.forEach((client) => {
+      if (client.client_id === null || client.client_id === undefined) {
+        return;
+      }
+      const key = String(client.client_id);
+      if (seen.has(key)) return;
+      seen.add(key);
+      options.push({ id: key, name: client.client_name || `Client ${client.client_id}` });
+    });
+    return options;
+  }, [timeByClient]);
+
+  const selectedClientLabel = useMemo(() => {
+    if (filters.selectedClient === 'all') {
+      return '';
+    }
+    const current = clientFilterOptions.find(
+      (client) => client.id.toString() === filters.selectedClient.toString()
+    );
+    return current?.name || '';
+  }, [filters.selectedClient, clientFilterOptions]);
 
   const currencyFormatter = useMemo(() => new Intl.NumberFormat('fr-FR', {
     style: 'currency',
@@ -825,6 +1480,21 @@ const ProjectReportPage = () => {
     { key: 'in_progress', label: 'En cours', variant: 'info' },
     { key: 'resolved', label: 'Résolues', variant: 'success' },
   ];
+
+  const summaryFiltersActive =
+    filters.selectedProject !== 'all' ||
+    filters.selectedEmployee !== 'all' ||
+    filters.selectedClient !== 'all' ||
+    filters.periodPreset !== 'last_14';
+
+  const clientFilterActive = filters.selectedClient !== 'all';
+  const periodFilterActive = filters.periodPreset !== 'last_14' || (filters.periodPreset === 'custom' && (!!filters.customDateFrom || !!filters.customDateTo));
+  const customPeriodLabel = filters.periodPreset === 'custom'
+    ? [filters.customDateFrom, filters.customDateTo].filter(Boolean).join(' → ')
+    : '';
+  const activePeriodLabel = filters.periodPreset === 'custom'
+    ? (customPeriodLabel || 'Période personnalisée')
+    : (PERIOD_OPTIONS.find(option => option.value === filters.periodPreset)?.label || '');
 
   // Helper pour calcul efficacité employé
   function computeEmpEfficiency(user, tasks) {
@@ -874,12 +1544,18 @@ const ProjectReportPage = () => {
       searchTerm: '',
       statusFilter: 'all',
       selectedProject: 'all',
-      selectedEmployee: 'all'
+      selectedEmployee: 'all',
+      selectedClient: 'all',
+      periodPreset: 'last_14',
+      customDateFrom: '',
+      customDateTo: '',
     });
     setProjectSearchTerm('');
     setEmployeeSearchTerm('');
+    setClientSearchTerm('');
     setShowProjectDropdown(false);
     setShowEmployeeDropdown(false);
+    setShowClientDropdown(false);
   };
 
   // Filtrer les projets pour la sélection
@@ -896,6 +1572,18 @@ const ProjectReportPage = () => {
     return fullName.toLowerCase().includes(employeeSearchTerm.toLowerCase());
   });
 
+  const filteredClientsForSelect = useMemo(() => {
+    if (!clientSearchTerm.trim()) {
+      return clientFilterOptions;
+    }
+
+    return clientFilterOptions.filter(client =>
+      (client.name || '')
+        .toLowerCase()
+        .includes(clientSearchTerm.trim().toLowerCase())
+    );
+  }, [clientFilterOptions, clientSearchTerm]);
+
   // Fonction pour gérer la sélection d'un projet
   const handleProjectSelect = (projectId, projectTitle) => {
     handleFilterChange('selectedProject', projectId.toString());
@@ -908,6 +1596,21 @@ const ProjectReportPage = () => {
     handleFilterChange('selectedEmployee', employeeId.toString());
     setEmployeeSearchTerm(employeeName);
     setShowEmployeeDropdown(false);
+  };
+
+  const handleClientSearchChange = (e) => {
+    const value = e.target.value;
+    setClientSearchTerm(value);
+    setShowClientDropdown(true);
+    if (!value.trim() && filters.selectedClient !== 'all') {
+      handleFilterChange('selectedClient', 'all');
+    }
+  };
+
+  const handleClientSelect = (clientId, clientName) => {
+    handleFilterChange('selectedClient', clientId.toString());
+    setClientSearchTerm(clientName || '');
+    setShowClientDropdown(false);
   };
 
   // Fonction pour changer de projet dans la vue détaillée
@@ -965,6 +1668,12 @@ const ProjectReportPage = () => {
     setShowEmployeeDropdown(false);
   };
 
+  const clearClientSelection = () => {
+    setClientSearchTerm('');
+    handleFilterChange('selectedClient', 'all');
+    setShowClientDropdown(false);
+  };
+
   // Filtrer les statistiques des projets
   const filteredProjectStats = statistics.projectStats.filter(project => {
     // Recherche dans le titre et la description
@@ -999,12 +1708,42 @@ const ProjectReportPage = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-        <div className="text-center">
-          <div className="spinner-border text-primary mb-3" role="status">
-            <span className="visually-hidden">Chargement...</span>
-          </div>
-          <p className="text-muted">Chargement des données des projets...</p>
+      <div className="project-report-page">
+        <ToastContainer />
+        <div className="page-header mb-4">
+          <Placeholder as="div" animation="glow">
+            <Placeholder xs={4} style={{ height: 36 }} className="mb-2" />
+            <Placeholder xs={6} size="sm" />
+          </Placeholder>
+        </div>
+        
+        {/* 🎨 Beautiful Skeleton Loaders */}
+        <Row className="mb-4">
+          {[...Array(4)].map((_, idx) => (
+            <Col key={idx} xl={3} lg={6} className="mb-3">
+              <StatCardSkeleton />
+            </Col>
+          ))}
+        </Row>
+
+        <Row className="mb-4">
+          <Col lg={6} className="mb-4">
+            <ChartSkeleton height={350} />
+          </Col>
+          <Col lg={6} className="mb-4">
+            <ChartSkeleton height={350} />
+          </Col>
+        </Row>
+
+        <Row>
+          <Col lg={12}>
+            <TableSkeleton rows={8} />
+          </Col>
+        </Row>
+
+        <div className="text-center mt-4">
+          <Spinner animation="border" variant="primary" size="sm" className="me-2" />
+          <span className="text-muted small">Chargement des statistiques...</span>
         </div>
       </div>
     );
@@ -1025,6 +1764,44 @@ const ProjectReportPage = () => {
 
   return (
     <div className="project-report-page">
+      {/* 🎨 Toast Notifications Container */}
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        transition:Bounce
+      />
+
+      {/* 🌐 Network Status Indicator */}
+      {!isOnline && (
+        <Alert variant="danger" className="mb-3 d-flex align-items-center">
+          <Icon icon="fluent:wifi-off-24-filled" style={{ fontSize: 24, color: '#ffffff' }} className="me-2" />
+          <div className="flex-grow-1">
+            <strong style={{ color: '#ffffff' }}>Pas de connexion Internet</strong>
+            <p className="mb-0 small" style={{ color: '#ffffff' }}>Certaines fonctionnalités peuvent être limitées.</p>
+          </div>
+        </Alert>
+      )}
+
+      {/* 📊 Analytics Error Display with Retry */}
+      {analyticsError && (
+        <ErrorAlert 
+          error={analyticsError}
+          onRetry={() => {
+            setAnalyticsError(null);
+            setFilters({ ...filters }); // Trigger refetch
+          }}
+          onDismiss={() => setAnalyticsError(null)}
+        />
+      )}
+
       {/* En-tête */}
       <div className="page-header">
         <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -1041,6 +1818,7 @@ const ProjectReportPage = () => {
               className="w-auto analytics-export-select"
               value={exportDataset}
               onChange={handleExportDatasetChange}
+              disabled={!isOnline}
             >
               {EXPORT_DATASETS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -1051,24 +1829,41 @@ const ProjectReportPage = () => {
             <ButtonGroup size="sm">
               <Button
                 variant="outline-primary"
-                disabled={exportLoading}
+                disabled={exportLoading || !isOnline}
                 onClick={() => handleAnalyticsExport(exportDataset, 'csv')}
               >
-                <Icon icon="fluent:document-arrow-down-24-filled" className="me-1" /> CSV
+                {exportLoading ? (
+                  <>
+                    <Spinner animation="border" size="sm" className="me-1" />
+                    Export...
+                  </>
+                ) : (
+                  <>
+                    <Icon icon="fluent:document-arrow-down-24-filled" className="me-1" /> CSV
+                  </>
+                )}
               </Button>
               <Button
                 variant="outline-primary"
-                disabled={exportLoading}
+                disabled={exportLoading || !isOnline}
                 onClick={() => handleAnalyticsExport(exportDataset, 'xlsx')}
               >
-                <Icon icon="fluent:document-table-24-filled" className="me-1" /> Excel
+                {exportLoading ? (
+                  <Spinner animation="border" size="sm" className="me-1" />
+                ) : (
+                  <Icon icon="fluent:document-table-24-filled" className="me-1" />
+                )} Excel
               </Button>
               <Button
                 variant="outline-primary"
-                disabled={exportLoading}
+                disabled={exportLoading || !isOnline}
                 onClick={() => handleAnalyticsExport(exportDataset, 'pdf')}
               >
-                <Icon icon="fluent:document-pdf-24-filled" className="me-1" /> PDF
+                {exportLoading ? (
+                  <Spinner animation="border" size="sm" className="me-1" />
+                ) : (
+                  <Icon icon="fluent:document-pdf-24-filled" className="me-1" />
+                )} PDF
               </Button>
             </ButtonGroup>
             {exportLoading && (
@@ -1262,6 +2057,129 @@ const ProjectReportPage = () => {
               </Form.Group>
             </Col>
           </Row>
+          <Row className="mb-3 g-3">
+            <Col md={6} className="mb-3 mb-md-0">
+              <Form.Group>
+                <Form.Label className="fw-semibold">Filtrer par client</Form.Label>
+                <div className="position-relative">
+                  <div className="d-flex">
+                    <Form.Control
+                      type="text"
+                      placeholder={clientFilterOptions.length ? 'Rechercher et sélectionner un client...' : 'Aucun client disponible pour le moment'}
+                      value={clientSearchTerm || selectedClientLabel}
+                      onChange={handleClientSearchChange}
+                      onFocus={() => setShowClientDropdown(true)}
+                      className="border-0 bg-light"
+                    />
+                    {(filters.selectedClient !== 'all' || clientSearchTerm) && (
+                      <Button
+                        variant="outline-secondary"
+                        size="sm"
+                        className="ms-2"
+                        onClick={clearClientSelection}
+                        title="Effacer la sélection"
+                      >
+                        <Icon icon="fluent:dismiss-24-filled" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {showClientDropdown && (
+                    <div className="position-absolute w-100 bg-white border rounded-3 shadow-sm mt-1" style={{ zIndex: 1000, maxHeight: '220px', overflowY: 'auto' }}>
+                      <div
+                        className="px-3 py-2 cursor-pointer border-bottom"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => {
+                          clearClientSelection();
+                          setShowClientDropdown(false);
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'white')}
+                      >
+                        <div className="d-flex align-items-center">
+                          <Icon icon="fluent:people-community-24-filled" className="text-primary me-2" />
+                          <strong>Tous les clients</strong>
+                        </div>
+                      </div>
+
+                      {filteredClientsForSelect.map((client) => (
+                        <div
+                          key={`client-filter-${client.id}`}
+                          className="px-3 py-2 cursor-pointer"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => {
+                            handleClientSelect(client.id, client.name);
+                            setShowClientDropdown(false);
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'white')}
+                        >
+                          <div className="d-flex align-items-center">
+                            <Icon icon="fluent:person-support-24-filled" className="text-info me-2" />
+                            <div>
+                              <div className="fw-semibold">{client.name}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {filteredClientsForSelect.length === 0 && (
+                        <div className="px-3 py-2 text-muted text-center">
+                          <Icon icon="fluent:search-24-filled" className="me-1" />
+                          Aucun client trouvé{clientSearchTerm ? ` pour "${clientSearchTerm}"` : ''}.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Form.Text className="text-muted d-block mt-2">
+                  S'appuie sur les clients disposant d'heures suivies dans la période sélectionnée.
+                </Form.Text>
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label className="fw-semibold">Période</Form.Label>
+                <div className="d-flex flex-wrap gap-2">
+                  {PERIOD_OPTIONS.filter(option => option.value !== 'custom').map((option) => (
+                    <Button
+                      key={`period-option-${option.value}`}
+                      variant={filters.periodPreset === option.value ? 'primary' : 'outline-secondary'}
+                      size="sm"
+                      onClick={() => handleFilterChange('periodPreset', option.value)}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                  <Button
+                    variant={filters.periodPreset === 'custom' ? 'primary' : 'outline-secondary'}
+                    size="sm"
+                    onClick={() => handleFilterChange('periodPreset', 'custom')}
+                  >
+                    Période personnalisée
+                  </Button>
+                </div>
+              </Form.Group>
+              {filters.periodPreset === 'custom' && (
+                <Row className="mt-2 g-2">
+                  <Col xs={6}>
+                    <Form.Control
+                      type="date"
+                      value={filters.customDateFrom}
+                      onChange={(e) => handleFilterChange('customDateFrom', e.target.value)}
+                    />
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Control
+                      type="date"
+                      value={filters.customDateTo}
+                      onChange={(e) => handleFilterChange('customDateTo', e.target.value)}
+                    />
+                  </Col>
+                </Row>
+              )}
+            </Col>
+          </Row>
           {/* Champs de recherche générale et statut supprimés selon demande */}
         </Card.Body>
       </Card>
@@ -1314,7 +2232,7 @@ const ProjectReportPage = () => {
         
         <Col xl={3} lg={6} className="mb-3">
           <Card className={`border-0 shadow-sm h-100 stat-card-primary ${
-            (filters.selectedProject !== 'all' || filters.selectedEmployee !== 'all') ? 'stat-card-filtered' : ''
+            summaryFiltersActive ? 'stat-card-filtered' : ''
           }`}>
             <Card.Body className="p-4">
               <div className="d-flex justify-content-between align-items-start">
@@ -1327,7 +2245,7 @@ const ProjectReportPage = () => {
                       <h6 className="text-muted mb-0 fw-normal">
                         {filters.selectedProject !== 'all' ? 'Projet Sélectionné' : 
                          filters.selectedEmployee !== 'all' ? 'Projets de l\'Employé' : 'Projets Total'}
-                        {(filters.selectedProject !== 'all' || filters.selectedEmployee !== 'all') && (
+                        {summaryFiltersActive && (
                           <Badge bg="primary" className="ms-2 fs-6 filter-badge">Filtré</Badge>
                         )}
                       </h6>
@@ -1345,6 +2263,16 @@ const ProjectReportPage = () => {
                         Projets où {getUserName(filters.selectedEmployee)} a des tâches assignées
                       </span>
                     )}
+                    {clientFilterActive && (
+                      <span className="d-block mt-1 text-primary">
+                        Filtré par client
+                      </span>
+                    )}
+                    {periodFilterActive && (
+                      <span className="d-block mt-1 text-primary">
+                        Période : {activePeriodLabel}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -1354,7 +2282,7 @@ const ProjectReportPage = () => {
 
         <Col xl={3} lg={6} className="mb-3">
           <Card className={`border-0 shadow-sm h-100 stat-card-info ${
-            (filters.selectedProject !== 'all' || filters.selectedEmployee !== 'all') ? 'stat-card-filtered' : ''
+            summaryFiltersActive ? 'stat-card-filtered' : ''
           }`}>
             <Card.Body className="p-4">
               <div className="d-flex justify-content-between align-items-start">
@@ -1367,7 +2295,7 @@ const ProjectReportPage = () => {
                       <h6 className="text-muted mb-0 fw-normal">
                         {filters.selectedProject !== 'all' ? 'Listes du Projet' : 
                          filters.selectedEmployee !== 'all' ? 'Listes Impliquées' : 'Listes de Tâches'}
-                        {(filters.selectedProject !== 'all' || filters.selectedEmployee !== 'all') && (
+                        {summaryFiltersActive && (
                           <Badge bg="info" className="ms-2 fs-6 filter-badge">Filtré</Badge>
                         )}
                       </h6>
@@ -1385,6 +2313,16 @@ const ProjectReportPage = () => {
                         Listes contenant des tâches de {getUserName(filters.selectedEmployee)}
                       </span>
                     )}
+                    {clientFilterActive && (
+                      <span className="d-block mt-1 text-primary">
+                        Filtré par client
+                      </span>
+                    )}
+                    {periodFilterActive && (
+                      <span className="d-block mt-1 text-primary">
+                        Période : {activePeriodLabel}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -1394,7 +2332,7 @@ const ProjectReportPage = () => {
 
         <Col xl={3} lg={6} className="mb-3">
           <Card className={`border-0 shadow-sm h-100 stat-card-warning ${
-            (filters.selectedProject !== 'all' || filters.selectedEmployee !== 'all') ? 'stat-card-filtered' : ''
+            summaryFiltersActive ? 'stat-card-filtered' : ''
           }`}>
             <Card.Body className="p-4">
               <div className="d-flex justify-content-between align-items-start">
@@ -1407,7 +2345,7 @@ const ProjectReportPage = () => {
                       <h6 className="text-muted mb-0 fw-normal">
                         {filters.selectedProject !== 'all' ? 'Tâches du Projet' : 
                          filters.selectedEmployee !== 'all' ? 'Mes Tâches' : 'Tâches Total'}
-                        {(filters.selectedProject !== 'all' || filters.selectedEmployee !== 'all') && (
+                        {summaryFiltersActive && (
                           <Badge bg="warning" className="ms-2 fs-6 filter-badge">Filtré</Badge>
                         )}
                       </h6>
@@ -1431,6 +2369,16 @@ const ProjectReportPage = () => {
                         Tâches directement assignées à {getUserName(filters.selectedEmployee)}
                       </span>
                     )}
+                    {clientFilterActive && (
+                      <span className="d-block mt-1 text-primary">
+                        Filtré par client
+                      </span>
+                    )}
+                    {periodFilterActive && (
+                      <span className="d-block mt-1 text-primary">
+                        Période : {activePeriodLabel}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -1440,7 +2388,7 @@ const ProjectReportPage = () => {
 
         <Col xl={3} lg={6} className="mb-3">
           <Card className={`border-0 shadow-sm h-100 stat-card-success ${
-            (filters.selectedProject !== 'all' || filters.selectedEmployee !== 'all') ? 'stat-card-filtered' : ''
+            summaryFiltersActive ? 'stat-card-filtered' : ''
           }`}>
             <Card.Body className="p-4">
               <div className="d-flex justify-content-between align-items-start">
@@ -1453,7 +2401,7 @@ const ProjectReportPage = () => {
                       <h6 className="text-muted mb-0 fw-normal">
                         {filters.selectedProject !== 'all' ? 'Taux du Projet' : 
                          filters.selectedEmployee !== 'all' ? 'Mon Taux de Réussite' : 'Taux Moyen'}
-                        {(filters.selectedProject !== 'all' || filters.selectedEmployee !== 'all') && (
+                        {summaryFiltersActive && (
                           <Badge bg="success" className="ms-2 fs-6 filter-badge">Filtré</Badge>
                         )}
                       </h6>
@@ -1476,6 +2424,16 @@ const ProjectReportPage = () => {
                     {filters.selectedEmployee !== 'all' && (
                       <span className="d-block mt-1 text-info">
                         Performance personnelle de {getUserName(filters.selectedEmployee)}
+                      </span>
+                    )}
+                    {clientFilterActive && (
+                      <span className="d-block mt-1 text-primary">
+                        Filtré par client
+                      </span>
+                    )}
+                    {periodFilterActive && (
+                      <span className="d-block mt-1 text-primary">
+                        Période : {activePeriodLabel}
                       </span>
                     )}
                   </p>
@@ -1922,15 +2880,30 @@ const ProjectReportPage = () => {
         <Col lg={6} className="mb-4 mb-lg-0">
           <Card className="border-0 shadow-sm h-100">
             <Card.Header className="bg-white border-0 pb-0">
-              <div className="d-flex justify-content-between align-items-center">
-                <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
-                  <Icon icon="fluent:clock-person-20-filled" /> Heures par collaborateur
-                </h6>
-                {hasMoreTaskHours && (
-                  <Badge bg="light" text="dark" className="border">
-                    Top {topTaskHours.length}/{taskHoursByUser.length}
-                  </Badge>
-                )}
+              <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div className="d-flex align-items-center gap-2">
+                  <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                    <Icon icon="fluent:clock-person-20-filled" /> Heures par collaborateur
+                  </h6>
+                  {hasMoreTaskHours && (
+                    <Badge bg="light" text="dark" className="border">
+                      Top {topTaskHours.length}/{filteredTaskHours.length}
+                    </Badge>
+                  )}
+                </div>
+                <Form.Select
+                  size="sm"
+                  className="section-filter-select"
+                  value={sectionFilters.collaboratorHours}
+                  onChange={(e) => handleSectionFilterChange('collaboratorHours', e.target.value)}
+                >
+                  <option value="all">Tous les collaborateurs</option>
+                  {users.map((user) => (
+                    <option key={`collab-filter-${user.id}`} value={String(user.id)}>
+                      {getUserName(user.id)}
+                    </option>
+                  ))}
+                </Form.Select>
               </div>
             </Card.Header>
             <Card.Body>
@@ -2004,9 +2977,24 @@ const ProjectReportPage = () => {
         <Col lg={6}>
           <Card className="border-0 shadow-sm h-100">
             <Card.Header className="bg-white border-0 pb-0">
-              <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
-                <Icon icon="fluent:line-chart-20-filled" /> Suivi quotidien des heures
-              </h6>
+              <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                  <Icon icon="fluent:line-chart-20-filled" /> Suivi quotidien des heures
+                </h6>
+                <Form.Select
+                  size="sm"
+                  className="section-filter-select"
+                  value={sectionFilters.dailyHours}
+                  onChange={(e) => handleSectionFilterChange('dailyHours', e.target.value)}
+                >
+                  <option value="all">Tous les collaborateurs</option>
+                  {users.map((user) => (
+                    <option key={`daily-filter-${user.id}`} value={String(user.id)}>
+                      {getUserName(user.id)}
+                    </option>
+                  ))}
+                </Form.Select>
+              </div>
             </Card.Header>
             <Card.Body>
               {dailyTrackingChartData.length > 0 ? (
@@ -2073,14 +3061,31 @@ const ProjectReportPage = () => {
       <Row className="mb-4">
         <Col xl={7} className="mb-4 mb-xl-0">
           <Card className="border-0 shadow-sm h-100">
-            <Card.Header className="bg-white border-0 pb-0 d-flex justify-content-between align-items-center">
-              <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
-                <Icon icon="fluent:person-feedback-24-regular" /> Performance avancée de l'équipe
-              </h6>
-              <Badge bg="light" text="dark">{teamPerformance.length} profils</Badge>
+            <Card.Header className="bg-white border-0 pb-0">
+              <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div className="d-flex align-items-center gap-2">
+                  <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                    <Icon icon="fluent:person-feedback-24-regular" /> Performance avancée de l'équipe
+                  </h6>
+                  <Badge bg="light" text="dark">{filteredTeamPerformance.length} profil{filteredTeamPerformance.length > 1 ? 's' : ''}</Badge>
+                </div>
+                <Form.Select
+                  size="sm"
+                  className="section-filter-select"
+                  value={sectionFilters.teamPerformance}
+                  onChange={(e) => handleSectionFilterChange('teamPerformance', e.target.value)}
+                >
+                  <option value="all">Tous les collaborateurs</option>
+                  {users.map((user) => (
+                    <option key={`team-filter-${user.id}`} value={String(user.id)}>
+                      {getUserName(user.id)}
+                    </option>
+                  ))}
+                </Form.Select>
+              </div>
             </Card.Header>
             <Card.Body>
-              {teamPerformance.length > 0 ? (
+              {filteredTeamPerformance.length > 0 ? (
                 <div className="table-responsive">
                   <Table hover size="sm" className="align-middle mb-0">
                     <thead className="bg-light">
@@ -2095,7 +3100,7 @@ const ProjectReportPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {teamPerformance.slice(0, 12).map((row) => {
+                      {filteredTeamPerformance.slice(0, 12).map((row) => {
                         const badgeVariant = row.on_time_rate >= 85 ? 'success' : row.on_time_rate >= 60 ? 'warning' : 'danger';
                         return (
                           <tr key={`team-performance-${row.user_id}`}>
@@ -2227,9 +3232,24 @@ const ProjectReportPage = () => {
         <Col xl={7} className="mb-4 mb-xl-0">
           <Card className="border-0 shadow-sm h-100">
             <Card.Header className="bg-white border-0 pb-0">
-              <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
-                <Icon icon="fluent:people-team-32-regular" /> Temps par client
-              </h6>
+              <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h6 className="fw-semibold mb-0 d-flex align-items-center gap-2">
+                  <Icon icon="fluent:people-team-32-regular" /> Temps par client
+                </h6>
+                <Form.Select
+                  size="sm"
+                  className="section-filter-select"
+                  value={sectionFilters.clientTimes}
+                  onChange={(e) => handleSectionFilterChange('clientTimes', e.target.value)}
+                >
+                  <option value="all">Tous les clients</option>
+                  {clientFilterOptions.map((client) => (
+                    <option key={`client-filter-${client.id}`} value={client.id}>
+                      {client.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </div>
             </Card.Header>
             <Card.Body>
               {topClients.length > 0 ? (
@@ -2542,7 +3562,7 @@ const ProjectReportPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredProjectStats.map((project, index) => {
+                      {filteredProjectStats.map((project) => {
                         // Corriger la logique de couleur de statut
                         const statusColor = project.completionRate >= 100 ? 'success' : 
                                           project.completionRate > 0 ? 'warning' : 'secondary';
