@@ -128,11 +128,27 @@ body {
 }
 
 .gradient-hero-select {
-  min-width: 200px;
-  background: rgba(255,255,255,0.2) !important;
-  color: #fff !important;
-  border: none !important;
+  min-width: 220px;
+  background: #fff !important;
+  color: var(--text-primary, #1f2937) !important;
+  border: 1px solid rgba(255,255,255,0.35) !important;
+  border-radius: 999px !important;
+  padding: 0.35rem 2.5rem 0.35rem 1rem !important;
+  font-weight: 600;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
   backdrop-filter: blur(8px);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%236678ea' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: calc(100% - 14px) center;
+  background-size: 14px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gradient-hero-select:focus {
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25), 0 12px 28px rgba(15, 23, 42, 0.18);
+  border-color: rgba(102, 126, 234, 0.7) !important;
+  outline: none;
 }
 .sidebar-menu-area {
   height: calc(100vh - 72px);
@@ -147,6 +163,42 @@ body {
 
 .gradient-hero-select option {
   color: #111 !important;
+}
+
+.export-select-wrapper {
+  position: relative;
+  min-width: 220px;
+}
+
+.export-dataset-select {
+  background: #fff !important;
+  color: var(--text-primary, #1f2937) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0.45rem 2.75rem 0.45rem 1.1rem !important;
+  font-weight: 600 !important;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  min-width: 220px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.export-dataset-select:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35), 0 12px 30px rgba(15, 23, 42, 0.18);
+}
+
+.export-select-wrapper::after {
+  content: '\25BE';
+  position: absolute;
+  top: 50%;
+  right: 1.2rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 0.9rem;
+  color: #5a9bd4;
+  opacity: 0.9;
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1816,71 +1816,78 @@ const ProjectReportPage = () => {
                   <p className="mb-0 text-white-50">Statistiques et analyse détaillée des projets et tâches</p>
                 </div>
               </div>
-              <div className="d-flex flex-wrap align-items-start gap-3">
-                <div className="d-flex flex-column gap-1">
-                  <small className="text-white-75 fw-semibold text-uppercase" style={{ letterSpacing: '0.05em' }}>
-                    Sélection des données à exporter
-                  </small>
-                  <Form.Select
-                    size="sm"
-                    className="form-select gradient-hero-select"
-                    value={exportDataset}
-                    onChange={handleExportDatasetChange}
-                    disabled={!isOnline}
-                  >
-                    {EXPORT_DATASETS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </Form.Select>
+              <div className="d-flex flex-column align-items-end gap-2 w-100">
+                <div className="d-flex flex-wrap align-items-center justify-content-end gap-3 w-100">
+                  <div className="export-select-wrapper">
+                    <Form.Select
+                      size="sm"
+                      className="form-select export-dataset-select"
+                      value={exportDataset}
+                      onChange={handleExportDatasetChange}
+                      disabled={!isOnline}
+                    >
+                      {EXPORT_DATASETS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </div>
+                  <div className="d-flex flex-wrap align-items-center justify-content-end gap-2">
+                    <span
+                      className="text-white text-uppercase small fw-semibold text-nowrap"
+                      style={{ letterSpacing: '0.08em' }}
+                    >
+                      Exporter les données :
+                    </span>
+                    <ButtonGroup size="sm" className="shadow-sm">
+                      <Button
+                        variant="outline-light"
+                        className="d-flex align-items-center gap-1"
+                        disabled={exportLoading || !isOnline}
+                        onClick={() => handleAnalyticsExport(exportDataset, 'csv')}
+                      >
+                        {exportLoading ? (
+                          <>
+                            <Spinner animation="border" size="sm" className="me-1" />
+                            Export...
+                          </>
+                        ) : (
+                          <>
+                            <Icon icon="fluent:document-arrow-down-24-filled" />
+                            CSV
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline-light"
+                        className="d-flex align-items-center gap-1"
+                        disabled={exportLoading || !isOnline}
+                        onClick={() => handleAnalyticsExport(exportDataset, 'xlsx')}
+                      >
+                        {exportLoading ? (
+                          <Spinner animation="border" size="sm" className="me-1" />
+                        ) : (
+                          <Icon icon="fluent:document-table-24-filled" />
+                        )}
+                        Excel
+                      </Button>
+                      <Button
+                        variant="outline-light"
+                        className="d-flex align-items-center gap-1"
+                        disabled={exportLoading || !isOnline}
+                        onClick={() => handleAnalyticsExport(exportDataset, 'pdf')}
+                      >
+                        {exportLoading ? (
+                          <Spinner animation="border" size="sm" className="me-1" />
+                        ) : (
+                          <Icon icon="fluent:document-pdf-24-filled" />
+                        )}
+                        PDF
+                      </Button>
+                    </ButtonGroup>
+                  </div>
                 </div>
-                <ButtonGroup size="sm" className="shadow-sm">
-                  <Button
-                    variant="outline-light"
-                    className="d-flex align-items-center gap-1"
-                    disabled={exportLoading || !isOnline}
-                    onClick={() => handleAnalyticsExport(exportDataset, 'csv')}
-                  >
-                    {exportLoading ? (
-                      <>
-                        <Spinner animation="border" size="sm" className="me-1" />
-                        Export...
-                      </>
-                    ) : (
-                      <>
-                        <Icon icon="fluent:document-arrow-down-24-filled" />
-                        CSV
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline-light"
-                    className="d-flex align-items-center gap-1"
-                    disabled={exportLoading || !isOnline}
-                    onClick={() => handleAnalyticsExport(exportDataset, 'xlsx')}
-                  >
-                    {exportLoading ? (
-                      <Spinner animation="border" size="sm" className="me-1" />
-                    ) : (
-                      <Icon icon="fluent:document-table-24-filled" />
-                    )}
-                    Excel
-                  </Button>
-                  <Button
-                    variant="outline-light"
-                    className="d-flex align-items-center gap-1"
-                    disabled={exportLoading || !isOnline}
-                    onClick={() => handleAnalyticsExport(exportDataset, 'pdf')}
-                  >
-                    {exportLoading ? (
-                      <Spinner animation="border" size="sm" className="me-1" />
-                    ) : (
-                      <Icon icon="fluent:document-pdf-24-filled" />
-                    )}
-                    PDF
-                  </Button>
-                </ButtonGroup>
                 {exportLoading && (
                   <span className="text-white-50 small d-flex align-items-center gap-1">
                     <Spinner animation="grow" size="sm" />
