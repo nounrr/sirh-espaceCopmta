@@ -1803,75 +1803,87 @@ const ProjectReportPage = () => {
       )}
 
       {/* En-tête */}
-      <div className="page-header">
-        <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
-          <div>
-            <h2 className="page-title mb-1">
-              <Icon icon="fluent:chart-multiple-24-filled" className="me-2" />
-              Rapport des Projets
-            </h2>
-            <p className="text-muted mb-0">Statistiques et analyse détaillée des projets et tâches</p>
-          </div>
-          <div className="d-flex flex-wrap align-items-center gap-2">
-            <Form.Select
-              size="sm"
-              className="w-auto analytics-export-select"
-              value={exportDataset}
-              onChange={handleExportDatasetChange}
-              disabled={!isOnline}
-            >
-              {EXPORT_DATASETS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Form.Select>
-            <ButtonGroup size="sm">
-              <Button
-                variant="outline-primary"
-                disabled={exportLoading || !isOnline}
-                onClick={() => handleAnalyticsExport(exportDataset, 'csv')}
-              >
-                {exportLoading ? (
-                  <>
-                    <Spinner animation="border" size="sm" className="me-1" />
-                    Export...
-                  </>
-                ) : (
-                  <>
-                    <Icon icon="fluent:document-arrow-down-24-filled" className="me-1" /> CSV
-                  </>
+      <div className="page-header mb-4">
+        <div className="card border-0 shadow-lg rounded-4 overflow-hidden">
+          <div className="card-body p-4 gradient-hero-banner">
+            <div className="gradient-hero-content d-flex justify-content-between align-items-center flex-wrap gap-3">
+              <div className="d-flex align-items-center gap-3">
+                <div className="gradient-hero-icon">
+                  <Icon icon="fluent:chart-multiple-24-filled" style={{ fontSize: '2rem', color: '#fff' }} />
+                </div>
+                <div>
+                  <h2 className="fw-bold mb-1">Rapport des Projets</h2>
+                  <p className="mb-0 text-white-50">Statistiques et analyse détaillée des projets et tâches</p>
+                </div>
+              </div>
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <Form.Select
+                  size="sm"
+                  className="form-select gradient-hero-select"
+                  value={exportDataset}
+                  onChange={handleExportDatasetChange}
+                  disabled={!isOnline}
+                >
+                  {EXPORT_DATASETS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Form.Select>
+                <ButtonGroup size="sm" className="shadow-sm">
+                  <Button
+                    variant="outline-light"
+                    className="d-flex align-items-center gap-1"
+                    disabled={exportLoading || !isOnline}
+                    onClick={() => handleAnalyticsExport(exportDataset, 'csv')}
+                  >
+                    {exportLoading ? (
+                      <>
+                        <Spinner animation="border" size="sm" className="me-1" />
+                        Export...
+                      </>
+                    ) : (
+                      <>
+                        <Icon icon="fluent:document-arrow-down-24-filled" />
+                        CSV
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline-light"
+                    className="d-flex align-items-center gap-1"
+                    disabled={exportLoading || !isOnline}
+                    onClick={() => handleAnalyticsExport(exportDataset, 'xlsx')}
+                  >
+                    {exportLoading ? (
+                      <Spinner animation="border" size="sm" className="me-1" />
+                    ) : (
+                      <Icon icon="fluent:document-table-24-filled" />
+                    )}
+                    Excel
+                  </Button>
+                  <Button
+                    variant="outline-light"
+                    className="d-flex align-items-center gap-1"
+                    disabled={exportLoading || !isOnline}
+                    onClick={() => handleAnalyticsExport(exportDataset, 'pdf')}
+                  >
+                    {exportLoading ? (
+                      <Spinner animation="border" size="sm" className="me-1" />
+                    ) : (
+                      <Icon icon="fluent:document-pdf-24-filled" />
+                    )}
+                    PDF
+                  </Button>
+                </ButtonGroup>
+                {exportLoading && (
+                  <span className="text-white-50 small d-flex align-items-center gap-1">
+                    <Spinner animation="grow" size="sm" />
+                    Préparation...
+                  </span>
                 )}
-              </Button>
-              <Button
-                variant="outline-primary"
-                disabled={exportLoading || !isOnline}
-                onClick={() => handleAnalyticsExport(exportDataset, 'xlsx')}
-              >
-                {exportLoading ? (
-                  <Spinner animation="border" size="sm" className="me-1" />
-                ) : (
-                  <Icon icon="fluent:document-table-24-filled" className="me-1" />
-                )} Excel
-              </Button>
-              <Button
-                variant="outline-primary"
-                disabled={exportLoading || !isOnline}
-                onClick={() => handleAnalyticsExport(exportDataset, 'pdf')}
-              >
-                {exportLoading ? (
-                  <Spinner animation="border" size="sm" className="me-1" />
-                ) : (
-                  <Icon icon="fluent:document-pdf-24-filled" className="me-1" />
-                )} PDF
-              </Button>
-            </ButtonGroup>
-            {exportLoading && (
-              <span className="text-muted small d-flex align-items-center gap-1">
-                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
-                Préparation...
-              </span>
-            )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -2060,23 +2060,32 @@ const TasksPhoneView = () => {
 
   return (
     <div className="container-fluid px-3 py-2" style={{ minHeight: '100vh', backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-      <div className="d-flex align-items-center mb-3 py-2 " style={{justifyContent:'space-between'}} >
-        <button 
-          className="btn btn-link p-2 me-2 rounded-circle btn_filters" 
-          onClick={() => window.history.back()} 
-          style={{  alignSelf: 'flex-start',color: '#4a4a4a', background: 'rgba(102,126,234,0.12)', border: '1px solid rgba(102,126,234,0.25)', backdropFilter: 'blur(10px)' }}
-        >
-          <Icon icon="material-symbols:arrow-back" style={{ fontSize: '1.2rem' }} />
-        </button>
-        <h4 className="mb-0 text-dark fw-bold">Mes Tâches</h4>
-        <button 
-          className="btn btn-primary d-md-none d-flex align-items-center gap-1 btn_filters no-column" 
-          onClick={() => setShowFilters(!showFilters)}
-          style={{ borderRadius: '20px', padding: '6px 12px', alignSelf: 'flex-end' }}
-        >
-          <Icon icon="material-symbols:filter-list" style={{ fontSize: '1rem' }} />
-          Filtres
-        </button>
+      <div className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3">
+        <div className="card-body gradient-hero-banner p-3">
+          <div className="gradient-hero-content d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div className="d-flex align-items-center gap-3">
+              <button 
+                className="gradient-hero-back-btn btn_filters" 
+                onClick={() => window.history.back()} 
+                aria-label="Retour"
+              >
+                <Icon icon="material-symbols:arrow-back" style={{ fontSize: '1.1rem' }} />
+              </button>
+              <div>
+                <h4 className="mb-1 fw-bold text-white">Mes Tâches</h4>
+                <p className="mb-0 text-white-50">Gestion mobile de vos tâches quotidiennes</p>
+              </div>
+            </div>
+            <button 
+              className="btn btn-outline-light d-md-none d-flex align-items-center gap-1 btn_filters no-column" 
+              onClick={() => setShowFilters(!showFilters)}
+              style={{ borderRadius: '999px', padding: '6px 14px' }}
+            >
+              <Icon icon="material-symbols:filter-list" style={{ fontSize: '1rem' }} />
+              Filtres
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Combined section: Per-page control + 100% incomplete tasks checkbox */}

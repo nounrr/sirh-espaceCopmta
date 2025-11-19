@@ -16,10 +16,13 @@ return new class extends Migration
             });
         }
 
-        // 2) Extend enum on users.typeContrat to include 'Client'
-        // Note: Laravel's schema builder can't alter ENUM directly; use raw SQL.
-        // Keep NOT NULL as in original migration.
-        DB::statement("ALTER TABLE `users` MODIFY COLUMN `typeContrat` ENUM('Permanent','Temporaire','Client') NOT NULL");
+        // 2) Replace legacy 'Temporaire' values by 'Permanent' before shrinking enum
+        DB::table('users')
+            ->where('typeContrat', 'Temporaire')
+            ->update(['typeContrat' => 'Permanent']);
+
+        // 3) Restrict enum to the supported values (Permanent + Client)
+        DB::statement("ALTER TABLE `users` MODIFY COLUMN `typeContrat` ENUM('Permanent','Client') NOT NULL");
     }
 
     public function down(): void
@@ -31,7 +34,7 @@ return new class extends Migration
             });
         }
 
-        // Revert enum to original values
-        DB::statement("ALTER TABLE `users` MODIFY COLUMN `typeContrat` ENUM('Permanent','Temporaire') NOT NULL");
+    // Revert enum to original values (including Temporaire)
+    DB::statement("ALTER TABLE `users` MODIFY COLUMN `typeContrat` ENUM('Permanent','Temporaire','Client') NOT NULL");
     }
 };

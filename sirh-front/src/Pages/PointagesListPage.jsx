@@ -40,12 +40,12 @@ const PointageRow = ({
 }) => (
   <tr
     style={{
-      backgroundColor: (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "var(--ds-warning-light)" : isTemp ? "#F4F7FF" : "white",
+      backgroundColor: isTemp ? "#F4F7FF" : "white",
       transition: "all 0.3s ease",
-      borderLeft: (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "4px solid var(--ds-warning)" : "none",
+      borderLeft: "none",
     }}
-    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "#FFF3D3" : "var(--ds-bg-secondary)"}
-    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = (user?.typeContrat || '').toLowerCase() === 'temporaire' ? "var(--ds-warning-light)" : (isTemp ? "#F4F7FF" : "white")}
+    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--ds-bg-secondary)"}
+    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isTemp ? "#F4F7FF" : "white"}
   >
     {/* Checkbox sélection */}
   <td style={{ padding: "var(--ds-spacing-3)", width: "32px", minWidth: "32px", maxWidth: "32px" }}>
@@ -60,11 +60,6 @@ const PointageRow = ({
     <td style={{ padding: "var(--ds-spacing-3)", fontWeight: "500", color: "var(--ds-text-primary)" }}>
       <div className="d-flex flex-column gap-1">
         <div>{user.name} {user.prenom}</div>
-        {(user.typeContrat || '').toLowerCase() === 'temporaire' && (
-          <span className="ds-badge ds-badge-warning">
-            Temporaire
-          </span>
-        )}
         {pointage.isNightShift && (
           <span className="ds-badge ds-badge-info">
             Équipe de nuit ({pointage.originalDate})
@@ -207,7 +202,7 @@ disabled={pointage.isAbsent || !pointage.statutJour || pointage.valider === 1}
       
       {/* Bouton de suppression - accessible selon les permissions et statut */}
       {onDelete && (
-        (isTemp) || // Les lignes temporaires peuvent toujours être supprimées
+        (isTemp) || // Les lignes provisoires peuvent toujours être supprimées
         (IsRH && pointage.id && pointage.valider !== 1 && 
          // Afficher seulement si le pointage a été effectivement saisi
          // - statut saisi différent de "non_pointe" OU
@@ -219,11 +214,9 @@ disabled={pointage.isAbsent || !pointage.statutJour || pointage.valider === 1}
           className="ds-btn ds-btn-sm ds-btn-danger ds-btn-outline"
           onClick={onDelete}
           title={
-            isTemp 
-              ? "Supprimer cette ligne temporaire" 
-              : pointage.valider === 1 
-                ? "Ce pointage est validé et ne peut pas être supprimé"
-                : "Supprimer ce pointage"
+            pointage.valider === 1 
+              ? "Ce pointage est validé et ne peut pas être supprimé"
+              : "Supprimer ce pointage"
           }
         >
           <Icon icon="mdi:delete-outline" />
@@ -255,12 +248,8 @@ const PointagesListPage = () => {
     status: '',
     societe: '',
     onlyPresentOrRetard: '',
-    typeContrat: '',
     onlyNonPointe: false,
   });
-  
-  // State pour stocker les utilisateurs temporaires
-  const [temporaryUsers, setTemporaryUsers] = useState([]);
   // State pour stocker les clés des pointages récemment modifiés
   const [recentlyModifiedKeys, setRecentlyModifiedKeys] = useState([]);
 
@@ -287,26 +276,6 @@ const getFiveMinuteWindow = (nowDate) => {
 };
 
 
-  // Helper pour vérifier si des employés temporaires sont sélectionnés
-  const selectedTempUsers = useMemo(() => {
-    const tempUsers = selectedKeys
-      .map(key => {
-        const pointage = editablePointages[key];
-        if (!pointage) return null;
-        
-        const user = users.find(u => String(u.id) === String(pointage.user_id));
-        if (!user || (user.typeContrat || '').toLowerCase() !== 'temporaire') return null;
-        
-        return user;
-      })
-      .filter(Boolean);
-    
-    console.log('selectedKeys:', selectedKeys);
-    console.log('selectedTempUsers:', tempUsers);
-    console.log('isRH:', isRH);
-    
-    return tempUsers;
-  }, [selectedKeys, editablePointages, users]);
 
   useEffect(() => {
     dispatch(fetchPointages());
@@ -316,14 +285,6 @@ const getFiveMinuteWindow = (nowDate) => {
     dispatch(fetchDepartments());
   }, [dispatch]);
   
-  // Effet pour identifier les utilisateurs temporaires
-  useEffect(() => {
-    const tempUsers = users.filter(user => 
-      user && (user.typeContrat || '').toLowerCase() === 'temporaire'
-    );
-    setTemporaryUsers(tempUsers);
-  }, [users]);
-
   // Réinitialiser la page courante lorsque les filtres ou la date changent
   useEffect(() => {
     setCurrentPage(1);
@@ -356,10 +317,6 @@ const handleSelectUser = (userId, checked) => {
   }
   const absenceType = editablePointages[user.id]?.statutJour;
   if (['Congé', 'maladie', 'autre'].includes(absenceType)) return false;
-
-  // Filtre pour le type de contrat
-  if (filters.typeContrat === 'temporaire' && (user.typeContrat || '').toLowerCase() !== 'temporaire') return false;
-  if (filters.typeContrat === 'permanent' && (user.typeContrat || '').toLowerCase() === 'temporaire') return false;
 
   const matchRecherche =
     !searchTerm ||
@@ -457,61 +414,11 @@ const handleSelectUser = (userId, checked) => {
       // Rafraîchir les données
       await dispatch(fetchUsers());
       
-      Swal.fire('Succès!', `${selectedTempUsers.length} employé(s) temporaire(s) affecté(s) avec succès.`, 'success');
+      Swal.fire('Succès!', `${selectedUsers.length} employé(s) affecté(s) avec succès.`, 'success');
       setSelectedKeys([]);
     } catch (error) {
       console.error("Erreur lors de l'affectation:", error);
-      Swal.fire('Erreur!', 'L\'affectation des employés temporaires a échoué.', 'error');
-    }
-  };
-
-  // Fonction pour désaffecter des utilisateurs temporaires
-  const handleUnassignTempUsers = async () => {
-    if (selectedTempUsers.length === 0) {
-      Swal.fire('Information', 'Aucun utilisateur temporaire sélectionné.', 'info');
-      return;
-    }
-
-    try {
-      const result = await Swal.fire({
-        title: 'Confirmation',
-        text: `Voulez-vous désaffecter ${selectedTempUsers.length} employé(s) temporaire(s) de leur département ?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Oui, désaffecter',
-        cancelButtonText: 'Annuler'
-      });
-
-      if (!result.isConfirmed) return;
-
-      Swal.fire({
-        title: 'Désaffectation en cours...',
-        text: `Désaffectation de ${selectedTempUsers.length} employé(s) temporaire(s).`,
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      const promises = selectedTempUsers.map(user => 
-        dispatch(updateUser({ 
-          id: user.id, 
-          departement_id: null
-        })).unwrap()
-      );
-      
-      await Promise.all(promises);
-
-      // Rafraîchir les données
-      await dispatch(fetchUsers());
-      
-      Swal.fire('Succès!', `${selectedTempUsers.length} employé(s) temporaire(s) désaffecté(s) avec succès.`, 'success');
-      setSelectedKeys([]);
-    } catch (error) {
-      console.error("Erreur lors de la désaffectation:", error);
-      Swal.fire('Erreur!', 'La désaffectation des employés temporaires a échoué.', 'error');
+      Swal.fire('Erreur!', 'L\'affectation des employés a échoué.', 'error');
     }
   };
 
@@ -748,7 +655,7 @@ const handleSelectUser = (userId, checked) => {
           userDepartment.nom.toLowerCase() === 'non affecté' || 
           userDepartment.nom.toLowerCase() === 'non affecte'
         );
-        // Si l'utilisateur est dans "Non affecté" et c'est un pointage temporaire (pas de pointage existant), ne pas l'afficher
+  // Si l'utilisateur est dans "Non affecté" et c'est un pointage provisoire (pas de pointage existant), ne pas l'afficher
         if (isUnassignedDept) {
           return false;
         }
@@ -759,14 +666,7 @@ const handleSelectUser = (userId, checked) => {
       if (selectedDepartment && users.length) {
         if (!user || String(user.departement_id) !== String(selectedDepartment)) return false;
       }
-      // 5. Filtre pour le type de contrat
-      if (filters.typeContrat === 'temporaire' && (!user || (user.typeContrat || '').toLowerCase() !== 'temporaire')) {
-        return false;
-      }
-      if (filters.typeContrat === 'permanent' && (!user || (user.typeContrat || '').toLowerCase() === 'temporaire')) {
-        return false;
-      }
-      // 6. Filtre recherche (nom, prénom, CIN)
+      // 5. Filtre recherche (nom, prénom, CIN)
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         if (
@@ -806,7 +706,7 @@ const handleSelectUser = (userId, checked) => {
       }
 
       // 9. Cacher les pointages totalement non pointés (toutes propriétés nulles/vides)
-      // On garde affiché si : sélectionné, récemment modifié, ou c'est une ligne temporaire (ajout volontaire)
+  // On garde affiché si : sélectionné, récemment modifié, ou c'est une ligne provisoire (ajout volontaire)
       const isSelected = selectedKeys.includes(pointageKey);
       const isRecentlyModified = recentlyModifiedKeys.includes(pointageKey);
       const isTempRow = Boolean(p.isTemp);
@@ -1020,7 +920,7 @@ const handleSavePointage = async (key) => {
       await dispatch(createPointage(pointageData)).unwrap();
     }
 
-    // Retire la ligne temporaire si c’était une création
+  // Retire la ligne provisoire si c’était une création
     if (!pointage.id && key.startsWith("temp-")) {
       setEditablePointages(prev => {
         const copy = { ...prev };
@@ -1147,7 +1047,7 @@ const getDeletableCount = () => {
     const pointage = editablePointages[key];
     if (pointage) {
       if (pointage.id === null) {
-        // Pointage temporaire - toujours supprimable
+  // Pointage provisoire - toujours supprimable
         deletable++;
       } else {
         // Vérifier si le pointage a été effectivement pointé
@@ -1203,7 +1103,7 @@ const handleDeleteSelected = async () => {
       const pointage = editablePointages[key];
       if (pointage) {
         if (pointage.id === null) {
-          // Pointage temporaire - toujours supprimable
+          // Pointage provisoire - toujours supprimable
           tempKeys.push(key);
         } else {
           // Vérifier si le pointage a été effectivement pointé
@@ -1443,7 +1343,7 @@ const handleSaveAll = async () => {
   }
 };
 
-// Ajoute une ligne temporaire pour ce user
+// Ajoute une ligne provisoire pour ce user
 
 const handleValiderPointage = async (pointageId, key) => {
   const pointage = editablePointages[key];
@@ -1676,37 +1576,23 @@ const handleValiderPointage = async (pointageId, key) => {
               </div>
             </div>
             
-            {/* Filtre Type de Contrat et Rôle */}
+            {/* Filtre Rôle */}
             {isRH && (
-              <>
-                <div className="col-12 col-md-6 col-lg-3">
-                  <label className='ds-label'>Type de Contrat</label>
-                  <select
-                    className="ds-select"
-                    value={filters.typeContrat}
-                    onChange={e => setFilters(prev => ({ ...prev, typeContrat: e.target.value }))}
-                  >
-                    <option value="">Tous</option>
-                    <option value="temporaire">Temporaires</option>
-                    <option value="permanent">Permanents</option>
-                  </select>
-                </div>
-                <div className="col-12 col-md-6 col-lg-3">
-                  <label className='ds-label'>Rôle</label>
-                  <select
-                    className="ds-select"
-                    value={filters.role || ''}
-                    onChange={e => setFilters(prev => ({ ...prev, role: e.target.value }))}
-                  >
-                    <option value="">Tous</option>
-                    <option value="Chef_Dep">Chef Département</option>
-                    <option value="Chef_Projet">Chef Projet</option>
-                    <option value="Chef_Chant">Chef Chantier</option>
-                    <option value="Employe">Employé</option>
-                    <option value="Gest_RH">Gestionnaire RH</option>
-                  </select>
-                </div>
-              </>
+              <div className="col-12 col-md-6 col-lg-3">
+                <label className='ds-label'>Rôle</label>
+                <select
+                  className="ds-select"
+                  value={filters.role || ''}
+                  onChange={e => setFilters(prev => ({ ...prev, role: e.target.value }))}
+                >
+                  <option value="">Tous</option>
+                  <option value="Chef_Dep">Chef Département</option>
+                  <option value="Chef_Projet">Chef Projet</option>
+                  <option value="Chef_Chant">Chef Chantier</option>
+                  <option value="Employe">Employé</option>
+                  <option value="Gest_RH">Gestionnaire RH</option>
+                </select>
+              </div>
             )}
 
             {/* Département */}

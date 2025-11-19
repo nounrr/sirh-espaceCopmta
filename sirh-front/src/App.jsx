@@ -22,7 +22,6 @@ import EditPointagePage from './Pages/EditPointagePage'
 import PrivateRoute from './PrivateRoute'
 import NotFound from './Pages/NotFound'
 import SocietesListPage from './Pages/SocietesListPage'; // Ajout de l'import pour la page des sociétés
-import TemporaireEmployesPage from './Pages/TemporaireEmployesPage'; // Ajout de l'import pour la page des sociétés
 import AbsenceRequestsCalendar from './Pages/AbsenceRequestsCalendar';
 import PointagesPage from './Pages/PointagesPageExport';
 import "./degrade.css"
@@ -62,7 +61,6 @@ import PWADebug from './PWADebug';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers } from './Redux/Slices/userSlice';
-import { fetchUsersTemp } from './Redux/Slices/userSlice';
 import { fetchDepartments } from './Redux/Slices/departementSlice';
 import { fetchAbsenceRequests } from './Redux/Slices/absenceRequestSlice';
 import { fetchPointages } from './Redux/Slices/pointageSlice';
@@ -275,7 +273,6 @@ const roles = useSelector((state) => state.auth.roles || []);
       } else {
         // Other roles: fetch all slices as before
         dispatch(fetchUsers());
-        dispatch(fetchUsersTemp());
         dispatch(fetchDepartments());
         dispatch(fetchAbsenceRequests());
         dispatch(fetchPointages());
@@ -338,7 +335,6 @@ const roles = useSelector((state) => state.auth.roles || []);
           <Route path="users" element={<UsersListPage />} />
         <Route path="users/add" element={<UserFormPage />} />
         <Route path="users/:id/edit" element={<UserFormPage />} />
-        <Route path="users/temp" element={<TemporaireEmployesPage />} />
         <Route path="clients" element={<ClientsListPage />} />
         <Route path="clients/add" element={<ClientFormPage />} />
         <Route path="clients/:id/edit" element={<ClientFormPage />} />

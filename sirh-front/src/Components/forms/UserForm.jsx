@@ -71,7 +71,7 @@ dateEmbauche: Yup.date().nullable('La date d\'embauche est requise'),
       }),
     typeContrat: Yup.string()
       .nullable('Le type de contrat est requis')
-      .oneOf(['Permanent', 'Temporaire'], 'Type de contrat invalide'),
+      .oneOf(['Permanent'], 'Type de contrat invalide'),
 date_naissance: Yup.date().nullable('La date de naissance est requise'),
     statut: isEdit ? Yup.string()
       .nullable('Le statut est requis')
@@ -118,8 +118,8 @@ date_naissance: Yup.date().nullable('La date de naissance est requise'),
         tel: values.tel,
         email: values.email,
         ...(values.password ? { password: values.password } : {}),
-        role: isEdit ? (values.role || initialValues.role) : values.role,
-        typeContrat: values.typeContrat,
+  role: isEdit ? (values.role || initialValues.role) : values.role,
+  typeContrat: 'Permanent',
         statut: isEdit ? values.statut : 'Actif',
         departement_id: values.departement_id ? parseInt(values.departement_id, 10) : null,
         societe_id: values.societe_id ? parseInt(values.societe_id, 10) : null,
@@ -273,14 +273,14 @@ date_naissance: Yup.date().nullable('La date de naissance est requise'),
                     information_supplementaire2: '',
                     password: undefined,
                     role: isEdit ? normalizeRole(initialValues.role) : 'Employe',
-                    typeContrat: 'Permanent',
                     statut: 'Actif',
                     departement_id: '',
                     picture: null,
                     date_sortie: '',
                     cnss: '',
                     solde_conge: '',
-                    ...initialValues
+                    ...initialValues,
+                    typeContrat: 'Permanent'
                   }}
                   validationSchema={validationSchema}
                   onSubmit={handleSubmit}
@@ -618,9 +618,9 @@ date_naissance: Yup.date().nullable('La date de naissance est requise'),
                                 name="typeContrat"
                                 id="typeContrat"
                                 className="form-select rounded-3"
+                                disabled
                               >
                                 <option value="Permanent">Permanent</option>
-                                <option value="Temporaire">Temporaire</option>
                               </Field>
                               <ErrorMessage name="typeContrat" component="div" className="text-danger small mt-1" />
                             </div>

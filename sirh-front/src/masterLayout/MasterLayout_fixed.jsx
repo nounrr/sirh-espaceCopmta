@@ -152,25 +152,6 @@ useEffect(() => {
         >
           <Icon icon='radix-icons:cross-2' />
         </button>
-        <div>
-          <Link to='/' className='sidebar-logo'>
-            <img
-              src={imageUrl}
-              alt='site logo'
-              className='light-logo'
-            />
-            <img
-              src={imageUrl}
-              alt='site logo'
-              className='dark-logo'
-            />
-            <img
-              src={imageUrl}
-              alt='site logo'
-              className='logo-icon'
-            />
-          </Link>
-        </div>
         <div className='sidebar-menu-area'>
         <ul style={{paddingLeft:"0px"}} className="sidebar-menu" id="sidebar-menu">
 

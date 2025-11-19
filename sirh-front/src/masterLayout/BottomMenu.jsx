@@ -16,7 +16,6 @@ const menuData = [
     label: "Employés",
     options: [
       { icon: "fluent:people-list-24-filled", to: "/users", label: "Liste", roles: ["RH", "Chef_Dep", "Chef_Chant", "Gest_RH"] },
-      { icon: "fluent:people-team-24-filled", to: "/users/temp", label: "Temporaire", roles: ["RH", "Gest_RH", "Chef_Dep", "Chef_Chant"] },
       { icon: "fluent:person-add-24-filled", to: "/users/add", label: "Ajouter", roles: ["RH", "Gest_RH", "Chef_Dep", "Chef_Chant"] }
     ]
   },

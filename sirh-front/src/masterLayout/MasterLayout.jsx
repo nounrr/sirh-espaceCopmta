@@ -162,25 +162,6 @@ useEffect(() => {
         >
           <Icon icon='radix-icons:cross-2' />
         </button>
-        <div>
-          <Link to='/' className='sidebar-logo'>
-            <img
-              src={imageUrl}
-              alt='site logo'
-              className='light-logo'
-            />
-            <img
-              src={imageUrl}
-              alt='site logo'
-              className='dark-logo'
-            />
-            <img
-              src={imageUrl}
-              alt='site logo'
-              className='logo-icon'
-            />
-          </Link>
-        </div>
         <div className='sidebar-menu-area'>
         <ul style={{paddingLeft:"0px"}} className="sidebar-menu" id="sidebar-menu">
 
@@ -226,12 +207,6 @@ useEffect(() => {
                   </li>
                   
                   {(roles.includes("RH") || roles.includes("Gest_RH") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant")) &&( <>
-                    <li>
-                    <NavLink to="/users/temp" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
-                      <Icon icon="fluent:people-team-24-filled" className="circle-icon w-auto" />
-                      Les employés Temporaire
-                              </NavLink>
-                            </li>
                     <li>
                     <NavLink to="/clients" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
                       <Icon icon="fluent:person-briefcase-24-filled" className="circle-icon w-auto" />

@@ -22,21 +22,6 @@ export const fetchUsers = createAsyncThunk(
     }
   }
 );
-export const fetchUsersTemp = createAsyncThunk(
-  'users/fetchUsersTemp',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get(API_ENDPOINTS.USERSTEMP.BASE, {
-        
-      });
-      console.log(response.data);
-      
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(error.response.data);
-    }
-  }
-);
 export const createUser = createAsyncThunk(
   'users/createUser',
   async (userData, { rejectWithValue }) => {
@@ -171,8 +156,7 @@ const userSlice = createSlice({
     items: [],
     meta: null,
     status: 'idle',
-    error: null,
-    UserTemp:[]
+    error: null
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -188,17 +172,6 @@ const userSlice = createSlice({
         state.meta = Array.isArray(payload) ? null : (payload.meta || null);
       })
       .addCase(fetchUsers.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload;
-      })
-      .addCase(fetchUsersTemp.pending, (state) => {
-        state.status = 'loading';
-      })
-      .addCase(fetchUsersTemp.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.UserTemp = action.payload;
-      })
-      .addCase(fetchUsersTemp.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
       })

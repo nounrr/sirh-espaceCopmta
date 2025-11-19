@@ -25,7 +25,6 @@ const UsersListPage = () => {
   const roles = useSelector((state) => state.auth.roles || []);
   const isRH = roles.includes('RH') || roles.includes('Gest_RH');
 
-  const [typeEmploye, setTypeEmploye] = useState('');
   const [userPointagesOpenId, setUserPointagesOpenId] = useState(null);
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -47,8 +46,6 @@ const UsersListPage = () => {
     setStatus('');
     setSearchTerm('');
     setCurrentPage(1);
-    setTypeEmploye('');
-
   };
 
   // Ajout de la fonction de filtrage
@@ -63,9 +60,7 @@ const UsersListPage = () => {
   const matchesRole = !role || user.role.toLowerCase() === role.toLowerCase();
   const matchesDepartment = !department || user.departement_id === parseInt(department);
   const matchesStatus = !status || user.statut.toLowerCase() === status.toLowerCase();
-  const matchesTypeEmploye = !typeEmploye || (user.typeContrat || '').toLowerCase() === typeEmploye.toLowerCase(); // AJOUT
-
-  return matchesSearch && matchesRole && matchesDepartment && matchesStatus && matchesTypeEmploye;
+  return matchesSearch && matchesRole && matchesDepartment && matchesStatus;
 });
 
 
@@ -349,7 +344,7 @@ const UsersListPage = () => {
             <div className="card border-0 shadow-sm rounded-4">
               <div className="card-body p-4">
                 <div className="row g-3 align-items-center">
-                  <div className="col-md-3">
+                  <div className="col-md-4">
                     <div className="position-relative">
                       <Icon icon="fluent:search-24-filled" className="position-absolute start-0 top-50 translate-middle-y ms-3 text-secondary" />
                       <input
@@ -399,17 +394,6 @@ const UsersListPage = () => {
                     </select>
                   </div>
                   <div className="col-md-2">
-                    <select
-                      className="form-select"
-                      value={typeEmploye}
-                      onChange={(e) => setTypeEmploye(e.target.value)}
-                    >
-                      <option value="">Tous les types</option>
-                      <option value="Permanent">Permanent</option>
-                      <option value="Temporaire">Temporaire</option>
-                    </select>
-                  </div>
-                  <div className="col-md-1">
                     <button
                       className="btn btn-outline-danger w-100"
                       onClick={resetFilters}
