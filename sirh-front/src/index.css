@@ -134,6 +134,16 @@ body {
   border: none !important;
   backdrop-filter: blur(8px);
 }
+.sidebar-menu-area {
+  height: calc(100vh - 72px);
+  padding: calc(0.75rem + 3rem) 1rem 1rem;
+  overflow-y: auto;
+  border-inline-end: 1px solid var(--neutral-200);
+}
+
+.sidebar-menu {
+  margin-top: 0.5rem;
+}
 
 .gradient-hero-select option {
   color: #111 !important;

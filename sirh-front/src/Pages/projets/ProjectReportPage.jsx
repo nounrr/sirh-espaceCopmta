@@ -1816,20 +1816,25 @@ const ProjectReportPage = () => {
                   <p className="mb-0 text-white-50">Statistiques et analyse détaillée des projets et tâches</p>
                 </div>
               </div>
-              <div className="d-flex flex-wrap align-items-center gap-2">
-                <Form.Select
-                  size="sm"
-                  className="form-select gradient-hero-select"
-                  value={exportDataset}
-                  onChange={handleExportDatasetChange}
-                  disabled={!isOnline}
-                >
-                  {EXPORT_DATASETS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Form.Select>
+              <div className="d-flex flex-wrap align-items-start gap-3">
+                <div className="d-flex flex-column gap-1">
+                  <small className="text-white-75 fw-semibold text-uppercase" style={{ letterSpacing: '0.05em' }}>
+                    Sélection des données à exporter
+                  </small>
+                  <Form.Select
+                    size="sm"
+                    className="form-select gradient-hero-select"
+                    value={exportDataset}
+                    onChange={handleExportDatasetChange}
+                    disabled={!isOnline}
+                  >
+                    {EXPORT_DATASETS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </div>
                 <ButtonGroup size="sm" className="shadow-sm">
                   <Button
                     variant="outline-light"
