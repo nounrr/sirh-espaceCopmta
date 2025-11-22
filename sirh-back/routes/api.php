@@ -34,6 +34,7 @@ use App\Http\Controllers\AuditController;
 use App\Http\Controllers\SalaireController;
 use App\Http\Controllers\ChargePersonnelController;
 use App\Http\Middleware\RoleMiddleware;
+use App\Http\Controllers\InfoRequestController;
 
 Route::resource('jours-feries', JourFerieController::class);
 Route::get('/jours-feries/year/{year}', [JourFerieController::class, 'getByYear']);
@@ -183,6 +184,9 @@ Route::get('/votes', [VoteController::class, 'index']);
 
 // Routes pour les jours fériés
 
+    Route::apiResource('info-requests', InfoRequestController::class);
+    Route::post('info-requests/{id}/comments', [InfoRequestController::class, 'addComment']);
+    Route::put('info-requests/{id}/status', [InfoRequestController::class, 'updateStatus']);
 });
 // imports
 

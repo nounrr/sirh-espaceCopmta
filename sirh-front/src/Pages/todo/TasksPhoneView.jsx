@@ -1,38 +1,3 @@
-// Helpers pour visualiser les pièces jointes et preuves (même logique qu'AbsenceRequestsListPage)
-    const getFileUrl = (file) => {
-      if (!file) return null;
-      const directUrl = file.url || file.download_url || file.link || null;
-      const storedPath = file.file_path || file.stored_path || file.storedPath || null;
-      const pathfileFinal = `${import.meta.env.VITE_API_URL}storage/${storedPath}`;
-      return (storedPath ? pathfileFinal : null);
-    };
-
-    const getFileIcon = (name = '') => {
-      const lower = String(name).toLowerCase();
-      if (/(\.pdf)(\?|#|$)/.test(lower)) return 'fluent:document-pdf-24-filled';
-      if (/(\.png|\.jpg|\.jpeg|\.gif|\.webp)(\?|#|$)/.test(lower)) return 'fluent:image-24-filled';
-      if (/(\.doc|\.docx)(\?|#|$)/.test(lower)) return 'fluent:document-24-filled';
-      if (/(\.xls|\.xlsx|\.csv)(\?|#|$)/.test(lower)) return 'fluent:table-24-filled';
-      if (/(\.zip|\.rar|\.7z)(\?|#|$)/.test(lower)) return 'fluent:folder-24-filled';
-      return 'fluent:attach-24-filled';
-    };
-
-    const openFile = (file) => {
-      const url = getFileUrl(file);
-      if (!url) {
-        showSwal({
-          icon: 'info',
-          title: 'Information',
-          text: 'Aucun lien de téléchargement disponible.',
-          confirmButtonText: 'OK'
-        });
-        return;
-      }
-      window.open(url, '_blank');
-    };
-
-    // alias rétro-compatible
-    const handleDownloadAttachment = openFile;
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
@@ -44,6 +9,42 @@ import { fetchClients } from '../../Redux/Slices/clientsSlice';
 import Swal from '../../utils/swal';
 import { fetchTaskComments, addTaskComment, updateTaskComment, deleteTaskComment } from '../../Redux/Slices/taskCommentsSlice';
 import { fetchActiveEntry, startTaskTimer, pauseTaskTimer, finishTask, fetchDailySummary } from '../../Redux/Slices/timeTrackingSlice';
+
+// Helpers pour visualiser les pièces jointes et preuves (même logique qu'AbsenceRequestsListPage)
+const getFileUrl = (file) => {
+  if (!file) return null;
+  const directUrl = file.url || file.download_url || file.link || null;
+  const storedPath = file.file_path || file.stored_path || file.storedPath || null;
+  const pathfileFinal = `${import.meta.env.VITE_API_URL}storage/${storedPath}`;
+  return (storedPath ? pathfileFinal : null);
+};
+
+const getFileIcon = (name = '') => {
+  const lower = String(name).toLowerCase();
+  if (/(\.pdf)(\?|#|$)/.test(lower)) return 'fluent:document-pdf-24-filled';
+  if (/(\.png|\.jpg|\.jpeg|\.gif|\.webp)(\?|#|$)/.test(lower)) return 'fluent:image-24-filled';
+  if (/(\.doc|\.docx)(\?|#|$)/.test(lower)) return 'fluent:document-24-filled';
+  if (/(\.xls|\.xlsx|\.csv)(\?|#|$)/.test(lower)) return 'fluent:table-24-filled';
+  if (/(\.zip|\.rar|\.7z)(\?|#|$)/.test(lower)) return 'fluent:folder-24-filled';
+  return 'fluent:attach-24-filled';
+};
+
+const openFile = (file) => {
+  const url = getFileUrl(file);
+  if (!url) {
+    Swal.fire({
+      icon: 'info',
+      title: 'Information',
+      text: 'Aucun lien de téléchargement disponible.',
+      confirmButtonText: 'OK'
+    });
+    return;
+  }
+  window.open(url, '_blank');
+};
+
+// alias rétro-compatible
+const handleDownloadAttachment = openFile;
 
 const formatMinutesLabel = (value) => {
   const total = Math.max(0, Number(value) || 0);
@@ -990,6 +991,10 @@ const TasksPhoneView = () => {
       if (!q) {
         return true;
       }
+
+      const rawAssignees = Array.isArray(t.assignees) && t.assignees.length > 0
+        ? t.assignees
+        : (t.assigned_to ? [{ id: t.assigned_to }] : []);
 
       const assigneeLabels = rawAssignees
         .map((assignee) => {
@@ -4471,15 +4476,13 @@ const TasksPhoneView = () => {
                                     </div>
                                   )}
                                   {/* En pause par défaut si aucune entrée active et non terminé/annulé */}
-                                  {true && (
-                                    <span
-                                      className="badge d-inline-flex align-items-center justify-content-center"
-                                      title="En pause"
-                                      style={{ fontSize: '0.65rem', height: 24, borderRadius: 12, background: 'rgba(245,158,11,0.15)', color: '#d97706' }}
-                                    >
-                                      <Icon icon="mdi:pause-circle" className="me-1" /> En pause
-                                    </span>
-                                  )}
+                                  <span
+                                    className="badge d-inline-flex align-items-center justify-content-center"
+                                    title="En pause"
+                                    style={{ fontSize: '0.65rem', height: 24, borderRadius: 12, background: 'rgba(245,158,11,0.15)', color: '#d97706' }}
+                                  >
+                                    <Icon icon="mdi:pause-circle" className="me-1" /> En pause
+                                  </span>
                                   <button
                                     type="button"
                                     className="btn btn-sm d-inline-flex align-items-center justify-content-center no-column"

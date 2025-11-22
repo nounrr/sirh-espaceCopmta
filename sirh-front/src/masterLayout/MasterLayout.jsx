@@ -488,6 +488,16 @@ useEffect(() => {
           <span>Rapport des projets</span>
         </NavLink>
       </li>
+      <li>
+        <NavLink
+          to="/info-requests"
+          className={({ isActive }) => (isActive ? "active-page" : "")}
+          onClick={handleLinkClick}
+        >
+          <Icon icon="fluent:chat-help-24-filled" className="circle-icon w-auto" />
+          <span>Demandes d'info</span>
+        </NavLink>
+      </li>
       {/* Audit des Projets - Seulement RH et Gest_Projet */}
       {(roles.includes("RH") || roles.includes("Gest_RH")) && (
         <li>

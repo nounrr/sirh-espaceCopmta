@@ -43,6 +43,7 @@ import CreateProjectPage from './Pages/projets/CreateProjectPage';
 import ProjectDetailPage from './Pages/projets/ProjectDetailPage.jsx';
 import ProjectTablePage from './Pages/projets/ProjectTablePage.jsx';
 import ProjectReportPage from './Pages/projets/ProjectReportPage.jsx';
+import InfoRequestsPage from './Pages/InfoRequestsPage';
 import OneSignal from 'react-onesignal'; // Make sure you have this package installed
 import ModalNotif from './ModalNotif'
 // Leave Management System - Soldes d'équipe uniquement
@@ -359,6 +360,9 @@ const roles = useSelector((state) => state.auth.roles || []);
     <Route path="/projets/:id" element={<ProjectDetailPage />} />
     <Route path="/projets-table" element={<ProjectTablePage />} />
     <Route path="/projets-rapport" element={<ProjectReportPage />} />
+
+    {/* Demandes d'information */}
+    <Route path="/info-requests" element={<InfoRequestsPage />} />
 
     {/* Audit route */}
     <Route path="/audit" element={<AuditPage />} />
