@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchChargePersonnels, createChargePersonnel, updateChargePersonnel, deleteChargePersonnels } from '../Redux/Slices/chargePersonnelSlice';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import Swal from 'sweetalert2';
+import StyledTable from '../Components/Common/StyledTable';
 
 const toMonthInput = (dateStr) => {
   if (!dateStr) return '';
@@ -303,8 +304,7 @@ const ChargePersonnelPage = () => {
           </div>
 
           {/* Table Section */}
-          <div className="table-responsive">
-            <table className="table bordered-table mb-0">
+          <StyledTable>
               <thead>
                 <tr>
                   <th scope="col" className="text-secondary">Mois</th>
@@ -352,8 +352,7 @@ const ChargePersonnelPage = () => {
                   </tr>
                 )}
               </tbody>
-            </table>
-          </div>
+          </StyledTable>
         </div>
       </div>
     </div>

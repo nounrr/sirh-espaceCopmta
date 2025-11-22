@@ -2,6 +2,7 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import MobilePageHeader, { MobileCardHeader, MobileModalHeader } from './MobilePageHeader';
 import { useIsMobile } from '../../utils/responsiveUtils.jsx';
+import StyledTable from './StyledTable';
 
 const MobileTestPage = () => {
   const isMobile = useIsMobile();
@@ -100,8 +101,8 @@ const MobileTestPage = () => {
           ]}
         />
         <div className="card-body">
-          <div className={isMobile ? 'd-none' : 'table-responsive'}>
-            <table className="table table-hover">
+          <div className={isMobile ? 'd-none' : ''}>
+            <StyledTable>
               <thead>
                 <tr>
                   <th>Nom</th>
@@ -124,7 +125,7 @@ const MobileTestPage = () => {
                   </td>
                 </tr>
               </tbody>
-            </table>
+            </StyledTable>
           </div>
           
           {/* Version mobile en cartes */}

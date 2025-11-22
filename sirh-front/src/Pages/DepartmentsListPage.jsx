@@ -6,6 +6,7 @@ import { Icon } from '@iconify/react/dist/iconify.js';
 import Swal from 'sweetalert2';
 import api from '../config/axios';
 import { toErrorMessage } from '../utils/errorUtils';
+import StyledTable from '../Components/Common/StyledTable';
 
 const DepartmentsListPage = () => {
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -316,32 +317,32 @@ const DepartmentsListPage = () => {
           <div className="col-12">
             <div className="card border-0 shadow-sm rounded-4">
               <div className="card-body p-0">
-                <div className="table-responsive">
-                  <table className="table table-hover mb-0">
-                    <thead style={{ backgroundColor: '#f8f9fa' }}>
-                      <tr>
-                        {!isEmployee && (
-                          <th style={{ padding: '1rem' }}>
-                            <input
-                              type="checkbox"
-                              className="form-check-input"
-                              onChange={toggleSelectAllDepartments}
-                              checked={selectedDepartments.length === currentItems.length && currentItems.length > 0}
-                            />
-                          </th>
-                        )}
-                        <th style={{ padding: '1rem', fontWeight: '600' }}>Nom</th>
-                        <th style={{ padding: '1rem', fontWeight: '600' }}>Description</th>
-                        <th style={{ padding: '1rem', fontWeight: '600' }}>Date de création</th>
-                        {!isEmployee && <th style={{ padding: '1rem', fontWeight: '600' }}>Actions</th>}
-                      </tr>
-                    </thead>
+                <StyledTable
+                  thead={
+                    <tr>
+                      {!isEmployee && (
+                        <th>
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            onChange={toggleSelectAllDepartments}
+                            checked={selectedDepartments.length === currentItems.length && currentItems.length > 0}
+                          />
+                        </th>
+                      )}
+                      <th>Nom</th>
+                      <th>Description</th>
+                      <th>Date de création</th>
+                      {!isEmployee && <th>Actions</th>}
+                    </tr>
+                  }
+                >
                     <tbody>
                       {currentItems.map((department) => {
                         return (
                           <tr key={department.id}>
                             {!isEmployee && (
-                              <td style={{ padding: '1rem' }}>
+                              <td>
                                 <input
                                   type="checkbox"
                                   className="form-check-input"
@@ -350,7 +351,7 @@ const DepartmentsListPage = () => {
                                 />
                               </td>
                             )}
-                            <td style={{ padding: '1rem' }}>
+                            <td>
                               <div className="d-flex align-items-center gap-2">
                                 <div 
                                   className="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
@@ -361,16 +362,16 @@ const DepartmentsListPage = () => {
                                 <span className="fw-semibold">{department.nom}</span>
                               </div>
                             </td>
-                            <td style={{ padding: '1rem' }}>
+                            <td>
                               <span className="text-muted">{department.description || 'Aucune description'}</span>
                             </td>
-                            <td style={{ padding: '1rem' }}>
+                            <td>
                               <span className="badge bg-light text-dark">
                                 {new Date(department.created_at).toLocaleDateString('fr-FR')}
                               </span>
                             </td>
                             {!isEmployee && (
-                              <td style={{ padding: '1rem' }}>
+                              <td>
                                 <div className="d-flex justify-content-center gap-2">
                                   <button
                                     className="btn p-0 border-0"
@@ -423,8 +424,7 @@ const DepartmentsListPage = () => {
                         );
                       })}
                     </tbody>
-                  </table>
-                </div>
+                </StyledTable>
 
                 {currentItems.length === 0 && (
                   <div className="text-center py-5">

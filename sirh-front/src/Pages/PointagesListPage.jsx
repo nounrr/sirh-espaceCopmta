@@ -5,6 +5,7 @@ import { fetchUsers, updateUser } from '../Redux/Slices/userSlice';
 import { fetchAbsenceRequests } from '../Redux/Slices/absenceRequestSlice';
 import { fetchSocietes } from '../Redux/Slices/societeSlice'; // Ajout de l'import pour fetchSocietes
 import { fetchDepartments } from '../Redux/Slices/departementSlice';
+import StyledTable from '../Components/Common/StyledTable';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import Swal from 'sweetalert2';
 import DatePicker from "react-datepicker";
@@ -1917,8 +1918,7 @@ const handleValiderPointage = async (pointageId, key) => {
 
       {/* Tableau des pointages */}
       <div className="ds-card">
-        <div className="table-responsive">
-          <table className="ds-table">
+        <StyledTable>
             <thead>
               <tr>
                 <th style={{ width: "32px", minWidth: "32px", maxWidth: "32px" }}>
@@ -1992,8 +1992,7 @@ const handleValiderPointage = async (pointageId, key) => {
                 })
               )}
             </tbody>
-          </table>
-        </div>
+        </StyledTable>
       </div>
 
       {/* Pagination */}

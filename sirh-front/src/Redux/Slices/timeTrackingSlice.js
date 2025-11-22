@@ -30,8 +30,16 @@ export const pauseTaskTimer = createAsyncThunk(
 	'timeTracking/pauseTaskTimer',
 	async (taskId, { getState }) => {
 		const existing = getState().timeTracking?.activeByTask?.[taskId] || null;
+		let addedMinutes = 0;
+		if (existing && existing.status === 'running' && existing.started_at) {
+			const start = new Date(existing.started_at);
+			const now = new Date();
+			const diffMs = now - start;
+			addedMinutes = Math.floor(diffMs / 60000);
+		}
 		return {
 			taskId,
+			addedMinutes,
 			entry: existing
 				? {
 						...existing,
@@ -45,7 +53,17 @@ export const pauseTaskTimer = createAsyncThunk(
 
 export const finishTask = createAsyncThunk(
 	'timeTracking/finishTask',
-	async (taskId) => ({ taskId })
+	async (taskId, { getState }) => {
+		const existing = getState().timeTracking?.activeByTask?.[taskId] || null;
+		let addedMinutes = 0;
+		if (existing && existing.status === 'running' && existing.started_at) {
+			const start = new Date(existing.started_at);
+			const now = new Date();
+			const diffMs = now - start;
+			addedMinutes = Math.floor(diffMs / 60000);
+		}
+		return { taskId, addedMinutes };
+	}
 );
 
 export const fetchDailySummary = createAsyncThunk(
@@ -89,15 +107,27 @@ const timeTrackingSlice = createSlice({
 				state.lastUpdated = nowIso();
 			})
 			.addCase(pauseTaskTimer.fulfilled, (state, action) => {
-				const { taskId, entry } = action.payload;
+				const { taskId, entry, addedMinutes } = action.payload;
 				if (entry) {
 					state.activeByTask[taskId] = entry;
+				}
+				if (addedMinutes > 0) {
+					if (!state.dailyByTask[taskId]) {
+						state.dailyByTask[taskId] = { total_minutes: 0, sessions: [] };
+					}
+					state.dailyByTask[taskId].total_minutes = (state.dailyByTask[taskId].total_minutes || 0) + addedMinutes;
 				}
 				state.lastUpdated = nowIso();
 			})
 			.addCase(finishTask.fulfilled, (state, action) => {
-				const { taskId } = action.payload;
+				const { taskId, addedMinutes } = action.payload;
 				delete state.activeByTask[taskId];
+				if (addedMinutes > 0) {
+					if (!state.dailyByTask[taskId]) {
+						state.dailyByTask[taskId] = { total_minutes: 0, sessions: [] };
+					}
+					state.dailyByTask[taskId].total_minutes = (state.dailyByTask[taskId].total_minutes || 0) + addedMinutes;
+				}
 				state.lastUpdated = nowIso();
 			})
 			.addCase(fetchDailySummary.fulfilled, (state, action) => {

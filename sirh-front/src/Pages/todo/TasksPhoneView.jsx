@@ -1,4 +1,4 @@
-    // Helpers pour visualiser les pièces jointes et preuves (même logique qu'AbsenceRequestsListPage)
+// Helpers pour visualiser les pièces jointes et preuves (même logique qu'AbsenceRequestsListPage)
     const getFileUrl = (file) => {
       if (!file) return null;
       const directUrl = file.url || file.download_url || file.link || null;
@@ -47,8 +47,16 @@ import { fetchActiveEntry, startTaskTimer, pauseTaskTimer, finishTask, fetchDail
 
 const formatMinutesLabel = (value) => {
   const total = Math.max(0, Number(value) || 0);
-  const hours = Math.floor(total / 60);
+  const days = Math.floor(total / (60 * 24));
+  const hours = Math.floor((total % (60 * 24)) / 60);
   const minutes = total % 60;
+
+  if (days > 0) {
+    const hourPart = hours > 0 ? `${hours}h ` : '';
+    const minutePart = minutes.toString().padStart(2, '0');
+    return `${days}j ${hourPart}${minutePart}`;
+  }
+
   if (!hours) {
     return `${minutes} min`;
   }
@@ -246,6 +254,9 @@ const TasksPhoneView = () => {
   const [filterAssignees, setFilterAssignees] = useState([]);
   const [filterAssigneeQuery, setFilterAssigneeQuery] = useState('');
   const [filterAssigneeMenuOpen, setFilterAssigneeMenuOpen] = useState(false);
+  const [filterClient, setFilterClient] = useState('');
+  const [filterPriority, setFilterPriority] = useState('');
+  const [filterTaskType, setFilterTaskType] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showHundredIncompleteOnly, setShowHundredIncompleteOnly] = useState(false);
   const [sortMode, setSortMode] = useState('recent');
@@ -915,6 +926,17 @@ const TasksPhoneView = () => {
   const filtered = useMemo(() => {
     const q = (query || '').trim().toLowerCase();
 
+    // Pre-calculate repetitive titles (same title > 1 occurrence)
+    const titleCounts = {};
+    if (filterTaskType) {
+        allTasks.forEach(t => {
+            const title = (t.description || t.title || t.nom || '').trim().toLowerCase();
+            if (title) {
+                titleCounts[title] = (titleCounts[title] || 0) + 1;
+            }
+        });
+    }
+
     const filteredTasks = allTasks.filter((t) => {
       // Si l'utilisateur est un employé avec des permissions limitées, 
       // ne montrer que les tâches qui lui sont assignées
@@ -929,30 +951,33 @@ const TasksPhoneView = () => {
       const matchesList = !filterList || String(t.listId) === String(filterList);
       const matchesStatus = !filterStatus || String(t.status || '').toLowerCase() === String(filterStatus).toLowerCase();
 
-      if (!matchesProject || !matchesList || !matchesStatus) {
-        return false;
+      // --- Nouveaux filtres ---
+      const matchesPriority = !filterPriority || String(t.priority || '').toLowerCase() === String(filterPriority).toLowerCase();
+
+      let matchesClient = true;
+      if (filterClient) {
+        const proj = projectsById[t.projectId] || {};
+        const pClientId = proj.client_id || proj.clientId || (proj.client && proj.client.id);
+        matchesClient = String(pClientId) === String(filterClient);
       }
 
-      const rawAssignees = Array.isArray(t.assignees) && t.assignees.length > 0
-        ? t.assignees
-        : (t.assigned_to ? [{ id: t.assigned_to }] : []);
+      let matchesType = true;
+      if (filterTaskType) {
+        const title = (t.description || t.title || t.nom || '').trim().toLowerCase();
+        const count = titleCounts[title] || 0;
+        const isRepetitive = count > 1;
+        
+        if (filterTaskType === 'repetitive') {
+          matchesType = isRepetitive;
+        } else if (filterTaskType === 'ponctuelle') {
+          matchesType = !isRepetitive;
+        }
+      }
 
-      const assigneeIds = rawAssignees
-        .map((assignee) => {
-          if (assignee === null || assignee === undefined) return null;
-          if (typeof assignee === 'object') {
-            return assignee.id !== undefined && assignee.id !== null ? String(assignee.id) : null;
-          }
-          return String(assignee);
-        })
-        .filter(Boolean);
-
-      const matchesAssignee = filterAssignees.length === 0
-        || filterAssignees.some((selectedId) => assigneeIds.includes(String(selectedId)));
-
-      if (!matchesAssignee) {
+      if (!matchesProject || !matchesList || !matchesStatus || !matchesPriority || !matchesClient || !matchesType) {
         return false;
       }
+      // ------------------------
 
       if (userHasAdvancedAccess && showHundredIncompleteOnly) {
         const percentValue = Number(t.pourcentage ?? t.progression ?? 0);
@@ -981,12 +1006,12 @@ const TasksPhoneView = () => {
         t.nom,
         t.titre,
         t.listTitle,
-  t.projectId,
+        t.projectId,
         t.projectTitle,
         t.source,
         t.status,
         t.listId,
-    t.type,
+        t.type,
         t.id,
       ]
         .filter((value) => value !== undefined && value !== null)
@@ -1045,7 +1070,7 @@ const TasksPhoneView = () => {
     })();
 
     return [...filteredTasks].sort(comparator);
-  }, [allTasks, filterProject, filterList, filterStatus, filterAssignees, query, usersById, hasLimitedEmployeePermissions, authUser, userHasAdvancedAccess, showHundredIncompleteOnly, sortMode]);
+  }, [allTasks, filterProject, filterList, filterStatus, filterAssignees, query, usersById, hasLimitedEmployeePermissions, authUser, userHasAdvancedAccess, showHundredIncompleteOnly, sortMode, filterPriority, filterClient, filterTaskType, projectsById]);
 
   const totalPages = useMemo(() => {
     return Math.max(1, Math.ceil(filtered.length / perPage || 1));
@@ -1313,9 +1338,6 @@ const TasksPhoneView = () => {
       dispatch(fetchTodoLists());
 
       // Always open the comments section for the newly created task
-      // (same effect as clicking the comment icon), fetch its comments,
-      // then focus the comment input for quick typing.
-      {
         const created = result && result.task ? result.task : result;
         const taskId = created?.id || null;
         if (taskId) {
@@ -1336,7 +1358,6 @@ const TasksPhoneView = () => {
           };
           setTimeout(() => tryFocus(0), 120);
         }
-      }
 
       resetForm();
       setShowAdd(false);
@@ -1796,7 +1817,7 @@ const TasksPhoneView = () => {
         position: 'top-end',
         timer: 2500,
         showConfirmButton: false,
-      });
+                });
       return;
     }
 
@@ -2076,14 +2097,33 @@ const TasksPhoneView = () => {
                 <p className="mb-0 text-white-50">Gestion mobile de vos tâches quotidiennes</p>
               </div>
             </div>
-            <button 
-              className="btn btn-outline-light d-md-none d-flex align-items-center gap-1 btn_filters no-column" 
-              onClick={() => setShowFilters(!showFilters)}
-              style={{ borderRadius: '999px', padding: '6px 14px' }}
-            >
-              <Icon icon="material-symbols:filter-list" style={{ fontSize: '1rem' }} />
-              Filtres
-            </button>
+            <div className="d-flex align-items-center gap-2">
+              <button 
+                className="btn d-flex align-items-center gap-2 shadow-sm" 
+                onClick={handleAddToggle}
+                style={{ 
+                  borderRadius: '50px', 
+                  padding: '8px 20px',
+                  backgroundColor: '#ffffff',
+                  color: '#0d6efd',
+                  border: 'none',
+                  fontWeight: '600',
+                  fontSize: '0.95rem',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <Icon icon="mdi:plus" style={{ fontSize: '1.2rem', color: '#0d6efd' }} />
+                <span className="text-primary fw-bold" style={{ color: '#0d6efd !important' }}>Ajouter tâche</span>
+              </button>
+              <button 
+                className="btn btn-outline-light d-md-none d-flex align-items-center gap-1 btn_filters no-column" 
+                onClick={() => setShowFilters(!showFilters)}
+                style={{ borderRadius: '999px', padding: '6px 14px' }}
+              >
+                <Icon icon="material-symbols:filter-list" style={{ fontSize: '1rem' }} />
+                Filtres
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -2149,7 +2189,7 @@ const TasksPhoneView = () => {
                   cursor: 'pointer',
                   borderRadius: '12px',
                   background: showHundredIncompleteOnly 
-                    ? 'linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%)'
+                    ? 'linear-gradient(135deg, #667eea, #764ba2)'
                     : 'rgba(102, 126, 234, 0.04)',
                   border: `1px solid ${showHundredIncompleteOnly ? 'rgba(102, 126, 234, 0.3)' : 'rgba(102, 126, 234, 0.1)'}`,
                   transition: 'all 0.2s ease',
@@ -2177,7 +2217,7 @@ const TasksPhoneView = () => {
                     minWidth: 20,
                     borderRadius: '6px',
                     background: showHundredIncompleteOnly 
-                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      ? 'linear-gradient(135deg, #667eea, #764ba2)'
                       : '#ffffff',
                     border: `2px solid ${showHundredIncompleteOnly ? '#667eea' : '#d1d5db'}`,
                     transition: 'all 0.2s ease',
@@ -2263,6 +2303,7 @@ const TasksPhoneView = () => {
                   placeholder="Rechercher..." 
                   value={query} 
                   onChange={(e) => setQuery(e.target.value)} 
+                  aria-label="Titre"
                   style={{ 
                     borderRadius: '10px', 
                     background: 'rgba(102, 126, 234, 0.04)',
@@ -2301,7 +2342,7 @@ const TasksPhoneView = () => {
             </div>
             {/* Liste */}
             <div className="col-6 col-md-3">
-              <label className="form-label small fw-semibold mb-1" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
+              <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
                 <Icon icon="mdi:format-list-bulleted" className="me-1" style={{ fontSize: '0.85rem', color: '#667eea' }} />
                 Liste
               </label>
@@ -2328,7 +2369,7 @@ const TasksPhoneView = () => {
             </div>
             {/* Statut */}
             <div className="col-6 col-md-2">
-              <label className="form-label small fw-semibold mb-1" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
+              <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
                 <Icon icon="mdi:flag-variant" className="me-1" style={{ fontSize: '0.85rem', color: '#10b981' }} />
                 Statut
               </label>
@@ -2353,7 +2394,7 @@ const TasksPhoneView = () => {
             </div>
             {/* Tri */}
             <div className="col-6 col-md-3">
-              <label className="form-label small fw-semibold mb-1" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
+              <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
                 <Icon icon="mdi:sort" className="me-1" style={{ fontSize: '0.85rem', color: '#f59e0b' }} />
                 Tri
               </label>
@@ -2380,7 +2421,7 @@ const TasksPhoneView = () => {
           
             {/* Collaborateur */}
             <div className="col-6 col-md-3">
-              <label className="form-label small fw-semibold mb-1" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
+              <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
                 <Icon icon="mdi:account" className="me-1" style={{ fontSize: '0.85rem', color: '#8b5cf6' }} />
                 Collaborateur
               </label>
@@ -2476,6 +2517,105 @@ const TasksPhoneView = () => {
               </div>
             )}
           </div>
+
+            {/* Client */}
+            <div className="col-6 col-md-3">
+              <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
+                <Icon icon="mdi:account-tie" className="me-1" style={{ fontSize: '0.85rem', color: '#10b981' }} />
+                Client
+              </label>
+              <select
+                className="form-select form-select-sm shadow-sm border-0"
+                value={filterClient}
+                onChange={(e) => setFilterClient(e.target.value)}
+                style={{ 
+                  borderRadius: '10px', 
+                  background: 'rgba(16, 185, 129, 0.04)',
+                  fontSize: '0.8rem',
+                  padding: '8px 12px',
+                  border: '1px solid rgba(16, 185, 129, 0.1)'
+                }}
+              >
+                <option value="">Tous les clients</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={String(client.id)}>
+                    {client.nom || client.name || `Client ${client.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Priorité */}
+            <div className="col-6 col-md-2">
+              <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
+                <Icon icon="mdi:alert-circle-outline" className="me-1" style={{ fontSize: '0.85rem', color: '#ef4444' }} />
+                Priorité
+              </label>
+              <select
+                className="form-select form-select-sm shadow-sm border-0"
+                value={filterPriority}
+                onChange={(e) => setFilterPriority(e.target.value)}
+                style={{ 
+                  borderRadius: '10px', 
+                  background: 'rgba(239, 68, 68, 0.04)',
+                  fontSize: '0.8rem',
+                  padding: '8px 12px',
+                  border: '1px solid rgba(239, 68, 68, 0.1)'
+                }}
+              >
+                <option value="">Toutes</option>
+                <option value="basse">Basse</option>
+                <option value="normale">Normale</option>
+                <option value="haute">Haute</option>
+                <option value="critique">Critique</option>
+              </select>
+            </div>
+
+            {/* Type de tâche (Ponctuelle / Répétitive) */}
+            <div className="col-12 col-md-4">
+               <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
+                <Icon icon="mdi:calendar-clock" className="me-1" style={{ fontSize: '0.85rem', color: '#8b5cf6' }} />
+                Type de tâche
+              </label>
+              <div className="d-flex gap-3 align-items-center h-100">
+                 <div className="form-check form-check-inline m-0">
+                    <input 
+                      className="form-check-input" 
+                      type="radio" 
+                      name="filterTaskType" 
+                      id="filterTaskTypeAll" 
+                      value=""
+                      checked={filterTaskType === ''}
+                      onChange={(e) => setFilterTaskType(e.target.value)}
+                    />
+                    <label className="form-check-label small" htmlFor="filterTaskTypeAll">Tout</label>
+                 </div>
+                 <div className="form-check form-check-inline m-0">
+                    <input 
+                      className="form-check-input" 
+                      type="radio" 
+                      name="filterTaskType" 
+                      id="filterTaskTypePonctuelle" 
+                      value="ponctuelle"
+                      checked={filterTaskType === 'ponctuelle'}
+                      onChange={(e) => setFilterTaskType(e.target.value)}
+                    />
+                    <label className="form-check-label small" htmlFor="filterTaskTypePonctuelle">Ponctuelle</label>
+                 </div>
+                 <div className="form-check form-check-inline m-0">
+                    <input 
+                      className="form-check-input" 
+                      type="radio" 
+                      name="filterTaskType" 
+                      id="filterTaskTypeRepetitive" 
+                      value="repetitive"
+                      checked={filterTaskType === 'repetitive'}
+                      onChange={(e) => setFilterTaskType(e.target.value)}
+                    />
+                    <label className="form-check-label small" htmlFor="filterTaskTypeRepetitive">Répétitive</label>
+                 </div>
+              </div>
+            </div>
           </div> {/* Fermeture row g-2 */}
         </div> {/* Fermeture container de filtre */}
       </div> {/* Fermeture showFilters div */}
@@ -2536,17 +2676,9 @@ const TasksPhoneView = () => {
                     background: 'rgba(102, 126, 234, 0.04)',
                     fontSize: '0.9rem',
                     padding: '12px 16px',
-                    border: '1px solid rgba(102, 126, 234, 0.1)',
-                    transition: 'all 0.2s ease'
+                    border: '1px solid rgba(102, 126, 234, 0.1)'
                   }}
-                  onFocus={(e) => {
-                    e.target.style.background = 'rgba(102, 126, 234, 0.08)';
-                    e.target.style.borderColor = 'rgba(102, 126, 234, 0.3)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.background = 'rgba(102, 126, 234, 0.04)';
-                    e.target.style.borderColor = 'rgba(102, 126, 234, 0.1)';
-                  }}
+                  required
                 />
               </div>
 
@@ -2616,39 +2748,39 @@ const TasksPhoneView = () => {
                   <div className="col-6">
                     <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
                       <Icon icon="mdi:calendar-start" className="me-1" style={{ color: '#10b981', fontSize: '0.9rem' }} />
-                      Début
+                      Date de début
                     </label>
                     <input 
                       type="date" 
                       className="form-control border-0 shadow-sm" 
                       value={startDate} 
                       onChange={(e) => setStartDate(e.target.value)} 
-                      aria-label="Date de début"
+                      required 
                       style={{ 
                         borderRadius: '12px', 
                         background: 'rgba(16, 185, 129, 0.04)',
                         padding: '10px 12px',
-                        border: '1px solid rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.15)',
                         fontSize: '0.85rem'
                       }}
                     />
                   </div>
                   <div className="col-6">
                     <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
-                      <Icon icon="mdi:calendar-end" className="me-1" style={{ color: '#f59e0b', fontSize: '0.9rem' }} />
-                      Fin
+                      <Icon icon="mdi:calendar-end" className="me-1" style={{ color: '#ef4444', fontSize: '0.9rem' }} />
+                      Date de fin
                     </label>
                     <input 
                       type="date" 
                       className="form-control border-0 shadow-sm" 
                       value={endDate} 
                       onChange={(e) => setEndDate(e.target.value)} 
-                      aria-label="Date de fin"
+                      required 
                       style={{ 
                         borderRadius: '12px', 
-                        background: 'rgba(245, 158, 11, 0.04)',
+                        background: 'rgba(239, 68, 68, 0.04)',
                         padding: '10px 12px',
-                        border: '1px solid rgba(245, 158, 11, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.15)',
                         fontSize: '0.85rem'
                       }}
                     />
@@ -2657,62 +2789,46 @@ const TasksPhoneView = () => {
               ) : (
                 <div className="mb-3">
                   <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
-                    <Icon icon="mdi:calendar-range" className="me-1" style={{ color: '#f97316', fontSize: '0.95rem' }} />
-                    Dates des répétitions
+                    <Icon icon="mdi:calendar-multiselect" className="me-1" style={{ color: '#f59e0b', fontSize: '0.9rem' }} />
+                    Périodes ({repeatCount})
                   </label>
-                  <div className="d-flex flex-column gap-3">
-                    {repeatRanges.slice(0, repeatCount).map((range, index) => (
-                      <div key={`repeat-range-${index}`} className="row g-2 align-items-end">
-                        <div className="col-6">
-                          <label className="form-label small mb-1 fw-semibold text-muted">
-                            Début #{index + 1}
-                          </label>
-                          <input
-                            type="date"
-                            className="form-control border-0 shadow-sm"
-                            value={range.start}
-                            onChange={(e) => handleRepeatRangeChange(index, 'start', e.target.value)}
-                            aria-label={`Date de début répétition ${index + 1}`}
-                            disabled={repeatFrequency !== 'manual' && index > 0}
-                            style={{
-                              borderRadius: '12px',
-                              background: 'rgba(16, 185, 129, 0.04)',
-                              padding: '10px 12px',
-                              border: '1px solid rgba(16, 185, 129, 0.1)',
-                              fontSize: '0.85rem',
-                              opacity: repeatFrequency !== 'manual' && index > 0 ? 0.8 : 1,
-                            }}
-                          />
-                        </div>
-                        <div className="col-6">
-                          <label className="form-label small mb-1 fw-semibold text-muted">
-                            Fin #{index + 1}
-                          </label>
-                          <input
-                            type="date"
-                            className="form-control border-0 shadow-sm"
-                            value={range.end}
-                            onChange={(e) => handleRepeatRangeChange(index, 'end', e.target.value)}
-                            aria-label={`Date de fin répétition ${index + 1}`}
-                            disabled={repeatFrequency !== 'manual' && index > 0}
-                            style={{
-                              borderRadius: '12px',
-                              background: 'rgba(245, 158, 11, 0.04)',
-                              padding: '10px 12px',
-                              border: '1px solid rgba(245, 158, 11, 0.1)',
-                              fontSize: '0.85rem',
-                              opacity: repeatFrequency !== 'manual' && index > 0 ? 0.8 : 1,
-                            }}
-                          />
-                        </div>
+                  <div className="d-flex flex-column gap-2">
+                    {repeatRanges.map((range, idx) => (
+                      <div key={idx} className="d-flex gap-2 align-items-center">
+                        <span className="badge bg-light text-dark border rounded-pill" style={{ minWidth: '24px' }}>{idx + 1}</span>
+                        <input
+                          type="date"
+                          className="form-control form-control-sm border-0 shadow-sm"
+                          value={range.start}
+                          onChange={(e) => {
+                            const newRanges = [...repeatRanges];
+                            newRanges[idx].start = e.target.value;
+                            setRepeatRanges(newRanges);
+                            if (idx === 0) setStartDate(e.target.value);
+                          }}
+                          required
+                          style={{ borderRadius: '8px', background: '#f9fafb' }}
+                        />
+                        <span className="text-muted">-</span>
+                        <input
+                          type="date"
+                          className="form-control form-control-sm border-0 shadow-sm"
+                          value={range.end}
+                          onChange={(e) => {
+                            const newRanges = [...repeatRanges];
+                            newRanges[idx].end = e.target.value;
+                            setRepeatRanges(newRanges);
+                            if (idx === 0) setEndDate(e.target.value);
+                          }}
+                          required
+                          style={{ borderRadius: '8px', background: '#f9fafb' }}
+                        />
                       </div>
                     ))}
                   </div>
-                  {repeatFrequency !== 'manual' && repeatCount > 1 && (
-                    <small className="text-muted fst-italic d-block mt-2">
-                      Les répétitions #2 et suivantes sont calculées automatiquement à partir de la première période et seront ajoutées dans le temps, pas instantanément.
-                    </small>
-                  )}
+                  <small className="text-muted fst-italic d-block mt-2">
+                    Les répétitions #2 et suivantes sont calculées automatiquement à partir de la première période et seront ajoutées dans le temps, pas instantanément.
+                  </small>
                 </div>
               )}
 
@@ -4235,15 +4351,15 @@ const TasksPhoneView = () => {
                               const entry = activeByTask?.[task.id];
                               const isAutoPaused = autoPausedTasksRef.current.has(task.id);
                               const percentValue = Number(task.pourcentage ?? task.progression ?? 0);
-                              const showPlay = !entry || isAutoPaused;
+                              const showPlay = !entry || entry.status === 'paused' || isAutoPaused;
                               const isFinished = String(task.status || '').toLowerCase().includes('termin');
                               const isCancelled = String(task.status || '').toLowerCase().includes('annul');
                               const isDone = isFinished || percentValue >= 100;
                               const allowed = canWorkOnTask(task);
                               const summary = dailyByTask?.[task.id];
                               const canShowDaily = summary && summary.date === todayDate;
-                              const shouldRenderDailyBadge = false && canShowDaily;
-                              const myMinutesToday = summary?.my_minutes ?? 0;
+                              const shouldRenderDailyBadge = canShowDaily;
+                              const myMinutesToday = summary?.total_minutes ?? summary?.my_minutes ?? 0;
                               const mySegmentsToday = summary?.my_segments ?? 0;
                               const sessionLabel = mySegmentsToday === 1 ? 'session' : 'sessions';
                               const markManualControl = () => {
@@ -5012,8 +5128,7 @@ const TasksPhoneView = () => {
       )}
 
       {/* Floating circular Add button (fixed bottom-right) */}
-      {!hasLimitedEmployeePermissions && (
-        <div style={{ position: 'fixed', right: 20, bottom: 70, zIndex: 1200 }}>
+      <div style={{ position: 'fixed', right: 20, bottom: 70, zIndex: 1200 }}>
           <button
             className="btn-lg rounded-circle shadow-lg"
             onClick={handleAddToggle}
@@ -5061,7 +5176,6 @@ const TasksPhoneView = () => {
             />
           </button>
         </div>
-      )}
     </div>
   );
 };

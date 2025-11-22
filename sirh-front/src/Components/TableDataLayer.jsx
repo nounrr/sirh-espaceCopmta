@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Dropdown } from 'react-bootstrap';
 import { useSelector } from 'react-redux';
+import StyledTable from './Common/StyledTable';
 
 const TableDataLayer = ({
   title,
@@ -112,8 +113,7 @@ const TableDataLayer = ({
           </div>
         </div>
 
-        <div className="table-responsive">
-          <table className='table bordered-table mb-0'>
+        <StyledTable>
             <thead>
               <tr>
                 {visibleColumnsList.map(column => (
@@ -140,8 +140,7 @@ const TableDataLayer = ({
                 ))
               )}
             </tbody>
-          </table>
-        </div>
+        </StyledTable>
       </div>
     </div>
   );

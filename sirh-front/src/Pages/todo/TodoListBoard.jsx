@@ -1,10 +1,11 @@
 
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchTodoLists } from '../../Redux/Slices/todoListSlice';
 import { updateTask } from '../../Redux/Slices/todoTaskSlice';
 import { fetchUsers } from '../../Redux/Slices/userSlice';
+import { fetchClients } from '../../Redux/Slices/clientsSlice';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -18,8 +19,13 @@ const TodoListBoard = () => {
   const { items, loading, error } = useSelector((state) => state.todoLists);
   const { user: currentUser } = useSelector((state) => state.auth);
   const { items: users } = useSelector((state) => state.users);
+  const { items: clients = [] } = useSelector((state) => state.clients || {});
   const [search, setSearch] = useState("");
   const [selectedTask, setSelectedTask] = useState(null);
+  const [clientFilter, setClientFilter] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState('');
+  const [taskTypeFilter, setTaskTypeFilter] = useState('');
+  const [showRepetitiveOnly, setShowRepetitiveOnly] = useState(false);
 
   // Fonction pour obtenir le nom complet de l'utilisateur assigné à une tâche
   const getAssignedUserName = (assignedToId) => {
@@ -41,9 +47,103 @@ const TodoListBoard = () => {
     }
   };
 
+  const clientsById = useMemo(() => {
+    const map = new Map();
+    clients.forEach((client) => {
+      const idValue = client?.id ?? client?.client_id;
+      if (idValue === undefined || idValue === null || idValue === '') return;
+      const numericId = Number(idValue);
+      if (!Number.isNaN(numericId)) {
+        map.set(numericId, client);
+      }
+    });
+    return map;
+  }, [clients]);
+
+  const getClientDisplayName = (client) => {
+    if (!client) return '';
+    const pieces = [];
+    const firstName = client.prenom || client.first_name || client.firstname || '';
+    const lastName = client.nom || client.last_name || client.lastname || '';
+    const company = client.raison_sociale || client.company_name || client.entreprise || '';
+    const coreName = [firstName, lastName].map(part => (part || '').trim()).filter(Boolean).join(' ');
+    if (coreName) {
+      pieces.push(coreName.trim());
+    }
+    if (!coreName && (client.name || client.username)) {
+      pieces.push((client.name || client.username).trim());
+    }
+    if (!pieces.length && client.email) {
+      pieces.push(client.email.trim());
+    }
+    if (company) {
+      pieces.push(company.trim());
+    }
+    return pieces.join(' • ') || '';
+  };
+
+  const formatPriorityLabel = (priority) => {
+    if (!priority) return '';
+    const normalized = priority.toString().trim().toLowerCase();
+    switch (normalized) {
+      case 'critique':
+        return 'Critique';
+      case 'haute':
+        return 'Haute';
+      case 'moyenne':
+        return 'Moyenne';
+      case 'normale':
+      case 'normal':
+        return 'Normale';
+      case 'basse':
+      case 'faible':
+        return 'Basse';
+      default:
+        return priority.toString().charAt(0).toUpperCase() + priority.toString().slice(1);
+    }
+  };
+
+  const formatTaskTypeLabel = (type) => {
+    if (!type) return '';
+    const trimmed = type.toString().trim();
+    if (!trimmed) return '';
+    return trimmed.length <= 3 ? trimmed.toUpperCase() : trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+  };
+
+  const resolveTaskClientInfo = (task) => {
+    const rawId = task?.client_id ?? task?.clientId ?? task?.clientID ?? task?.client?.id ?? task?.client?.client_id;
+    const candidateId = rawId === undefined || rawId === null || rawId === '' ? null : Number(rawId);
+    const rawName = (task?.client_name || task?.client_full_name || task?.clientLabel || task?.client?.name || task?.client || '').toString().trim();
+
+    if (candidateId !== null && !Number.isNaN(candidateId)) {
+      const storedClient = clientsById.get(candidateId);
+      const labelFromStore = getClientDisplayName(storedClient);
+      return {
+        id: candidateId,
+        key: `id:${candidateId}`,
+        label: labelFromStore || rawName || `Client ${candidateId}`,
+      };
+    }
+
+    if (rawName) {
+      return {
+        id: null,
+        key: `name:${rawName.toLowerCase()}`,
+        label: rawName,
+      };
+    }
+
+    return {
+      id: null,
+      key: '__none',
+      label: 'Sans client',
+    };
+  };
+
   useEffect(() => {
     dispatch(fetchTodoLists());
     dispatch(fetchUsers());
+    dispatch(fetchClients());
   }, [dispatch]);
 
   // Debug: Afficher les données dans la console
@@ -91,11 +191,30 @@ const TodoListBoard = () => {
         const isAssigned = task.assigned_to == currentUser?.id || task.assigned_to === currentUser?.id;
         console.log(`    Tâche "${task.title || task.description}": assigned_to=${task.assigned_to}, currentUser=${currentUser?.id}, isAssigned=${isAssigned}`);
         return isAssigned;
-      }).map(task => ({
-        ...task,
-        listTitle: list.title,
-        listId: list.id
-      }));
+      }).map(task => {
+        const clientInfo = resolveTaskClientInfo(task);
+        const rawPriority = task?.priority !== undefined && task?.priority !== null ? task.priority.toString().trim() : '';
+        const priorityKey = rawPriority.toLowerCase();
+        const rawType = task?.type || task?.task_type || '';
+        const typeValue = rawType.toString().trim();
+        const typeKey = typeValue.toLowerCase();
+        const titleBase = (task?.title || task?.description || '').toString().trim();
+        const titleKey = titleBase.toLowerCase();
+
+        return {
+          ...task,
+          listTitle: list.title,
+          listId: list.id,
+          clientId: clientInfo.id,
+          clientKey: clientInfo.key,
+          clientLabel: clientInfo.label,
+          priorityKey,
+          priorityLabel: formatPriorityLabel(rawPriority || priorityKey),
+          typeKey,
+          typeLabel: formatTaskTypeLabel(typeValue || typeKey),
+          titleKey,
+        };
+      });
       
       console.log(`  ${userTasks.length} tâches assignées trouvées`);
       return [...allTasks, ...userTasks];
@@ -139,12 +258,97 @@ const TodoListBoard = () => {
     console.warn('currentUser.id:', currentUser.id, typeof currentUser.id);
   }
 
+  const repetitiveTitleMap = useMemo(() => {
+    const counts = new Map();
+    myTasks.forEach((task) => {
+      if (!task.titleKey) return;
+      counts.set(task.titleKey, (counts.get(task.titleKey) || 0) + 1);
+    });
+    return counts;
+  }, [myTasks]);
+
+  const availableClients = useMemo(() => {
+    const unique = new Map();
+    myTasks.forEach((task) => {
+      if (!task.clientKey) return;
+      if (!unique.has(task.clientKey)) {
+        unique.set(task.clientKey, {
+          value: task.clientKey,
+          label: task.clientLabel || 'Sans client',
+        });
+      }
+    });
+    return Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }));
+  }, [myTasks]);
+
+  const availablePriorities = useMemo(() => {
+    const unique = new Map();
+    myTasks.forEach((task) => {
+      if (!task.priorityKey) return;
+      if (!unique.has(task.priorityKey)) {
+        unique.set(task.priorityKey, {
+          value: task.priorityKey,
+          label: task.priorityLabel || formatPriorityLabel(task.priorityKey),
+        });
+      }
+    });
+    return Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }));
+  }, [myTasks]);
+
+  const availableTaskTypes = useMemo(() => {
+    const unique = new Map();
+    myTasks.forEach((task) => {
+      if (!task.typeKey) return;
+      if (!unique.has(task.typeKey)) {
+        unique.set(task.typeKey, {
+          value: task.typeKey,
+          label: task.typeLabel || formatTaskTypeLabel(task.typeKey),
+        });
+      }
+    });
+    return Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }));
+  }, [myTasks]);
+
+  const filtersActive = Boolean(clientFilter || priorityFilter || taskTypeFilter || showRepetitiveOnly);
+  const normalizedSearch = search.trim().toLowerCase();
+
   // Filtrage par recherche sur les tâches
-  const filteredTasks = myTasks.filter(task =>
-    task.title?.toLowerCase().includes(search.toLowerCase()) ||
-    task.description?.toLowerCase().includes(search.toLowerCase()) ||
-    task.listTitle?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredTasks = myTasks.filter(task => {
+    const matchesSearch = !normalizedSearch ||
+      task.title?.toLowerCase().includes(normalizedSearch) ||
+      task.description?.toLowerCase().includes(normalizedSearch) ||
+      task.listTitle?.toLowerCase().includes(normalizedSearch);
+
+    if (!matchesSearch) return false;
+
+    if (clientFilter && task.clientKey !== clientFilter) {
+      return false;
+    }
+
+    if (priorityFilter && task.priorityKey !== priorityFilter) {
+      return false;
+    }
+
+    if (taskTypeFilter && task.typeKey !== taskTypeFilter) {
+      return false;
+    }
+
+    if (showRepetitiveOnly) {
+      const occurrences = task.titleKey ? (repetitiveTitleMap.get(task.titleKey) || 0) : 0;
+      if (occurrences < 2) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  const resetFilters = () => {
+    setClientFilter('');
+    setPriorityFilter('');
+    setTaskTypeFilter('');
+    setShowRepetitiveOnly(false);
+  };
 
   // Grouper les tâches par statut pour un affichage organisé
   const tasksByStatus = {
@@ -201,15 +405,6 @@ const TodoListBoard = () => {
       case 'En cours': return { bg: '#ffc107', text: 'black', icon: 'mdi:clock-outline' };
       case 'Non commencée': return { bg: '#6c757d', text: 'white', icon: 'mdi:pause-circle' };
       default: return { bg: '#dc3545', text: 'white', icon: 'mdi:alert-circle' };
-    }
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'Haute': return '#dc3545';
-      case 'Moyenne': return '#ffc107';
-      case 'Faible': return '#28a745';
-      default: return '#6c757d';
     }
   };
 
@@ -283,6 +478,89 @@ const TodoListBoard = () => {
           </div>
         </div>
 
+        {/* Filtres avancés */}
+        <div className="ds-card mb-4">
+          <div className="ds-card-header d-flex align-items-center gap-2">
+            <Icon icon="mdi:filter-outline" style={{ fontSize: '1.25rem', color: 'var(--ds-primary)' }} />
+            <h5 className="mb-0 fw-bold">Affiner les tâches</h5>
+          </div>
+          <div className="ds-card-body">
+            <div className="row g-3 align-items-end">
+              <div className="col-12 col-md-6 col-lg-3">
+                <label className="form-label text-muted small" htmlFor="client-filter">Client</label>
+                <select
+                  id="client-filter"
+                  className="form-select"
+                  value={clientFilter}
+                  onChange={(event) => setClientFilter(event.target.value)}
+                >
+                  <option value="">Tous les clients</option>
+                  {availableClients.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12 col-md-6 col-lg-3">
+                <label className="form-label text-muted small" htmlFor="priority-filter">Priorité</label>
+                <select
+                  id="priority-filter"
+                  className="form-select"
+                  value={priorityFilter}
+                  onChange={(event) => setPriorityFilter(event.target.value)}
+                >
+                  <option value="">Toutes les priorités</option>
+                  {availablePriorities.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12 col-md-6 col-lg-3">
+                <label className="form-label text-muted small" htmlFor="type-filter">Type de tâche</label>
+                <select
+                  id="type-filter"
+                  className="form-select"
+                  value={taskTypeFilter}
+                  onChange={(event) => setTaskTypeFilter(event.target.value)}
+                >
+                  <option value="">Tous les types</option>
+                  {availableTaskTypes.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12 col-md-6 col-lg-3 d-flex flex-column gap-2">
+                <div className="form-check form-switch">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="repetitive-filter"
+                    checked={showRepetitiveOnly}
+                    onChange={(event) => setShowRepetitiveOnly(event.target.checked)}
+                  />
+                  <label className="form-check-label" htmlFor="repetitive-filter">
+                    Tâches répétitives seulement
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  className="ds-btn ds-btn-outline ds-btn-sm align-self-start"
+                  onClick={resetFilters}
+                  disabled={!filtersActive}
+                >
+                  Réinitialiser
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Contenu */}
         {loading ? (
           <div className="text-center py-5">
@@ -319,7 +597,7 @@ const TodoListBoard = () => {
               <p className="text-muted mb-4">
                 Vous n'avez actuellement aucune tâche assignée.
                 {myTasks.length > 0 && filteredTasks.length === 0 && (
-                  <><br />Essayez de modifier votre recherche.</>
+                  <><br />Essayez de modifier votre recherche ou vos filtres.</>
                 )}
               </p>
               {/* Debug info */}
@@ -541,6 +819,33 @@ const TodoListBoard = () => {
                                               {task.listTitle}
                                             </span>
                                           </div>
+                                        </div>
+
+                                        <div className="task-meta-badges mb-3">
+                                          {task.priorityKey && (
+                                            <span className={`task-meta-badge priority-${task.priorityKey}`}>
+                                              <Icon icon="mdi:flag-outline" />
+                                              {task.priorityLabel || 'Priorité'}
+                                            </span>
+                                          )}
+                                          {task.typeKey && (
+                                            <span className="task-meta-badge type">
+                                              <Icon icon="mdi:shape-outline" />
+                                              {task.typeLabel || 'Type'}
+                                            </span>
+                                          )}
+                                          {task.clientLabel && (
+                                            <span className={`task-meta-badge client ${task.clientKey === '__none' ? 'no-client' : ''}`}>
+                                              <Icon icon="mdi:account-multiple-outline" />
+                                              {task.clientLabel}
+                                            </span>
+                                          )}
+                                          {(task.titleKey && (repetitiveTitleMap.get(task.titleKey) || 0) > 1) && (
+                                            <span className="task-meta-badge repetitive">
+                                              <Icon icon="mdi:repeat-variant" />
+                                              Répétitive
+                                            </span>
+                                          )}
                                         </div>
                                         
                                         {/* Dates avec design moderne */}
@@ -792,6 +1097,72 @@ const TodoListBoard = () => {
         
         .list-group-item {
           transition: all 0.3s ease;
+        }
+
+        .task-meta-badges {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .task-meta-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.35rem 0.7rem;
+          border-radius: 999px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          background: rgba(0, 0, 0, 0.05);
+          color: var(--ds-text-secondary);
+          border: 1px solid transparent;
+        }
+
+        .task-meta-badge svg {
+          font-size: 0.9rem;
+        }
+
+        .task-meta-badge.priority-critique {
+          background: var(--ds-danger, #dc3545);
+          color: #fff;
+        }
+
+        .task-meta-badge.priority-haute {
+          background: var(--ds-warning, #ffc107);
+          color: #212529;
+        }
+
+        .task-meta-badge.priority-moyenne,
+        .task-meta-badge.priority-normale {
+          background: var(--ds-info, #0dcaf0);
+          color: #084c61;
+        }
+
+        .task-meta-badge.priority-basse,
+        .task-meta-badge.priority-faible {
+          background: var(--ds-success, #198754);
+          color: #fff;
+        }
+
+        .task-meta-badge.client {
+          background: rgba(76, 201, 240, 0.14);
+          color: var(--ds-info, #0dcaf0);
+        }
+
+        .task-meta-badge.client.no-client {
+          background: rgba(108, 117, 125, 0.12);
+          color: var(--ds-gray-700, #495057);
+        }
+
+        .task-meta-badge.type {
+          background: rgba(102, 126, 234, 0.16);
+          color: var(--ds-primary, #667eea);
+        }
+
+        .task-meta-badge.repetitive {
+          background: rgba(251, 176, 64, 0.16);
+          color: var(--ds-warning, #fbaf3d);
+          border-color: rgba(251, 176, 64, 0.4);
         }
         
         /* Responsive pour les checkboxes */

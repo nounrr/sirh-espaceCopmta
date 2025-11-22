@@ -7,13 +7,14 @@ import * as Yup from 'yup';
 import Swal from 'sweetalert2';
 import { Icon } from '@iconify/react';
 import LeaveValidationWidget from '../LeaveValidationWidget';
+import api from '../../config/axios';
 
 
 function TodayDateSetter() {
-  // Ce composant se charge de mettre à jour les dates si type=AttestationTravail
+  // Ce composant se charge de mettre à jour les dates si type=AttestationTravail ou demande document
   const { values, setFieldValue } = useFormikContext();
   useEffect(() => {
-    if (values.type === "AttestationTravail") {
+    if (values.type === "AttestationTravail" || values.type === "demande document") {
       const today = new Date().toISOString().split('T')[0];
       setFieldValue('dateDebut', today);
       setFieldValue('dateFin', today);
@@ -29,6 +30,72 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
   const clientsState = useSelector(state => state.clients);
   const { user, isLoading: authLoading } = useSelector(state => state.auth);
   const role = useSelector(state => state.auth.roles);
+
+  const handleDownloadDocument = async (doc) => {
+    try {
+      const downloadPath = `absences/document/${doc.id}/download`;
+      const response = await api.get(downloadPath, {
+        responseType: 'blob',
+      });
+      
+      const contentType = response.headers['content-type'];
+      if (contentType && (contentType.includes('application/json') || contentType.includes('text/html'))) {
+        const text = await response.data.text();
+        try {
+            const json = JSON.parse(text);
+            throw new Error(json.message || 'Erreur lors du téléchargement');
+        } catch (e) {
+            throw new Error('Le serveur a renvoyé une erreur (HTML/JSON) au lieu du fichier.');
+        }
+      }
+
+      let finalFileName = doc.original_name || 'document';
+      const contentDisposition = response.headers['content-disposition'];
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch && filenameMatch[1]) {
+          finalFileName = filenameMatch[1];
+        }
+      }
+
+      if (finalFileName && !finalFileName.includes('.')) {
+          const mime = response.headers['content-type'];
+          if (mime) {
+              const mimeMap = {
+                  'application/pdf': 'pdf',
+                  'image/jpeg': 'jpg',
+                  'image/png': 'png',
+                  'application/msword': 'doc',
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+                  'application/vnd.ms-excel': 'xls',
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+                  'text/csv': 'csv',
+                  'application/zip': 'zip'
+              };
+              const ext = mimeMap[mime] || mime.split('/')[1];
+              if (ext && ext.length < 5) {
+                  finalFileName = `${finalFileName}.${ext}`;
+              }
+          }
+      }
+
+      const blob = new Blob([response.data], { type: contentType });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = finalFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download error:', error);
+      let message = 'Impossible de télécharger le document.';
+      if (error.message) message = error.message;
+      Swal.fire('Erreur', message, 'error');
+    }
+  };
+
   // Debug initialValues
   useEffect(() => {
     console.log('Initial values:', initialValues);
@@ -52,17 +119,20 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
 
   // Vérification des permissions pour l'édition
   useEffect(() => {
-    if (isEdit && role && !role.includes('RH') && !role.includes('Gest_RH')) {
+    const isRH = role && (role.includes('RH') || role.includes('Gest_RH'));
+    const isOwner = user && initialValues && (String(user.id) === String(initialValues.user_id));
+
+    if (isEdit && !isRH && !isOwner) {
       Swal.fire({
         title: 'Accès refusé',
-        text: 'Seuls les utilisateurs RH peuvent modifier les demandes d\'absence.',
+        text: 'Vous n\'avez pas la permission de modifier cette demande.',
         icon: 'error',
         confirmButtonText: 'Retour'
       }).then(() => {
         if (onSuccess) onSuccess();
       });
     }
-  }, [isEdit, role, onSuccess]);
+  }, [isEdit, role, user, initialValues, onSuccess]);
 
   const validationSchema = Yup.object({
     type: Yup.string()
@@ -81,17 +151,50 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
       otherwise: (schema) => schema.required('La date de fin est requise').min(Yup.ref('dateDebut'), 'La date de fin doit être postérieure à la date de début')
     }),
     motif: Yup.string().nullable(),
-    justification: Yup.mixed().nullable(),
+    justification: Yup.mixed()
+      .test('fileSizeJustif', 'Pièce justificative trop volumineuse (max 5MB)', value => {
+        if (!value || typeof value === 'string') return true;
+        return value.size <= 5120 * 1024;
+      })
+      .test('fileTypeJustif', 'Formats autorisés: jpg, png, pdf, doc, docx, xls, xlsx, csv', value => {
+        if (!value || typeof value === 'string') return true;
+        const allowedTypes = [
+          'image/jpeg',
+          'image/png',
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-excel.sheet.macroEnabled.12',
+          'text/csv'
+        ];
+        return allowedTypes.includes(value.type);
+      })
+      .nullable(),
     documents: Yup.array()
       .of(
         Yup.mixed()
-          .test('fileSizeMulti', 'Fichier trop volumineux (max 4MB)', value => {
+          .test('fileSizeMulti', 'Fichier trop volumineux (max 8MB)', value => {
             if (!value || typeof value === 'string') return true;
-            return value.size <= 4096 * 1024;
+            return value.size <= 8192 * 1024;
           })
-          .test('fileTypeMulti', 'Format non supporté (jpg, png, pdf)', value => {
+          .test('fileTypeMulti', 'Formats autorisés: jpg, png, pdf, doc, docx, xls, xlsx, csv, zip', value => {
             if (!value || typeof value === 'string') return true;
-            return ['image/jpeg','image/png','application/pdf'].includes(value.type);
+            const allowedTypes = [
+              'image/jpeg',
+              'image/png',
+              'application/pdf',
+              'application/msword',
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              'application/vnd.ms-excel',
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              'application/vnd.ms-excel.sheet.macroEnabled.12',
+              'text/csv',
+              'application/zip',
+              'application/x-zip-compressed'
+            ];
+            return allowedTypes.includes(value.type);
           })
       )
       .nullable()
@@ -112,15 +215,15 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
   // Add required fields with fallback to initialValues
         formData.append('user_id', String(userId));
         formData.append('type', values.type || initialValues.type);
-        if(values.type === 'AttestationTravail' || values.type === 'demande document') {
+        if(values.type === 'AttestationTravail') {
           formData.append('dateDebut', '');
           formData.append('dateFin', '');
         } else {
           formData.append('dateDebut', new Date(values.dateDebut || initialValues.dateDebut).toISOString().split('T')[0]);
           formData.append('dateFin', new Date(values.dateFin || initialValues.dateFin).toISOString().split('T')[0]);
         }
-  // statut par défaut: 'En demande' pour demande document, sinon 'en_attente'
-  const defaultStatutUpdate = (values.type || initialValues.type) === 'demande document' ? 'En demande' : 'en_attente';
+  // statut par défaut: toujours 'en_attente' (En attente)
+  const defaultStatutUpdate = 'en_attente';
   formData.append('statut', values.statut || initialValues.statut || defaultStatutUpdate);
         
         // Add optional fields if they exist
@@ -189,7 +292,7 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
   // Add required fields
         formData.append('user_id', String(user.id));
         formData.append('type', values.type);
-        if(values.type === 'AttestationTravail' || values.type === 'demande document') {
+        if(values.type === 'AttestationTravail') {
           formData.append('dateDebut', '');
           formData.append('dateFin', '');
         } else {
@@ -197,7 +300,7 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
           formData.append('dateFin', new Date(values.dateFin).toISOString().split('T')[0]);
         }
   // statut par défaut selon type
-  formData.append('statut', values.type === 'demande document' ? 'En demande' : 'en_attente');
+  formData.append('statut', 'en_attente');
         // Client associé uniquement pour 'demande document'
         if (values.type === 'demande document' && values.client_id) {
           formData.append('client_id', String(values.client_id));
@@ -255,19 +358,50 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
     }
   };
 
+  const handleDeleteExistingDocument = async (docId) => {
+    const result = await Swal.fire({
+      title: 'Supprimer ce document?',
+      text: "Cette action est irréversible.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Oui, supprimer!',
+      cancelButtonText: 'Annuler'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.delete(`absences/document/${docId}`);
+        Swal.fire('Supprimé!', 'Le document a été supprimé.', 'success');
+        // Refresh the list or update local state if possible
+        // Since we don't have easy access to refresh the parent's data without a full reload or prop callback,
+        // we might just reload the page or ask the user to refresh.
+        // Better: call onSuccess to close/refresh if that's what it does, or dispatch fetchAbsenceRequests.
+        dispatch(fetchAbsenceRequests());
+        // if (onSuccess) onSuccess(); // Don't close/navigate away on document delete, just refresh
+      } catch (error) {
+        console.error('Delete error:', error);
+        Swal.fire('Erreur', 'Impossible de supprimer le document.', 'error');
+      }
+    }
+  };
+
   return (
     <div className="card border-0 shadow-lg rounded-4">
       <div className="card-body p-4">
         <Formik
+          enableReinitialize={true}
           initialValues={{
             type: 'Congé',
             dateDebut: '',
             dateFin: '',
             motif: '',
             justification: null,
-            documents: [],
             client_id: initialValues.client_id || '',
-            ...initialValues
+            statut: initialValues.statut ?? 'en_attente',
+            ...initialValues,
+            documents: [] // Always start with empty array for new documents
           }}
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
@@ -367,7 +501,7 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
                         </div>
                       )}
                       <small className="text-muted mt-1 d-block">
-                        Formats acceptés: JPG, PNG, PDF (max 2MB)
+                        Formats acceptés: JPG, PNG, PDF, DOC, DOCX, XLS, XLSX, CSV (max 5MB)
                       </small>
                       <ErrorMessage name="justification" component="div" className="invalid-feedback d-flex align-items-center gap-1 mt-2" />
                     </div>
@@ -376,27 +510,98 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
                     <div className="col-md-8">
                       <label className="form-label fw-semibold d-flex align-items-center gap-2">
                         <Icon icon="mdi:folder-multiple" className="text-primary" />
-                        Documents (multi)
+                        Documents
                       </label>
-                      <input
-                        type="file"
-                        multiple
-                        className="form-control form-control-lg"
-                        onChange={(e) => {
-                          const files = Array.from(e.currentTarget.files || []);
-                          setFieldValue('documents', files);
-                        }}
-                        style={{ borderRadius: '12px' }}
-                      />
-                      <small className="text-muted mt-1 d-block">Formats: JPG, PNG, PDF (max 4MB chacun)</small>
+
+                      {/* Existing Documents */}
+                      {isEdit && initialValues.documents && initialValues.documents.length > 0 && (
+                        <div className="mb-3">
+                          <h6 className="text-muted small fw-bold text-uppercase">Documents existants</h6>
+                          <ul className="list-group list-group-flush">
+                            {initialValues.documents.map((doc, i) => (
+                              <li key={doc.id || i} className="list-group-item d-flex justify-content-between align-items-center px-0 py-2 bg-transparent">
+                                <div className="d-flex align-items-center gap-2 text-truncate">
+                                  <Icon icon="mdi:file-check" className="text-success" />
+                                  <span className="small">{doc.original_name}</span>
+                                </div>
+                                <div className="d-flex gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-light text-primary"
+                                    onClick={() => handleDownloadDocument(doc)}
+                                    title="Télécharger"
+                                  >
+                                    <Icon icon="mdi:download" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-light text-danger"
+                                    onClick={() => handleDeleteExistingDocument(doc.id)}
+                                    title="Supprimer"
+                                  >
+                                    <Icon icon="mdi:delete" />
+                                  </button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* New Documents Input */}
+                      <label className="form-label small text-muted">Ajouter des documents</label>
+                      <div className="d-flex align-items-center gap-3 mb-2">
+                        <label className="btn btn-outline-primary d-flex align-items-center gap-2" style={{ borderRadius: '12px', cursor: 'pointer' }}>
+                          <Icon icon="mdi:paperclip-plus" style={{ fontSize: '1.2rem' }} />
+                          <span>Ajouter des fichiers</span>
+                          <input
+                            type="file"
+                            multiple
+                            className="d-none"
+                            onChange={(e) => {
+                              const newFiles = Array.from(e.currentTarget.files || []);
+                              if (newFiles.length > 0) {
+                                setFieldValue('documents', [...(values.documents || []), ...newFiles]);
+                                e.currentTarget.value = ''; // Reset to allow adding more
+                              }
+                            }}
+                          />
+                        </label>
+                        <small className="text-muted">
+                          Formats: JPG, PNG, PDF, DOC, DOCX, XLS, XLSX, CSV, ZIP (max 8MB)
+                        </small>
+                      </div>
+                      
+                      {/* New Documents List */}
                       {Array.isArray(values.documents) && values.documents.length > 0 && (
-                        <ul className="mt-2 small list-unstyled">
-                          {values.documents.map((f, i) => (
-                            <li key={i} className="d-flex align-items-center gap-2">
-                              <Icon icon="mdi:file" /> {f.name}
-                            </li>
-                          ))}
-                        </ul>
+                        <div className="mt-3 p-3 bg-light rounded-3">
+                          <h6 className="text-muted small fw-bold text-uppercase mb-2">Fichiers à envoyer ({values.documents.length})</h6>
+                          <ul className="list-group">
+                            {values.documents.map((f, i) => (
+                              <li key={i} className="list-group-item d-flex align-items-center justify-content-between border-0 bg-white mb-1 rounded shadow-sm p-2">
+                                <div className="d-flex align-items-center gap-2 text-truncate">
+                                  <Icon icon="mdi:file-document-outline" className="text-primary" />
+                                  <span className="small text-dark">{f.name}</span>
+                                  <span className="badge bg-secondary rounded-pill" style={{ fontSize: '0.6rem' }}>
+                                    {(f.size / 1024 / 1024).toFixed(2)} MB
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-light text-danger"
+                                  onClick={() => {
+                                    const newDocs = [...values.documents];
+                                    newDocs.splice(i, 1);
+                                    setFieldValue('documents', newDocs);
+                                  }}
+                                  title="Supprimer"
+                                >
+                                  <Icon icon="mdi:delete" />
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
                     </div>
                   )}

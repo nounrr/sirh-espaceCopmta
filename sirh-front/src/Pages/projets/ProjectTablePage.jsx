@@ -33,6 +33,7 @@ import {
   addTaskComment
 } from '../../Redux/Slices/taskCommentsSlice';
 import ProjectAuditHistory from '../../Components/ProjectAuditHistory';
+import StyledTable from '../../Components/Common/StyledTable';
 
 const ProjectTablePage = () => {
   const dispatch = useDispatch();
@@ -1157,7 +1158,7 @@ const handleSubmitListInline = async (projectId) => {
                   </div>
                 )}
                 
-                <table className="table table-hover align-middle mb-0" style={{ boxShadow: 'none' }}>
+                <StyledTable className="align-middle" style={{ boxShadow: 'none' }}>
                   <thead style={{ 
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     borderRadius: '20px 20px 0 0'
@@ -2526,7 +2527,7 @@ const handleSubmitListInline = async (projectId) => {
                       );
                     })}
                   </tbody>
-                </table>
+                </StyledTable>
               </div>
             )}
           </div>

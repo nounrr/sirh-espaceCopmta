@@ -7,6 +7,7 @@ import { Icon } from '@iconify/react/dist/iconify.js';
 import Swal from 'sweetalert2';
 import api from '../config/axios';
 import UserPointagesPeriode from '../Components/Statistique/UserPointagesPeriode';
+import StyledTable from '../Components/Common/StyledTable';
 
 const UsersListPage = () => {
   const dispatch = useDispatch();
@@ -419,9 +420,8 @@ const UsersListPage = () => {
                   </h5>
                 </div>
 
-                <div className="table-responsive">
-                  <table className="table table-hover align-middle">
-                    <thead className="table-light">
+                <StyledTable className="align-middle">
+                    <thead>
                       <tr>
                         <th>
                           <div className="form-check">
@@ -616,8 +616,7 @@ const UsersListPage = () => {
                         );
                       })}
                     </tbody>
-                  </table>
-                </div>
+                </StyledTable>
 
                 {filteredUsers.length === 0 && (
                   <div className="text-center py-5">
@@ -774,9 +773,6 @@ const UsersListPage = () => {
         }
         .card:hover {
           transform: translateY(-2px);
-        }
-        .table tbody tr:hover {
-          background-color: rgba(0, 123, 255, 0.05);
         }
         .bg-success-subtle {
           background-color: rgba(25, 135, 84, 0.1) !important;

@@ -4,6 +4,7 @@ import { fetchTypeDocs, deleteTypeDocs, createTypeDoc, updateTypeDoc } from '../
 import { Icon } from '@iconify/react/dist/iconify.js';
 import Swal from 'sweetalert2';
 import TypeDocFormModal from '../Components/TypeDocFormModal';
+import StyledTable from '../Components/Common/StyledTable';
 
 const TypeDocsListPage = () => {
   const dispatch = useDispatch();
@@ -280,8 +281,7 @@ const TypeDocsListPage = () => {
                   </h5>
                 </div>
 
-                <div className="table-responsive">
-                  <table className="table table-hover align-middle">
+                <StyledTable>
                     <thead className="table-light">
                       <tr>
                         <th>
@@ -394,8 +394,7 @@ const TypeDocsListPage = () => {
                         </tr>
                       )}
                     </tbody>
-                  </table>
-                </div>
+                  </StyledTable>
 
                 {/* Pagination */}
                 <div className="d-flex justify-content-between align-items-center mt-4">
@@ -481,19 +480,6 @@ const TypeDocsListPage = () => {
           initialData={currentTypeDoc}
         />
       )}
-
-      {/* CSS pour les animations */}
-      <style jsx>{`
-        .card {
-          transition: all 0.3s ease;
-        }
-        .card:hover {
-          transform: translateY(-2px);
-        }
-        .table tbody tr:hover {
-          background-color: rgba(0, 123, 255, 0.05);
-        }
-      `}</style>
     </div>
   );
 };

@@ -5,6 +5,7 @@ import { fetchClients, deleteClients } from '../Redux/Slices/clientsSlice';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import Swal from 'sweetalert2';
 import api from '../config/axios';
+import StyledTable from '../Components/Common/StyledTable';
 
 const ClientsListPage = () => {
   const dispatch = useDispatch();
@@ -147,8 +148,7 @@ const ClientsListPage = () => {
             <div className='card border-0 shadow-lg rounded-4'>
               <div className='card-body p-4'>
                 <h5 className='fw-bold mb-3'>Clients ({currentItems.length}{meta?.total?` / ${meta.total}`:''})</h5>
-                <div className='table-responsive'>
-                  <table className='table table-hover align-middle'>
+                <StyledTable>
                     <thead className='table-light'>
                       <tr>
                         <th><input type='checkbox' checked={selectedIds.length===currentItems.length && currentItems.length>0} onChange={()=>{ if(selectedIds.length===currentItems.length){ setSelectedIds([]);} else { setSelectedIds(currentItems.map(c=>c.id)); } }} /></th>
@@ -189,8 +189,7 @@ const ClientsListPage = () => {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
-                </div>
+                </StyledTable>
                 {filtered.length===0 && <div className='text-center py-5 text-muted'>Aucun client trouvé</div>}
                 <div className='d-flex justify-content-between align-items-center mt-3'>
                   <div className='d-flex align-items-center gap-2'>

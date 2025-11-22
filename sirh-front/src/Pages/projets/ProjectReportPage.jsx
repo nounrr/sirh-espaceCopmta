@@ -12,6 +12,7 @@ import Swal from 'sweetalert2';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './ProjectReportPage.css';
+import StyledTable from '../../Components/Common/StyledTable';
 
 // Couleurs pour les graphiques
 const COLORS = {
@@ -95,8 +96,8 @@ const TableSkeleton = ({ rows = 5 }) => (
       </Placeholder>
     </Card.Header>
     <Card.Body>
-      <Table hover size="sm">
-        <thead className="bg-light">
+      <StyledTable className="table-sm">
+        <thead>
           <tr>
             {[...Array(4)].map((_, i) => (
               <th key={i}>
@@ -120,7 +121,7 @@ const TableSkeleton = ({ rows = 5 }) => (
             </tr>
           ))}
         </tbody>
-      </Table>
+      </StyledTable>
     </Card.Body>
   </Card>
 );
@@ -2774,7 +2775,7 @@ const ProjectReportPage = () => {
             )}
             {statistics.employeeEfficiency && statistics.employeeEfficiency.length > 0 ? (
               <div className="table-responsive rounded-3 border" style={{background:'#fff'}}>
-                <Table hover className="mb-0 align-middle" style={{fontSize:'0.92rem'}}>
+                <StyledTable className="align-middle" style={{fontSize:'0.92rem'}}>
                   <thead style={{background:'#f8f9fa'}}>
                     <tr>
                       <th className="text-muted fw-semibold">Employé</th>
@@ -2811,7 +2812,7 @@ const ProjectReportPage = () => {
                       </tr>
                     ))}
                   </tbody>
-                </Table>
+                </StyledTable>
               </div>
             ) : (
               <div className="text-center py-4 text-muted small">Aucune donnée d'efficacité disponible</div>
@@ -2936,8 +2937,8 @@ const ProjectReportPage = () => {
               )}
               {topTaskHours.length > 0 ? (
                 <div className="table-responsive">
-                  <Table hover size="sm" className="align-middle mb-0">
-                    <thead style={{background:'#f8f9fa'}}>
+                  <StyledTable className="table-sm align-middle">
+                    <thead>
                       <tr>
                         <th className="text-muted fw-semibold">Collaborateur</th>
                         <th className="text-muted fw-semibold text-center">Total (h)</th>
@@ -2986,7 +2987,7 @@ const ProjectReportPage = () => {
                         </tr>
                       ))}
                     </tbody>
-                  </Table>
+                  </StyledTable>
                   <small className="text-muted d-block mt-2">Basé sur les pointages enregistrés sur la période filtrée.</small>
                 </div>
               ) : (
@@ -3111,8 +3112,8 @@ const ProjectReportPage = () => {
             <Card.Body>
               {filteredTeamPerformance.length > 0 ? (
                 <div className="table-responsive">
-                  <Table hover size="sm" className="align-middle mb-0">
-                    <thead className="bg-light">
+                  <StyledTable className="table-sm align-middle">
+                    <thead>
                       <tr>
                         <th className="text-muted fw-semibold">Collaborateur</th>
                         <th className="text-muted fw-semibold text-center">Terminées</th>
@@ -3148,7 +3149,7 @@ const ProjectReportPage = () => {
                         );
                       })}
                     </tbody>
-                  </Table>
+                  </StyledTable>
                 </div>
               ) : (
                 <div className="text-center py-4 text-muted small">
@@ -3217,7 +3218,7 @@ const ProjectReportPage = () => {
                     <div>
                       <h6 className="fw-semibold small text-uppercase text-muted mb-2">Top contributeurs</h6>
                       <div className="table-responsive">
-                        <Table size="sm" className="align-middle mb-0">
+                        <StyledTable className="table-sm align-middle">
                           <thead>
                             <tr>
                               <th className="text-muted small">Collaborateur</th>
@@ -3236,7 +3237,7 @@ const ProjectReportPage = () => {
                               </tr>
                             ))}
                           </tbody>
-                        </Table>
+                        </StyledTable>
                       </div>
                     </div>
                   )}
@@ -3278,8 +3279,8 @@ const ProjectReportPage = () => {
             <Card.Body>
               {topClients.length > 0 ? (
                 <div className="table-responsive">
-                  <Table hover size="sm" className="align-middle mb-0">
-                    <thead className="bg-light">
+                  <StyledTable className="table-sm align-middle">
+                    <thead>
                       <tr>
                         <th className="text-muted fw-semibold">Client</th>
                         <th className="text-muted fw-semibold">Heures</th>
@@ -3308,7 +3309,7 @@ const ProjectReportPage = () => {
                         </tr>
                       ))}
                     </tbody>
-                  </Table>
+                  </StyledTable>
                 </div>
               ) : (
                 <div className="text-center py-4 text-muted small">
@@ -3369,8 +3370,8 @@ const ProjectReportPage = () => {
             <Card.Body>
               {overdueTasks.length > 0 ? (
                 <div className="table-responsive">
-                  <Table hover size="sm" className="align-middle mb-0">
-                    <thead className="bg-light">
+                  <StyledTable className="table-sm align-middle">
+                    <thead>
                       <tr>
                         <th className="text-muted fw-semibold">Tâche</th>
                         <th className="text-muted fw-semibold">Assigné à</th>
@@ -3397,7 +3398,7 @@ const ProjectReportPage = () => {
                         </tr>
                       ))}
                     </tbody>
-                  </Table>
+                  </StyledTable>
                 </div>
               ) : (
                 <div className="text-center py-4 text-muted small">
@@ -3471,8 +3472,8 @@ const ProjectReportPage = () => {
             <Card.Body>
               {topPeriodicCollaborators.length > 0 ? (
                 <div className="table-responsive">
-                  <Table hover size="sm" className="align-middle mb-0">
-                    <thead className="bg-light">
+                  <StyledTable className="table-sm align-middle">
+                    <thead>
                       <tr>
                         <th className="text-muted fw-semibold">Collaborateur</th>
                         <th className="text-muted fw-semibold text-center">Total</th>
@@ -3493,7 +3494,7 @@ const ProjectReportPage = () => {
                         </tr>
                       ))}
                     </tbody>
-                  </Table>
+                  </StyledTable>
                 </div>
               ) : (
                 <div className="text-center py-4 text-muted small">
@@ -3513,8 +3514,8 @@ const ProjectReportPage = () => {
             <Card.Body>
               {topPeriodicClients.length > 0 ? (
                 <div className="table-responsive">
-                  <Table hover size="sm" className="align-middle mb-0">
-                    <thead className="bg-light">
+                  <StyledTable className="table-sm align-middle">
+                    <thead>
                       <tr>
                         <th className="text-muted fw-semibold">Client</th>
                         <th className="text-muted fw-semibold text-center">Tâches</th>
@@ -3535,7 +3536,7 @@ const ProjectReportPage = () => {
                         </tr>
                       ))}
                     </tbody>
-                  </Table>
+                  </StyledTable>
                 </div>
               ) : (
                 <div className="text-center py-4 text-muted small">
@@ -3570,8 +3571,8 @@ const ProjectReportPage = () => {
             <Card.Body className="p-0">
               {filteredProjectStats.length > 0 ? (
                 <div className="table-responsive">
-                  <Table className="mb-0">
-                    <thead className="bg-light">
+                  <StyledTable>
+                    <thead>
                       <tr>
                         <th className="border-0 fw-semibold text-muted py-3 px-4">Projet</th>
                         <th className="border-0 fw-semibold text-muted py-3">Listes</th>
@@ -3723,7 +3724,7 @@ const ProjectReportPage = () => {
                         );
                       })}
                     </tbody>
-                  </Table>
+                  </StyledTable>
                 </div>
               ) : (
                 <div className="text-center py-5">

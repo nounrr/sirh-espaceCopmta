@@ -4,6 +4,7 @@ import { fetchSocietes, deleteSocietes, createSociete, updateSociete } from '../
 import { Icon } from '@iconify/react/dist/iconify.js';
 import Swal from 'sweetalert2';
 import SocieteFormModal from '../Components/SocieteFormModal'; // Assurez-vous que ce chemin est correct
+import StyledTable from '../Components/Common/StyledTable';
 
 const SocietesListPage = () => {
   const dispatch = useDispatch();
@@ -186,8 +187,7 @@ const SocietesListPage = () => {
 
         <div className="card-body">
           {/* Table */}
-          <div className="table-responsive">
-            <table className="table bordered-table mb-0">
+          <StyledTable>
               <thead>
                 <tr>
                   <th scope="col">
@@ -233,8 +233,7 @@ const SocietesListPage = () => {
                   </tr>
                 )}
               </tbody>
-            </table>
-          </div>
+          </StyledTable>
 
           {/* Pagination */}
           <div className="d-flex justify-content-between align-items-center mt-4">

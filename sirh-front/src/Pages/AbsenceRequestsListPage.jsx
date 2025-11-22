@@ -7,6 +7,7 @@ import { Icon } from '@iconify/react/dist/iconify.js';
 import Swal from 'sweetalert2';
 import api from '../config/axios';
 import { toErrorMessage } from '../utils/errorUtils';
+import StyledTable from '../Components/Common/StyledTable';
 
 const AbsenceRequestsListPage = (props) => {
   const dispatch = useDispatch();
@@ -32,7 +33,7 @@ const AbsenceRequestsListPage = (props) => {
     }
     
     // Utilisateur normal peut modifier ses propres demandes seulement si pas encore approuvées ou annulées
-    if (currentUser && request.user_id === currentUser.id) {
+    if (currentUser && (request.user_id == currentUser.id)) {
       return !['approuvé', 'validé', 'annulé'].includes(request.statut?.toLowerCase());
     }
     
@@ -47,7 +48,7 @@ const AbsenceRequestsListPage = (props) => {
     }
     
     // Utilisateur normal peut supprimer ses propres demandes seulement si pas encore approuvées ou annulées
-    if (currentUser && request.user_id === currentUser.id) {
+    if (currentUser && (request.user_id == currentUser.id)) {
       return !['approuvé', 'validé', 'annulé'].includes(request.statut?.toLowerCase());
     }
     
@@ -61,29 +62,45 @@ const AbsenceRequestsListPage = (props) => {
   };
 
   const canValidateRequest = (request) => {
-    // Seul RH peut valider les demandes en attente
-    return (roles.includes('RH') || roles.includes('Gest_RH')) && 
-           request.statut?.toLowerCase() === 'en_attente';
+    const status = request.statut?.toLowerCase();
+    const isRH = roles.includes('RH') || roles.includes('Gest_RH');
+    const isChef = roles.includes('Chef_Dep') || roles.includes('Chef_Projet') || roles.includes('Chef_Chant');
+
+    if (isRH) {
+      // RH peut approuver (valider) les demandes en attente, en demande ou déjà validées par un chef
+      return ['en_attente', 'validé', 'en demande'].includes(status);
+    }
+    
+    if (isChef) {
+       // Chef peut valider les demandes en attente
+       return ['en_attente', 'en demande'].includes(status);
+    }
+
+    return false;
   };
 
-  const handleValidate = async (id) => {
+  const handleValidate = async (request) => {
+    const isRH = roles.includes('RH') || roles.includes('Gest_RH');
+    const actionLabel = isRH ? 'Approuver' : 'Valider';
+    const nextStatusLabel = isRH ? 'approuvée' : 'validée';
+
     const result = await Swal.fire({
-      title: 'Valider la demande?',
-      text: "Cette demande sera marquée comme validée.",
+      title: `${actionLabel} la demande?`,
+      text: `Cette demande sera marquée comme ${nextStatusLabel}.`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#28a745',
       cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Oui, valider!',
+      confirmButtonText: `Oui, ${actionLabel.toLowerCase()}!`,
       cancelButtonText: 'Annuler'
     });
 
     if (result.isConfirmed) {
       try {
-        await dispatch(updateAbsenceRequestStatus({ id, status: 'validé' })).unwrap();
+        await dispatch(updateAbsenceRequestStatus({ id: request.id, status: 'validé' })).unwrap();
         Swal.fire(
-          'Validé!',
-          'La demande a été validée avec succès.',
+          `${actionLabel}!`,
+          `La demande a été ${nextStatusLabel} avec succès.`,
           'success'
         );
         dispatch(fetchAbsenceRequests());
@@ -136,20 +153,127 @@ const AbsenceRequestsListPage = (props) => {
     }
   };
 
-  const handleDownloadAttestation = (url) => {
-    if (url) {
-      window.open(url, '_blank');
-    } else {
-      Swal.fire('Info', 'Aucune attestation disponible pour cette demande.', 'info');
+  const handleDownloadDocument = async (url, fileName) => {
+    try {
+      const response = await api.get(url, {
+        responseType: 'blob',
+      });
+      
+      // Check if the response is actually JSON (error) or HTML (error page)
+      const contentType = response.headers['content-type'];
+      if (contentType && (contentType.includes('application/json') || contentType.includes('text/html'))) {
+        const text = await response.data.text();
+        try {
+            const json = JSON.parse(text);
+            throw new Error(json.message || 'Erreur lors du téléchargement');
+        } catch (e) {
+            throw new Error('Le serveur a renvoyé une erreur (HTML/JSON) au lieu du fichier.');
+        }
+      }
+
+      // Try to get filename from Content-Disposition header
+      let finalFileName = fileName;
+      const contentDisposition = response.headers['content-disposition'];
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch && filenameMatch[1]) {
+          finalFileName = filenameMatch[1];
+        }
+      }
+      
+      // Fallback: if filename has no extension, try to guess from mime type
+      if (finalFileName && !finalFileName.includes('.')) {
+          const mime = response.headers['content-type'];
+          if (mime) {
+              const mimeMap = {
+                  'application/pdf': 'pdf',
+                  'image/jpeg': 'jpg',
+                  'image/png': 'png',
+                  'application/msword': 'doc',
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+                  'application/vnd.ms-excel': 'xls',
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+                  'text/csv': 'csv',
+                  'application/zip': 'zip'
+              };
+              const ext = mimeMap[mime] || mime.split('/')[1];
+              if (ext && ext.length < 5) {
+                  finalFileName = `${finalFileName}.${ext}`;
+              }
+          }
+      }
+      
+      if (!finalFileName) finalFileName = 'document';
+
+      const blob = new Blob([response.data], { type: contentType });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = finalFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download error:', error);
+      const status = error.response?.status;
+      let message = 'Impossible de télécharger le document.';
+      
+      if (error.response?.data instanceof Blob) {
+         try {
+             const text = await error.response.data.text();
+             const json = JSON.parse(text);
+             message = json.message || message;
+         } catch (e) { /* ignore */ }
+      } else if (error.message && !error.response) {
+          message = error.message;
+      }
+      
+      if (status === 404) message = 'Fichier introuvable sur le serveur.';
+      else if (status === 403) message = 'Accès refusé.';
+
+      Swal.fire('Erreur', message, 'error');
     }
   };
 
-  const handleDownloadJustification = (justificationUrl) => {
-    if (justificationUrl) {
-      window.open(justificationUrl, '_blank');
-    } else {
-      Swal.fire('Info', 'Aucune justification disponible pour cette demande.', 'info');
+  const ensureTrailingSlash = (value = '') => (value.endsWith('/') ? value : `${value}/`);
+  const apiBaseUrl = ensureTrailingSlash(import.meta.env.VITE_API_URL || '');
+
+  const buildStorageUrl = (path) => {
+    if (!path) {
+      return null;
     }
+
+    if (/^https?:\/\//i.test(path)) {
+      return path;
+    }
+
+    const normalized = path.replace(/^\/+/, '');
+    const storagePath = normalized.startsWith('storage/') ? normalized : `storage/${normalized}`;
+    return `${apiBaseUrl}${storagePath}`;
+  };
+
+  const getDocumentIcon = (mimeType, fileName = '') => {
+    const lowerMime = (mimeType || '').toLowerCase();
+    const lowerName = (fileName || '').toLowerCase();
+
+    if (lowerMime.includes('pdf') || lowerName.endsWith('.pdf')) {
+      return 'fluent:file-pdf-24-regular';
+    }
+    if (lowerMime.includes('image') || /\.(png|jpe?g|gif|bmp|svg)$/i.test(lowerName)) {
+      return 'fluent:image-24-regular';
+    }
+    if (lowerMime.includes('word') || /\.(doc|docx)$/i.test(lowerName)) {
+      return 'fluent:file-word-24-regular';
+    }
+    if (lowerMime.includes('excel') || lowerMime.includes('sheet') || /\.(xls|xlsx|csv)$/i.test(lowerName)) {
+      return 'fluent:file-excel-24-regular';
+    }
+    if (lowerMime.includes('zip') || /\.(zip)$/i.test(lowerName)) {
+      return 'fluent:folder-zip-24-regular';
+    }
+
+    return 'fluent:document-24-regular';
   };
 
   const resetFilters = () => {
@@ -192,7 +316,7 @@ const AbsenceRequestsListPage = (props) => {
   };
 
   const filteredRequests = absenceRequests.filter((request) => {
-    const user = users.find(u => u.id === request.user_id);
+    const user = users.find(u => u.id === request.user_id) || request.user;
     const userName = user ? `${user.name} ${user.prenom}`.toLowerCase() : '';
     const searchLower = searchTerm.toLowerCase();
   
@@ -469,6 +593,15 @@ const AbsenceRequestsListPage = (props) => {
     );
   };
 
+  const getDuration = (start, end) => {
+    if (!start || !end) return 0;
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = Math.abs(endDate - startDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+    return diffDays;
+  };
+
   if (loading === 'loading') {
     return (
       <div className="container-fluid py-4" style={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', minHeight: '100vh' }}>
@@ -538,7 +671,7 @@ const AbsenceRequestsListPage = (props) => {
 
   return (
     <div className="container-fluid py-4" style={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', minHeight: '100vh' }}>
-      <div className="container-fluid px-4">
+      <div className="container-fluid px-1">
         {/* En-tête */}
         <div className="row mb-4">
           <div className="col-12">
@@ -651,11 +784,10 @@ const AbsenceRequestsListPage = (props) => {
           <div className="col-12">
             <div className="card border-0 shadow-sm rounded-4">
               <div className="card-body p-0">
-                <div className="table-responsive">
-                  <table className="table table-hover mb-0">
-                    <thead style={{ backgroundColor: '#f8f9fa' }}>
+                <StyledTable>
+                    <thead>
                       <tr>
-                        <th style={{ padding: '1rem' }}>
+                        <th style={{ width: '50px', textAlign: 'center' }}>
                           <input
                             type="checkbox"
                             className="form-check-input"
@@ -669,10 +801,10 @@ const AbsenceRequestsListPage = (props) => {
                             checked={selectedRequests.length === currentItems.length && currentItems.length > 0}
                           />
                         </th>
-                        <th style={{ padding: '1rem', fontWeight: '600' }}>Employé</th>
-                        <th style={{ padding: '1rem', fontWeight: '600' }}>Type</th>
+                        <th>Employé</th>
+                        <th>Type</th>
                         <th 
-                          style={{ padding: '1rem', fontWeight: '600', cursor: 'pointer', userSelect: 'none' }}
+                          style={{ cursor: 'pointer', userSelect: 'none' }}
                           onClick={() => handleSort('created_at')}
                           title="Cliquer pour trier par date de demande"
                         >
@@ -682,7 +814,7 @@ const AbsenceRequestsListPage = (props) => {
                           </div>
                         </th>
                         <th 
-                          style={{ padding: '1rem', fontWeight: '600', cursor: 'pointer', userSelect: 'none' }}
+                          style={{ cursor: 'pointer', userSelect: 'none' }}
                           onClick={() => handleSort('dateDebut')}
                           title="Cliquer pour trier par période de début"
                         >
@@ -691,28 +823,87 @@ const AbsenceRequestsListPage = (props) => {
                             {getSortIcon('dateDebut')}
                           </div>
                         </th>
-                        <th style={{ padding: '1rem', fontWeight: '600' }}>Motif</th>
-                        <th style={{ padding: '1rem', fontWeight: '600' }}>Statut</th>
-                        <th style={{ padding: '1rem', fontWeight: '600' }}>Documents</th>
-                        <th style={{ padding: '1rem', fontWeight: '600' }}>Actions</th>
+                        <th>Motif</th>
+                        <th>Statut</th>
+                        <th>Documents</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {currentItems.map((request) => {
-                        const user = users.find(u => u.id === request.user_id);
-                        
-                        // Debug: Log pour vérifier la structure des données
-                        console.log('Request data:', {
-                          id: request.id,
-                          justification: request.justification,
-                          attestation_url: request.attestation_url,
-                          type: request.type,
-                          statut: request.statut
-                        });
+                        const user = users.find(u => u.id === request.user_id) || request.user;
+                        const documentsToDisplay = [];
+
+                        const justificationPath = typeof request.justification === 'string'
+                          ? request.justification.trim()
+                          : '';
+                        if (justificationPath) {
+                          // Use API download route if possible, fallback to storage URL
+                          const downloadPath = `absences/${request.id}/download-justification`;
+                          const url = buildStorageUrl(justificationPath);
+                          
+                          if (url) {
+                            documentsToDisplay.push({
+                              key: `justification-${request.id}`,
+                              label: 'Justification',
+                              url,
+                              downloadPath,
+                              icon: getDocumentIcon('', justificationPath),
+                              tooltip: 'Télécharger la justification'
+                            });
+                          }
+                        }
+
+                        const attestationPath = typeof request.attestation_url === 'string'
+                          ? request.attestation_url.trim()
+                          : '';
+                        if (attestationPath) {
+                          const downloadPath = `absences/${request.id}/download-attestation`;
+                          const url = buildStorageUrl(attestationPath);
+                          
+                          if (url) {
+                            documentsToDisplay.push({
+                              key: `attestation-${request.id}`,
+                              label: 'Attestation',
+                              url,
+                              downloadPath,
+                              icon: getDocumentIcon('', attestationPath),
+                              tooltip: "Télécharger l'attestation",
+                              requiresRh: true
+                            });
+                          }
+                        }
+
+                        if (Array.isArray(request.documents)) {
+                          request.documents.forEach((doc, index) => {
+                            const docPath = typeof doc?.path === 'string' ? doc.path.trim() : '';
+                            if (!docPath) {
+                              return;
+                            }
+                            const url = buildStorageUrl(docPath);
+                            if (!url) {
+                              return;
+                            }
+                            
+                            const downloadPath = doc.id 
+                              ? `absences/document/${doc.id}/download`
+                              : null;
+
+                            const label = doc?.original_name || `Document ${index + 1}`;
+                            documentsToDisplay.push({
+                              key: `document-${request.id}-${doc?.id ?? index}`,
+                              label,
+                              url,
+                              downloadPath,
+                              icon: getDocumentIcon(doc?.mime_type, doc?.original_name || docPath),
+                              tooltip: label
+                            });
+                          });
+                        }
                         
                         return (
                           <tr key={request.id}>
-                            <td style={{ padding: '1rem' }}>
+                            <td style={{ textAlign: 'center' }}>
                               <input
                                 type="checkbox"
                                 className="form-check-input"
@@ -720,7 +911,7 @@ const AbsenceRequestsListPage = (props) => {
                                 onChange={() => toggleRequestSelection(request.id)}
                               />
                             </td>
-                            <td style={{ padding: '1rem' }}>
+                            <td>
                               <div className="d-flex align-items-center gap-2">
                                 <div 
                                   className="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
@@ -728,15 +919,16 @@ const AbsenceRequestsListPage = (props) => {
                                 >
                                   {user?.name?.charAt(0) || 'U'}
                                 </div>
-                                <span className="fw-semibold">
-                                  {user ? `${user.name} ${user.prenom}` : 'Utilisateur inconnu'}
-                                </span>
+                                <div className="d-flex flex-column">
+                                  <span className="fw-semibold">{user ? user.name : 'Utilisateur'}</span>
+                                  <span className="fw-semibold">{user ? user.prenom : 'inconnu'}</span>
+                                </div>
                               </div>
                             </td>
-                            <td style={{ padding: '1rem' }}>
+                            <td>
                               {getTypeBadge(request.type)}
                             </td>
-                            <td style={{ padding: '1rem' }}>
+                            <td>
                               <div className="text-center">
                                 <small className="text-muted d-block">Demandé le:</small>
                                 <span className="fw-medium">
@@ -748,7 +940,7 @@ const AbsenceRequestsListPage = (props) => {
                                 </span>
                               </div>
                             </td>
-                            <td style={{ padding: '1rem' }}>
+                            <td>
                               <div>
                                 <div className="d-flex justify-content-between align-items-center mb-1">
                                   <small className="text-muted">Du:</small> 
@@ -762,99 +954,62 @@ const AbsenceRequestsListPage = (props) => {
                                     {request.dateFin ? new Date(request.dateFin).toLocaleDateString('fr-FR') : 'N/A'}
                                   </span>
                                 </div>
+                                {request.dateDebut && request.dateFin && (
+                                  <div className="mt-1 text-center">
+                                    <span className="badge bg-light text-dark border">
+                                      {getDuration(request.dateDebut, request.dateFin)} jours
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </td>
-                            <td style={{ padding: '1rem' }}>
+                            <td>
                               <span className="text-muted small">{request.motif || 'Non spécifié'}</span>
                             </td>
-                            <td style={{ padding: '1rem' }}>
+                            <td>
                               {getStatusBadge(request.statut)}
                             </td>
-                            <td style={{ padding: '1rem' }}>
-                              <div className="d-flex gap-1">
-                                {/* Bouton œil pour visualiser la justification uploadée */}
-                                {request.justification && request.justification !== '' && request.justification !== null && (
-                                  <>
-                                    <button
-                                      className="btn p-0 border-0"
-                                      onClick={() => {
-                                        const fileUrl = `${import.meta.env.VITE_API_URL}storage/${request.justification}`;
-                                        // Open in new tab with noopener noreferrer for safety
-                                        window.open(fileUrl, '_blank', 'noopener,noreferrer');
-                                      }}
-                                      title="Visualiser justification"
-                                      style={{
-                                        width: '32px',
-                                        height: '32px',
-                                        borderRadius: '50%',
-                                        backgroundColor: '#f3e5f5',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        marginRight: '4px'
-                                      }}
-                                    >
-                                        <Icon 
-                                          icon="fluent:eye-24-filled" 
-                                          style={{ 
-                                            fontSize: '14px',
-                                            color: '#9c27b0'
-                                          }} 
-                                        />
-                                      </button>
-                                  </>
+                            <td>
+                              <div className="d-flex flex-wrap align-items-center gap-2">
+                                {documentsToDisplay.length === 0 && (
+                                  <span className="text-muted small">Aucun document</span>
                                 )}
-                                
-                                {/* Bouton œil pour visualiser l'attestation uploadée */}
-                                {request.attestation_url && request.attestation_url !== '' && request.attestation_url !== null && (
+
+                                {documentsToDisplay.map((doc) => (
                                   <button
-                                    className="btn p-0 border-0"
-                                    onClick={() => {
-                                      // Vérifier si un fichier existe
-                                      if (!request.attestation_url || request.attestation_url.trim() === '') {
-                                        Swal.fire('Info', 'Aucune attestation disponible.', 'info');
+                                    type="button"
+                                    key={doc.key}
+                                    className="document-chip"
+                                    title={doc.tooltip || doc.label}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      if (doc.requiresRh && !(roles.includes('RH') || roles.includes('Gest_RH'))) {
+                                        Swal.fire('Accès refusé', "Vous n'avez pas la permission de consulter ce document.", 'error');
                                         return;
                                       }
-
-                                      // Vérifier les permissions
-                                      if (!roles.includes('RH') && !roles.includes('Gest_RH')) {
-                                        Swal.fire('Accès refusé', 'Vous n\'avez pas la permission de voir ce fichier.', 'error');
-                                        return;
+                                      
+                                      if (doc.downloadPath) {
+                                        handleDownloadDocument(doc.downloadPath, doc.label);
+                                      } else {
+                                        // Fallback to opening in new tab if no download path (e.g. external link)
+                                        window.open(doc.url, '_blank', 'noopener,noreferrer');
                                       }
-
-                                      // Ouvrir dans un nouvel onglet
-                                      const fileUrl = `${import.meta.env.VITE_API_URL}storage/${request.attestation_url}`;
-                                      window.open(fileUrl, '_blank', 'noopener,noreferrer');
-                                    }}
-
-                                    title="Visualiser attestation"
-                                    style={{
-                                      width: '32px',
-                                      height: '32px',
-                                      borderRadius: '50%',
-                                      backgroundColor: '#f3e5f5',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
                                     }}
                                   >
-                                    <Icon 
-                                      icon="fluent:eye-24-filled" 
-                                      style={{ 
-                                        fontSize: '14px',
-                                        color: '#9c27b0'
-                                      }} 
-                                    />
+                                    <Icon icon={doc.icon} className="document-chip-icon" />
+                                    <span className="text-truncate" style={{ maxWidth: '140px' }}>
+                                      {doc.label}
+                                    </span>
                                   </button>
-                                )}
-                                
-                                {/* Bouton téléchargement OBLIGATOIRE pour congé et attestation approuvés */}
+                                ))}
+
                                 {(request.statut?.toLowerCase() === 'validé' || request.statut?.toLowerCase() === 'approuvé') && 
                                  (request.type?.toLowerCase() === 'congé' || request.type?.toLowerCase() === 'attestationtravail') && (
                                   <button
+                                    type="button"
                                     className="btn p-0 border-0"
                                     onClick={() => handleDownloadTemplate(request)}
-                                    title={`Télécharger ${request.type?.toLowerCase() === 'congé' ? 'congé' : 'attestation'}`}
+                                    title={request.type?.toLowerCase() === 'congé' ? 'Télécharger le document de congé' : "Télécharger l'attestation"}
                                     style={{
                                       width: '32px',
                                       height: '32px',
@@ -876,8 +1031,8 @@ const AbsenceRequestsListPage = (props) => {
                                 )}
                               </div>
                             </td>
-                            <td style={{ padding: '1rem' }}>
-                              <div className="d-flex justify-content-center gap-2">
+                            <td>
+                              <div className="d-flex flex-wrap justify-content-center gap-2" style={{ maxWidth: '80px', margin: '0 auto' }}>
                                 {canEditRequest(request) && (
                                   <button
                                     className="btn p-0 border-0"
@@ -906,8 +1061,8 @@ const AbsenceRequestsListPage = (props) => {
                                 {canValidateRequest(request) && (
                                   <button
                                     className="btn p-0 border-0"
-                                    onClick={() => handleValidate(request.id)}
-                                    title="Valider"
+                                    onClick={() => handleValidate(request)}
+                                    title={roles.includes('RH') || roles.includes('Gest_RH') ? "Approuver" : "Valider"}
                                     style={{
                                       width: '32px',
                                       height: '32px',
@@ -919,7 +1074,7 @@ const AbsenceRequestsListPage = (props) => {
                                     }}
                                   >
                                     <Icon 
-                                      icon="fluent:checkmark-24-filled" 
+                                      icon={roles.includes('RH') || roles.includes('Gest_RH') ? "fluent:checkmark-circle-24-filled" : "fluent:checkmark-24-filled"}
                                       style={{ 
                                         fontSize: '14px',
                                         color: '#4caf50'
@@ -983,8 +1138,7 @@ const AbsenceRequestsListPage = (props) => {
                         );
                       })}
                     </tbody>
-                  </table>
-                </div>
+                </StyledTable>
 
                 {currentItems.length === 0 && (
                   <div className="text-center py-5">
@@ -1054,30 +1208,69 @@ const AbsenceRequestsListPage = (props) => {
       <style jsx>{`
         .card {
           transition: all 0.3s ease;
+          border: none;
         }
         .card:hover {
           transform: translateY(-2px);
-        }
-        .table tbody tr:hover {
-          background-color: rgba(0, 123, 255, 0.05);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
         }
         .bg-success-subtle {
-          background-color: rgba(25, 135, 84, 0.1) !important;
+          background-color: #e6f7ed !important;
+          color: #2dce89 !important;
+          font-weight: 600;
+          padding: 0.35rem 0.75rem;
+          border-radius: 0.375rem;
         }
         .bg-danger-subtle {
-          background-color: rgba(220, 53, 69, 0.1) !important;
+          background-color: #fceaea !important;
+          color: #f5365c !important;
+          font-weight: 600;
+          padding: 0.35rem 0.75rem;
+          border-radius: 0.375rem;
         }
         .bg-warning-subtle {
-          background-color: rgba(255, 193, 7, 0.1) !important;
-        }
-        .bg-primary-subtle {
-          background-color: rgba(13, 110, 253, 0.1) !important;
+          font-weight: 600;
+          padding: 0.35rem 0.75rem;
+          border-radius: 0.375rem;
         }
         .bg-info-subtle {
-          background-color: rgba(13, 202, 240, 0.1) !important;
+          background-color: #e0f7fa !important;
+          color: #11cdef !important;
+          font-weight: 600;
+          padding: 0.35rem 0.75rem;
+          border-radius: 0.375rem;
         }
         .bg-secondary-subtle {
-          background-color: rgba(108, 117, 125, 0.1) !important;
+          background-color: #f6f9fc !important;
+          color: #8898aa !important;
+          font-weight: 600;
+          padding: 0.35rem 0.75rem;
+          border-radius: 0.375rem;
+        }
+        .document-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          border-radius: 6px;
+          background-color: #fff;
+          border: 1px solid #e9ecef;
+          color: #525f7f;
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .document-chip:hover {
+          background-color: #f8f9fa;
+          border-color: #dee2e6;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 6px rgba(50,50,93,0.11), 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .document-chip-icon {
+          font-size: 16px;
+          color: #5e72e4;
         }
       `}</style>
     </div>

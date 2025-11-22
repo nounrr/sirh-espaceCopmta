@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
 import { fetchTodoLists, createTodoList, updateTodoList, deleteTodoList, resetCreationStatus } from '../../Redux/Slices/todoListSlice';
+import StyledTable from '../../Components/Common/StyledTable';
 
 const TodoListsCrudPage = () => {
   const dispatch = useDispatch();
@@ -121,8 +122,7 @@ const TodoListsCrudPage = () => {
       )}
 
       <div className="card">
-        <div className="table-responsive">
-          <table className="table align-middle mb-0">
+        <StyledTable>
             <thead>
               <tr>
                 <th style={{width: '40%'}}>Titre</th>
@@ -183,8 +183,7 @@ const TodoListsCrudPage = () => {
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
+        </StyledTable>
       </div>
     </div>
   );

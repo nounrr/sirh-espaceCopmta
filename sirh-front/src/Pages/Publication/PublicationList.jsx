@@ -9,6 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import Swal from 'sweetalert2';
+import StyledTable from '../../Components/Common/StyledTable';
 
 const PublicationList = () => {
   const dispatch = useDispatch();
@@ -316,9 +317,8 @@ const PublicationList = () => {
                     Publications ({filteredPublications.length} publication{filteredPublications.length > 1 ? 's' : ''})
                   </h5>
                 </div>
-                <div className="table-responsive">
-                  <table className="table table-hover align-middle">
-                    <thead style={{ backgroundColor: '#f8f9fa', borderRadius: '12px' }}>
+                <StyledTable>
+                    <thead>
                       <tr>
                   {isRH && (
                     <th>
@@ -512,8 +512,7 @@ const PublicationList = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </StyledTable>
 
           {filteredPublications.length === 0 && (
             <div className="text-center py-5">

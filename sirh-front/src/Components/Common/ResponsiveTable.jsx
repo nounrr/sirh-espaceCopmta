@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import StyledTable from './StyledTable';
 
 const ResponsiveTable = ({ 
   headers, 
@@ -125,9 +126,8 @@ const ResponsiveTable = ({
         </div>
       )}
       
-      <div className="table-responsive">
-        <table className={`table table-hover align-middle ${className}`}>
-          <thead className="table-light">
+      <StyledTable className={className}>
+          <thead>
             <tr>
               {headers.map((header, index) => (
                 <th key={index} className="fw-semibold">
@@ -178,8 +178,7 @@ const ResponsiveTable = ({
               })
             )}
           </tbody>
-        </table>
-      </div>
+      </StyledTable>
     </div>
   );
 

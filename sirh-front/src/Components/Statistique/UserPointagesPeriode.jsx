@@ -9,6 +9,7 @@ import {
   getPointagesOfSelectedUserAndPeriod,
 } from '../../Redux/Slices/pointageSlice';
 import { Icon } from '@iconify/react';
+import StyledTable from '../Common/StyledTable';
 
 // Utilitaire pour générer la liste des années (7 dernières)
 const yearsList = (yearsBack = 7) => {
@@ -263,23 +264,22 @@ const UserPointagesPeriode = ({ userId, onClose }) => {
                 Liste des pointages
               </h5>
             </div>
-            <div className="table-responsive">
-              <table className="table table-hover mb-0 align-middle">
-                <thead style={{ backgroundColor: '#f8f9fa' }}>
+            <StyledTable>
+                <thead>
                   <tr>
-                    <th className="border-0 px-4 py-3 fw-semibold text-dark">
+                    <th>
                       <Icon icon="fluent:calendar-24-filled" width={16} height={16} className="me-2" />
                       Date
                     </th>
-                    <th className="border-0 px-4 py-3 fw-semibold text-dark">
+                    <th>
                       <Icon icon="fluent:arrow-enter-24-filled" width={16} height={16} className="me-2" />
                       Entrée
                     </th>
-                    <th className="border-0 px-4 py-3 fw-semibold text-dark">
+                    <th>
                       <Icon icon="fluent:arrow-exit-24-filled" width={16} height={16} className="me-2" />
                       Sortie
                     </th>
-                    <th className="border-0 px-4 py-3 fw-semibold text-dark">
+                    <th>
                       <Icon icon="fluent:status-24-filled" width={16} height={16} className="me-2" />
                       Statut
                     </th>
@@ -298,8 +298,8 @@ const UserPointagesPeriode = ({ userId, onClose }) => {
                     </tr>
                   ) : (
                     groupedPointages.map((p) => (
-                      <tr key={p.id} className="border-0">
-                        <td className="px-4 py-3">
+                      <tr key={p.id}>
+                        <td>
                           {p.isNightShift ? (
                             <div>
                               <div className="fw-semibold">{p.date}</div>
@@ -309,9 +309,9 @@ const UserPointagesPeriode = ({ userId, onClose }) => {
                             p.date
                           )}
                         </td>
-                        <td className="px-4 py-3">{p.heureEntree}</td>
-                        <td className="px-4 py-3">{p.heureSortie}</td>
-                        <td className="px-4 py-3">
+                        <td>{p.heureEntree}</td>
+                        <td>{p.heureSortie}</td>
+                        <td>
                           {p.statutJour === 'present' && (
                             <span className="badge rounded-pill px-3 py-2" style={{ backgroundColor: '#d1fae5', color: '#065f46', fontSize: '0.75rem' }}>
                               <Icon icon="fluent:checkmark-circle-24-filled" width={14} height={14} className="me-1" />
@@ -335,8 +335,7 @@ const UserPointagesPeriode = ({ userId, onClose }) => {
                     ))
                   )}
                 </tbody>
-              </table>
-            </div>
+            </StyledTable>
           </div>
         </div>
     </div>

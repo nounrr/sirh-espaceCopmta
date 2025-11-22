@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
+import StyledTable from './Common/StyledTable';
 
 const AuditDetailsModal = ({ audit, isOpen, onClose }) => {
   if (!isOpen || !audit) return null;
@@ -105,8 +106,7 @@ const AuditDetailsModal = ({ audit, isOpen, onClose }) => {
     return (
       <div className="mb-4">
         <h6 className="fw-bold text-muted mb-3">Modifications détaillées</h6>
-        <div className="table-responsive">
-          <table className="table table-sm table-bordered">
+        <StyledTable>
             <thead className="table-light">
               <tr>
                 <th>Champ</th>
@@ -131,8 +131,7 @@ const AuditDetailsModal = ({ audit, isOpen, onClose }) => {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </StyledTable>
       </div>
     );
   };

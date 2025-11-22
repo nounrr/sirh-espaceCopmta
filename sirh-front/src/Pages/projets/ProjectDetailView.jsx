@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Card, Row, Col, Button, Badge, ProgressBar, Table, Form } from 'react-bootstrap';
+import { Card, Row, Col, Button, Badge, ProgressBar, Form } from 'react-bootstrap';
 import { Icon } from '@iconify/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { useSelector } from 'react-redux';
+import StyledTable from '../../Components/Common/StyledTable';
 
 // Couleurs pour les graphiques
 const COLORS = {
@@ -576,8 +577,7 @@ const ProjectDetailView = ({ project, todoLists, onBack, allProjects, onProjectC
             </Card.Header>
             <Card.Body className="p-0">
               {filteredTasks.length > 0 ? (
-                <div className="table-responsive">
-                  <Table className="mb-0">
+                <StyledTable>
                     <thead className="bg-light">
                       <tr>
                         <th className="border-0 fw-semibold text-muted py-3 px-4">Tâche</th>
@@ -666,8 +666,7 @@ const ProjectDetailView = ({ project, todoLists, onBack, allProjects, onProjectC
                         );
                       })}
                     </tbody>
-                  </Table>
-                </div>
+                  </StyledTable>
               ) : (
                 <div className="text-center py-5">
                   <Icon icon="fluent:task-24-filled" className="text-muted mb-3" style={{fontSize: '48px'}} />

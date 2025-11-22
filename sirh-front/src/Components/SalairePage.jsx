@@ -13,6 +13,7 @@ import {
 import { fetchUsers } from '../Redux/Slices/userSlice';
 import { fetchDepartments } from '../Redux/Slices/departementSlice';
 import Swal from 'sweetalert2';
+import StyledTable from './Common/StyledTable';
 import './SalairePage.css';
 
 const SalairePage = () => {
@@ -1035,10 +1036,9 @@ const SalairePage = () => {
             </div>
           </div>
 
-          <div className="table-responsive" style={{ overflowX: 'visible' }}>
-            <table className="table table-hover align-middle table-sm" style={{ minWidth: '100%', tableLayout: 'fixed' }}>
-              <thead className="table-light">
-                <tr>
+          <StyledTable
+            thead={
+              <tr>
                   <th style={{ width: '50px' }}>
                     <input
                       type="checkbox"
@@ -1067,18 +1067,18 @@ const SalairePage = () => {
                   <th style={{ width: '80px' }}>Transport</th>
                   <th style={{ width: '90px' }}>Déplacement</th>
                   <th className="text-center" style={{ width: '100px' }}>Actions</th>
-                </tr>
-              </thead>
-            <tbody>
+              </tr>
+            }
+          >
               {loading.list ? (
                 <tr>
-                  <td colSpan="9" className="loading-cell">
+                  <td colSpan="10" className="loading-cell">
                     <i className="fas fa-spinner fa-spin"></i> Chargement...
                   </td>
                 </tr>
               ) : displayedUserSalaires.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="empty-cell">
+                  <td colSpan="10" className="empty-cell">
                     Aucun employé trouvé
                   </td>
                 </tr>
@@ -1205,9 +1205,7 @@ const SalairePage = () => {
                   );
                 })
               )}
-            </tbody>
-          </table>
-        </div>
+          </StyledTable>
 
         {finalUserSalaires.length === 0 && (
           <div className="text-center py-5">

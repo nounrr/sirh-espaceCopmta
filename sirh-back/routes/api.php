@@ -101,6 +101,11 @@ Route::match(['post', 'put'], '/absences/update/{id}', [AbsenceRequestController
 Route::put('/absences/{id}/status', [AbsenceRequestController::class, 'updateStatus']);
 Route::delete('/absences', [AbsenceRequestController::class, 'destroy']);
 
+Route::get('/absences/document/{id}/download', [AbsenceRequestController::class, 'downloadDocument']);
+Route::delete('/absences/document/{id}', [AbsenceRequestController::class, 'deleteDocument']);
+Route::get('/absences/{id}/download-justification', [AbsenceRequestController::class, 'downloadJustification']);
+Route::get('/absences/{id}/download-attestation', [AbsenceRequestController::class, 'downloadAttestation']);
+
        Route::get('/salaires', [SalaireController::class, 'index']);
         Route::post('/salaires', [SalaireController::class, 'store']);
         Route::get('/salaires/{id}', [SalaireController::class, 'show']);

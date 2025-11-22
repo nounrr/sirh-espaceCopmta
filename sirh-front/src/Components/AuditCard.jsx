@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
+import StyledTable from './Common/StyledTable';
 
 const AuditCard = ({ 
   entityData, 
@@ -148,15 +149,15 @@ const AuditCard = ({
     const fieldEntries = Object.entries(fieldChanges).sort((a,b)=> a[0].localeCompare(b[0]));
     
     return fieldEntries.length ? (
-      <div className="table-responsive">
-        <table className="table table-sm align-middle mb-0">
-          <thead className="table-light">
+      <StyledTable
+        thead={
             <tr>
               <th style={{width:'160px'}}>Propriété</th>
               <th>Historique des valeurs</th>
             </tr>
-          </thead>
-          <tbody>
+        }
+      >
+        <tbody>
             {fieldEntries.map(([field, changes]) => (
               <tr key={field}>
                 <td className="fw-semibold small text-primary">{translateField ? translateField(field) : field}</td>
@@ -195,9 +196,8 @@ const AuditCard = ({
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
+        </tbody>
+      </StyledTable>
     ) : (
       <div className="text-muted small fst-italic">Aucun changement pertinent</div>
     );

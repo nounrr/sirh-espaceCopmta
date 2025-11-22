@@ -7,6 +7,7 @@ import { fetchPointages } from '../Redux/Slices/pointageSlice';
 import { fetchHolidays } from '../Redux/Slices/holidaySlice';
 import { generateLeaveReport, calculateTeamLeaveStats, calculateSeniority, calculateRecoveryDays, calculateEffectiveLeaveDays, calculateReturnDate, calculateRecoveryDetails, getLeaveBreakdown } from '../services/leaveCalculationService';
 import * as XLSX from 'xlsx';
+import StyledTable from '../Components/Common/StyledTable';
 
 const LeaveBalancesPage = () => {
   const dispatch = useDispatch();
@@ -1228,9 +1229,8 @@ const LeaveBalancesPage = () => {
                   </div>
                 </div>
 
-                <div className="table-responsive">
-                  <table className="table table-hover align-middle">
-                    <thead className="table-light">
+                <StyledTable>
+                    <thead>
                       <tr>
                         <th 
                           style={{ cursor: 'pointer' }}
@@ -1431,8 +1431,7 @@ const LeaveBalancesPage = () => {
                         );
                       })}
                     </tbody>
-                  </table>
-                </div>
+                  </StyledTable>
 
                 {filteredUsers.length === 0 && (
                   <div className="text-center py-5">
@@ -1650,8 +1649,7 @@ const LeaveBalancesPage = () => {
                       </div>
                       <div className="card-body">
                         {selectedEmployee.leaveBreakdown && selectedEmployee.leaveBreakdown.length > 0 ? (
-                          <div className="table-responsive">
-                            <table className="table table-sm align-middle">
+                            <StyledTable>
                               <thead>
                                 <tr>
                                   <th>Période</th>
@@ -1682,8 +1680,7 @@ const LeaveBalancesPage = () => {
                                   </tr>
                                 ))}
                               </tbody>
-                            </table>
-                          </div>
+                            </StyledTable>
                         ) : (
                           <div className="text-muted">Aucun congé approuvé.</div>
                         )}
@@ -1904,8 +1901,7 @@ const LeaveBalancesPage = () => {
                         </div>
                         <div className="card-body">
                           {selectedEmployee.leaveBreakdown && selectedEmployee.leaveBreakdown.length > 0 ? (
-                            <div className="table-responsive">
-                              <table className="table table-sm align-middle">
+                            <StyledTable>
                                 <thead>
                                   <tr>
                                     <th>Période</th>
@@ -1936,8 +1932,7 @@ const LeaveBalancesPage = () => {
                                     </tr>
                                   ))}
                                 </tbody>
-                              </table>
-                            </div>
+                            </StyledTable>
                           ) : (
                             <div className="text-muted">Aucun congé approuvé.</div>
                           )}

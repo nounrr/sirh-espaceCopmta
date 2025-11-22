@@ -2,7 +2,7 @@ import axios from 'axios';
 const apiUrl = import.meta.env.VITE_API_URL_API;
 
 const api = axios.create({
-  baseURL: apiUrl+'api',
+  baseURL: apiUrl + 'api/',
   // baseURL: apiUrl+'public/api',
   headers: {
     'Content-Type': 'application/json',
@@ -12,6 +12,10 @@ const api = axios.create({
 
 // ➕ Ajouter automatiquement le token d'auth si présent
 api.interceptors.request.use((config) => {
+  if (config.url && config.url.startsWith('/')) {
+    config.url = config.url.slice(1);
+  }
+
   const user = localStorage.getItem('user');
   if (user) {
     const userData = JSON.parse(user);

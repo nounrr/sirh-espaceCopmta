@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import SondageVote from './SondageVote';
 import './SondageCards.css';
+import StyledTable from '../../Components/Common/StyledTable';
 
 const STATUT_COLORS = {
   publie: { bg: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)", color: "white", icon: "fluent:checkmark-circle-24-filled" },
@@ -338,12 +339,8 @@ export default function PublicationDetail() {
                     <span className="d-none d-md-inline">Détail des votes</span>
                     <span className="d-md-none">Détails</span>
                   </div>
-                  <div className="table-responsive">
-                    <table className="table table-sm align-middle mb-0" style={{ borderRadius: '12px', overflow: 'hidden' }}>
-                      <thead style={{ 
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        color: 'white'
-                      }}>
+                  <StyledTable>
+                      <thead>
                         <tr style={{ fontSize: '0.85rem' }}>
                           <th className="fw-semibold py-3 border-0">
                             <Icon icon="fluent:person-24-filled" className="me-2" width="16" />
@@ -361,7 +358,7 @@ export default function PublicationDetail() {
                           </th>
                         </tr>
                       </thead>
-                      <tbody style={{ backgroundColor: '#f8f9fa' }}>
+                      <tbody>
                         {allVotes.filter(v => 
                           (v.answer && v.answer.question_id === publication.questions[0].id) ||
                           (v.question_id === publication.questions[0].id)
@@ -477,8 +474,7 @@ export default function PublicationDetail() {
                           </tr>
                         )}
                       </tbody>
-                    </table>
-                  </div>
+                  </StyledTable>
                 </div>
               </div>
             </div>
