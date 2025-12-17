@@ -35,6 +35,7 @@ use App\Http\Controllers\SalaireController;
 use App\Http\Controllers\ChargePersonnelController;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\InfoRequestController;
+use App\Http\Controllers\TimeTrackingController;
 
 Route::resource('jours-feries', JourFerieController::class);
 Route::get('/jours-feries/year/{year}', [JourFerieController::class, 'getByYear']);
@@ -85,6 +86,7 @@ Route::get('/export-salaires', [SalaryExportController::class, 'exportSalaries']
 
 Route::get('/employes', [UserController::class, 'index']);
 Route::get('/clients', [UserController::class, 'clients']);
+Route::get('/clients/portefeuilles', [UserController::class, 'clientPortefeuilles']);
 Route::get('/clients/{id}', [UserController::class, 'show']);
 Route::put('/clients/update/{id}', [UserController::class, 'update']);
 Route::put('/employes/update/{id}', [UserController::class, 'update']);
@@ -155,6 +157,12 @@ Route::delete('/user-docs/{userId}/{typeDocId}', [UserTypeDocController::class, 
 
     // Bulk task reminders
     Route::post('/todo-tasks/bulk-reminders', [TodoTaskController::class, 'sendBulkReminders']);
+
+    // Time tracking
+    Route::get('/tasks/{id}/timer/active', [TimeTrackingController::class, 'active']);
+    Route::post('/tasks/{id}/timer/start', [TimeTrackingController::class, 'start']);
+    Route::post('/tasks/{id}/timer/pause', [TimeTrackingController::class, 'pause']);
+    Route::get('/tasks/{id}/timer/daily-summary', [TimeTrackingController::class, 'dailySummary']);
 
     // Analytics & reporting
     Route::get('/analytics/tasks/overview', [TaskAnalyticsController::class, 'overview']);

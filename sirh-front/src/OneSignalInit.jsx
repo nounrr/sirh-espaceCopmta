@@ -13,6 +13,16 @@ const OneSignalInit = () => {
           return;
         }
         
+        // Skip OneSignal initialization in development (localhost)
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' ||
+                           window.location.hostname.includes('localhost');
+        
+        if (isLocalhost) {
+          console.log("OneSignal désactivé en développement local");
+          return;
+        }
+        
         // Empêche l'init multiple
         if (window.__oneSignalInitialized) {
           console.log("OneSignal déjà initialisé");

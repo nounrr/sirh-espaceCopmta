@@ -165,8 +165,8 @@ useEffect(() => {
         <div className='sidebar-menu-area'>
         <ul style={{paddingLeft:"0px"}} className="sidebar-menu" id="sidebar-menu">
 
-  {/* Tableau de bord - Tous sauf Gest_Projet */}
-  {!roles.includes("Gest_Projet") && (
+  {/* Tableau de bord - Tous sauf Gest_Projet et Resp_Com */}
+  {!roles.includes("Gest_Projet") && !roles.includes("Resp_Com") && (
     <li>
       <NavLink to="/" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
         <Icon icon="fluent:home-24-filled" className="menu-icon" />
@@ -174,24 +174,19 @@ useEffect(() => {
       </NavLink>
     </li>
   )}
-  {(roles.includes("Gest_Projet") || roles.includes("RH")) && (<>
+
+  {/* Gestion des taches - Visible pour tous sauf Resp_Com */}
+  {!roles.includes("Resp_Com") && (
     <li>
         <NavLink to="/todo/phone" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
         <Icon icon="fluent:task-list-square-24-filled" className="menu-icon" />
-        <span>Gestion Projet</span>
+        <span>Gestion des taches</span>
       </NavLink>
     </li>
-    <li>
-      <NavLink to="/projets-rapport" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
-        <Icon icon="fluent:folder-open-24-filled" className="menu-icon" />
-        <span> Rapport des projets</span>
-      </NavLink>
-    </li>
-    </>
   )}
 
-  {/* Gestion des employés - RH & Chef_Dep & Chef_Chant & Gest_Projet */}
-  {(roles.includes("RH") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant") || roles.includes("Gest_RH") ) && (
+  {/* Gestion des employés & Clients - RH & Chef_Dep & Chef_Chant & Gest_Projet */}
+  {(roles.includes("RH") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant") || roles.includes("Gest_RH") || roles.includes("Gest_Projet")) && (
     <li className="dropdown">
       <Link to="#">
         <Icon icon="fluent:people-24-filled" className="menu-icon" />
@@ -226,59 +221,30 @@ useEffect(() => {
           </NavLink>
         </li>
         </>)}
+
+        {/* Départements moved here */}
+        {(roles.includes("RH") || roles.includes("Gest_RH")) && (
+            <>
+            <li>
+                <NavLink to="/departments" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+                    <Icon icon="fluent:building-multiple-24-filled" className="circle-icon w-auto" />
+                    Liste des départements
+                </NavLink>
+            </li>
+            <li>
+                <NavLink to="/departments/add" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+                    <Icon icon="fluent:add-square-24-filled" className="circle-icon w-auto" />
+                    Créer un département
+                </NavLink>
+            </li>
+            </>
+        )}
        
         
                 </ul>
               </li>
   )}
 
-  {/* Gestion des départements - RH uniquement */}
-  {(roles.includes("RH") || roles.includes("Gest_RH")) && (
-    <>
-    <li className="dropdown">
-      <Link to="#" >
-        <Icon icon="fluent:building-24-filled" className="menu-icon" />
-        <span>Départements</span>
-      </Link>
-      <ul className="sidebar-submenu"> <li>
-          <NavLink to="/departments" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
-            <Icon icon="fluent:building-multiple-24-filled" className="circle-icon w-auto" />
-            Liste des départements
-                    </NavLink>
-                  </li>
-        <li>
-          <NavLink to="/departments/add" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
-            <Icon icon="fluent:add-square-24-filled" className="circle-icon w-auto" />
-            Créer un département
-                    </NavLink>
-                  </li>
-                 
-                </ul>
-              </li>
-
-              
-
-               <li className="dropdown d-none">
-               <Link to="#" >
-                 <Icon icon="fluent:building-people-24-regular" className="menu-icon" />
-                 <span>Societes</span>
-               </Link>
-               <ul className="sidebar-submenu"> <li>
-                   <NavLink to="/societes" className={(navData) => navData.isActive ? "active-page" : ""}>
-                     <Icon icon="fluent:list-24-filled" className="circle-icon w-auto" />
-                     Liste des Societess
-                             </NavLink>
-                           </li>
-                 <li>
-                   <NavLink to="/departments/add" className={(navData) => navData.isActive ? "active-page" : ""}>
-                     <Icon icon="fluent:add-square-24-filled" className="circle-icon w-auto" />
-                     Créer un département
-                             </NavLink>
-                           </li>
-                          
-                         </ul>
-                       </li></>
-  )}
   {/* Documents - RH et Gest_RH */}
   {(roles.includes("RH") || roles.includes("Gest_RH")) && (
   <li className="dropdown">
@@ -306,8 +272,8 @@ useEffect(() => {
                 </ul>
               </li>
   )}
-  {/* Demande d'absences - RH, Employe, Chef_Dep, Chef_Chant */}
-  {(roles.includes("RH") || roles.includes("Employe") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant") || roles.includes("Gest_RH")) && (
+  {/* Demande d'absences - RH, Employe, Chef_Dep, Chef_Chant, Resp_Com */}
+  {(roles.includes("RH") || roles.includes("Employe") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant") || roles.includes("Gest_RH") || roles.includes("Resp_Com")) && (
   <li className="dropdown">
     <Link to="#">
       <Icon icon="fluent:calendar-person-24-filled" className="menu-icon" />
@@ -315,6 +281,15 @@ useEffect(() => {
               </Link>
     <ul className="sidebar-submenu">
       
+      {(roles.includes("RH") || roles.includes("Resp_Com")) && (
+        <li>
+          <NavLink to="/info-requests" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+            <Icon icon="fluent:chat-help-24-filled" className="circle-icon w-auto" />
+            Demandes d'information
+          </NavLink>
+        </li>
+      )}
+
         <li>
           <NavLink to="/absences" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
             <Icon icon="fluent:clipboard-task-list-ltr-24-filled" className="circle-icon w-auto" />
@@ -341,7 +316,7 @@ useEffect(() => {
   )}
 
   {/* Soldes de Congés - RH uniquement */}
-  {(roles.includes("RH") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant") || roles.includes("Employe") || roles.includes("Gest_RH")) && (
+  {false && (roles.includes("RH") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant") || roles.includes("Employe") || roles.includes("Gest_RH")) && (
     <li>
       <NavLink to="/conges/soldes" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
         <Icon icon="fluent:table-24-filled" className="menu-icon" />
@@ -350,24 +325,8 @@ useEffect(() => {
     </li>
   )}
 
-
-  {/* TODO Phone - caché pour Gest_RH */}
-  {!roles.some(role => role === "Gest_Projet" || role === "RH") && (
-  <li>
-    <NavLink
-      to="/todo/phone"
-      className={navData => (navData.isActive ? "active-page" : "")}
-      onClick={handleLinkClick}
-    >
-      <Icon icon="fluent:board-24-filled" className="menu-icon" />
-      <span>Gestion Projet</span>
-    </NavLink>
-  </li>
-)}
-
-
   {/* Pointage - RH, Chef_Dep, Chef_Chant, Employe */}
-  {(roles.includes("RH") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant") || roles.includes("Employe") || roles.includes("Gest_RH")) && (
+  {false && (roles.includes("RH") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant") || roles.includes("Employe") || roles.includes("Gest_RH")) && (
   <li>
     <NavLink to="/pointages" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
       <Icon icon="fluent:clock-24-filled" className="menu-icon" />
@@ -378,7 +337,7 @@ useEffect(() => {
 
 
   {/* Publications & Sondages - Liste pub pour tous, Créer pub seulement RH */}
-  {(roles.includes("RH") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant") || roles.includes("Employe") || roles.includes("Gest_RH")) && (  <li className="dropdown">
+  {false && (roles.includes("RH") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant") || roles.includes("Employe") || roles.includes("Gest_RH") || roles.includes("Resp_Com")) && (  <li className="dropdown">
     <Link to="#">
       <Icon icon="fluent:news-24-filled" className="menu-icon" />
       <span>Communications</span>
@@ -388,12 +347,12 @@ useEffect(() => {
       <li>
         <NavLink to="/publications" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
           <Icon icon="fluent:news-24-filled" className="circle-icon w-auto" />
-          {roles.includes("RH") || roles.includes("Gest_RH") ? "Liste des publications" : "Publications"}
+          {roles.includes("RH") || roles.includes("Gest_RH") || roles.includes("Resp_Com") ? "Liste des publications" : "Publications"}
         </NavLink>
       </li>
       
-      {/* Créer publication - Seulement RH */}
-      {(roles.includes("RH") || roles.includes("Gest_RH")) && (
+      {/* Créer publication - Seulement RH et Resp_Com */}
+      {(roles.includes("RH") || roles.includes("Gest_RH") || roles.includes("Resp_Com")) && (
         <li>
           <NavLink to="/publications/nouveau" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
             <Icon icon="fluent:add-square-24-filled" className="circle-icon w-auto" />
@@ -414,118 +373,35 @@ useEffect(() => {
     </ul>
   </li>)}
 
-
-  
-
-    {/* Liste des Projets — RH, Gest_RH, Gest_Projet */}
-    {!canSeeProjects && (<>
-    
-<li className="dropdown">
-  <Link to="#" onClick={e => e.preventDefault()}>
-    <Icon icon="fluent:task-list-square-24-filled" className="menu-icon" />
-    <span>Gestion Projets</span>
-  </Link>
-
-  <ul className="sidebar-submenu">
-    {/* Mes Tâches — accessible à tous */}
-      <li>
-      <NavLink
-        to="/todo"
-        className={({ isActive }) => (isActive ? "active-page" : "")}
-        onClick={handleLinkClick}
-      >
-        <Icon icon="fluent:board-24-filled" className="circle-icon w-auto" />
-        <span>Mes Tâches</span>
-      </NavLink>
-    </li>
-      <li>
-        <NavLink
-          to="/todo/lists"
-          className={({ isActive }) => (isActive ? "active-page" : "")}
-          onClick={handleLinkClick}
-        >
-          <Icon icon="fluent:task-list-square-rtl-24-filled" className="circle-icon w-auto" />
-          <span>Listes (CRUD)</span>
-        </NavLink>
-      </li>
-      <li>
-        <NavLink
-          to="/projets"
-          className={({ isActive }) => (isActive ? "active-page" : "")}
-          onClick={handleLinkClick}
-        >
-          <Icon icon="fluent:folder-open-24-filled" className="circle-icon w-auto" />
-          <span>Liste des Projets</span>
-        </NavLink>
-      </li>
-      <li>
-        <NavLink
-          to="/projets-table"
-          className={({ isActive }) => (isActive ? "active-page" : "")}
-          onClick={handleLinkClick}
-        >
-          <Icon icon="fluent:folder-open-24-filled" className="circle-icon w-auto" />
-          <span>Table des Projets</span>
-        </NavLink>
-      </li>
-       <li>
-        <NavLink
-          to="/todo/phone"
-          className={({ isActive }) => (isActive ? "active-page" : "")}
-          onClick={handleLinkClick}
-        >
-          <Icon icon="fluent:folder-open-24-filled" className="circle-icon w-auto" />
-          <span>TODO PHONE</span>
-        </NavLink>
-      </li>
-      <li>
-        <NavLink
-          to="/projets-rapport"
-          className={({ isActive }) => (isActive ? "active-page" : "")}
-          onClick={handleLinkClick}
-        >
-          <Icon icon="fluent:folder-open-24-filled" className="circle-icon w-auto" />
-          <span>Rapport des projets</span>
-        </NavLink>
-      </li>
-      <li>
-        <NavLink
-          to="/info-requests"
-          className={({ isActive }) => (isActive ? "active-page" : "")}
-          onClick={handleLinkClick}
-        >
-          <Icon icon="fluent:chat-help-24-filled" className="circle-icon w-auto" />
-          <span>Demandes d'info</span>
-        </NavLink>
-      </li>
-      {/* Audit des Projets - Seulement RH et Gest_Projet */}
-      {(roles.includes("RH") || roles.includes("Gest_RH")) && (
-        <li>
-          <NavLink
-            to="/audit"
-            className={({ isActive }) => (isActive ? "active-page" : "")}
-            onClick={handleLinkClick}
-          >
-            <Icon icon="fluent:clipboard-search-24-filled" className="circle-icon w-auto" />
-            <span>Audit des Projets</span>
-          </NavLink>
-        </li>
-      )}
-  </ul>
-</li>
-      </>
-    )}
-
-
-  {/* Reporting - Tous les rôles, Excel Export seulement RH */}
-  {!roles.includes("Gest_Projet") && (
-      <li className="dropdown">
+  {/* Reporting */}
+  {false && (
+  <li className="dropdown">
     <Link to="#">
       <Icon icon="fluent:data-bar-vertical-24-filled" className="menu-icon" />
       <span>Reporting</span>
               </Link>
     <ul className="sidebar-submenu">
     
+                {/* Rapport des projets */}
+                {(roles.includes("Gest_Projet") || roles.includes("RH")) && (
+                    <li>
+                    <NavLink to="/projets-rapport" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+                        <Icon icon="fluent:folder-open-24-filled" className="circle-icon w-auto" />
+                        <span> Rapport des projets</span>
+                    </NavLink>
+                    </li>
+                )}
+
+                {/* Liste des projets */}
+                {(roles.includes("Gest_Projet") || roles.includes("RH")) && (
+                    <li>
+                    <NavLink to="/projets" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+                        <Icon icon="fluent:folder-24-filled" className="circle-icon w-auto" />
+                        <span>Liste des projets</span>
+                    </NavLink>
+                    </li>
+                )}
+
                 {/* Statistiques - Tous les rôles */}
                 <li>
         <NavLink to="/statistiques" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
@@ -558,7 +434,7 @@ useEffect(() => {
   )}
 
   {/* Paie - RH uniquement (sous-menu: Salaires, Charge Personnel) */}
-  {roles.includes("RH") && (
+  {false && roles.includes("RH") && (
     <li className="dropdown">
       <Link to="#">
         <Icon icon="fluent:money-24-filled" className="menu-icon" />
@@ -580,9 +456,6 @@ useEffect(() => {
       </ul>
     </li>
   )}
-
-
-
            
 </ul>
         </div>

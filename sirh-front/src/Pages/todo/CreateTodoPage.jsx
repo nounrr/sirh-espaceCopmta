@@ -124,7 +124,7 @@ const CreateTodoPage = () => {
                   onChange={(e) => setAssignedTo(e.target.value)}
                   required
                 >
-                  <option value="">Sélectionner un employé</option>
+                  <option value="" disabled>Sélectionner un employé</option>
                   {filteredEmployees.map(e => (
                     <option key={e.id} value={e.id}>
                       {e.name} {e.prenom} ({e.email})

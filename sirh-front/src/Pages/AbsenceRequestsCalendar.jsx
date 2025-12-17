@@ -23,6 +23,8 @@ const AbsenceRequestsCalendar = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
+  const roles = useSelector((state) => state.auth.roles || []);
+
   useEffect(() => {
     dispatch(fetchAbsenceRequests());
     dispatch(fetchUsers());
@@ -32,7 +34,12 @@ const AbsenceRequestsCalendar = () => {
     const filteredRequests = absenceRequests.filter((request) => {
       const matchesStatus = !filterStatus || request.statut === filterStatus;
       const matchesType = !filterType || request.type === filterType;
-      return matchesStatus && matchesType;
+      
+      // Filtre spécifique pour Resp_Com : seulement "demande document"
+      const isRespCom = roles.includes('Resp_Com');
+      const matchesRespCom = !isRespCom || request.type?.toLowerCase() === 'demande document';
+
+      return matchesStatus && matchesType && matchesRespCom;
     });
 
     const formattedEvents = filteredRequests.map((request) => {

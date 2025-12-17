@@ -131,7 +131,6 @@ const AddTaskForm = ({ listId, onTaskAdded }) => {
   const [status, setStatus] = useState('Non commencée');
   const [pourcentage, setPourcentage] = useState(0);
   // Nouveaux champs
-  const [type, setType] = useState('AC');
   const [origine, setOrigine] = useState('');
   const [errors, setErrors] = useState({});
   const [expanded, setExpanded] = useState(false);
@@ -183,9 +182,8 @@ const AddTaskForm = ({ listId, onTaskAdded }) => {
           start_date: startDate || null,
           end_date: endDate || null,
           assigned_to: assignedTo || null,
-      status: effectiveStatus,
-      pourcentage: effectivePourcentage,
-          type: type || null,
+        status: effectiveStatus,
+        pourcentage: effectivePourcentage,
           origine: origine?.trim() || null
         }
       })).unwrap();
@@ -199,7 +197,6 @@ const AddTaskForm = ({ listId, onTaskAdded }) => {
   setExpanded(false);
   setStatus('Non commencée');
   setPourcentage(0);
-  setType('AC');
   setOrigine('');
       
       if (result?.task) {
@@ -238,7 +235,6 @@ const AddTaskForm = ({ listId, onTaskAdded }) => {
   setErrors({});
   setStatus('Non commencée');
   setPourcentage(0);
-  setType('AC');
   setOrigine('');
     setExpanded(false);
   };
@@ -283,24 +279,9 @@ const AddTaskForm = ({ listId, onTaskAdded }) => {
               </div>
             )}
           </div>
-          {/* Ligne nouveaux champs type / origine */}
+          {/* Ligne champs rapides */}
           <div className="row g-3 mb-3">
-            <div className="col-md-3 col-6">
-              <label htmlFor="task-type" className="form-label small text-muted d-flex align-items-center gap-1 mb-1">
-                <Icon icon="mdi:shape" /> Type
-              </label>
-              <select
-                id="task-type"
-                className="form-select form-select-sm"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                disabled={loading}
-              >
-                <option value="AC">AC</option>
-                <option value="AP">AP</option>
-              </select>
-            </div>
-            <div className="col-md-5 col-6">
+            <div className="col-md-6 col-12">
               <label htmlFor="task-origine" className="form-label small text-muted d-flex align-items-center gap-1 mb-1">
                 <Icon icon="mdi:source-branch" /> Origine
               </label>
@@ -315,7 +296,7 @@ const AddTaskForm = ({ listId, onTaskAdded }) => {
                 maxLength={80}
               />
             </div>
-            <div className="col-md-4 col-12">
+            <div className="col-md-6 col-12">
               <label htmlFor="task-assignee-inline" className="form-label small text-muted d-flex align-items-center gap-1 mb-1">
                 <Icon icon="mdi:account" /> Assignée à
               </label>

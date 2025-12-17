@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createClient, updateClient, fetchClients } from '../Redux/Slices/clientsSlice';
+import { createClient, updateClient, fetchClients, fetchPortefeuilles } from '../Redux/Slices/clientsSlice';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import Swal from 'sweetalert2';
@@ -31,6 +31,7 @@ const schema = Yup.object({
   type_mission: Yup.string().nullable(),
   representant: Yup.string().nullable(),
   montant_total: Yup.number().typeError('Nombre invalide').nullable(),
+  porfeuille: Yup.string().nullable(),
   // Contact / divers
   tel: Yup.string().nullable(),
   adresse: Yup.string().nullable(),
@@ -45,9 +46,41 @@ const ClientFormPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
-  const { items: clients } = useSelector(s => s.clients);
+  const { items: clients, portefeuilles: reduxPortefeuilles } = useSelector(s => s.clients);
   const [fetched, setFetched] = useState(null);
   const existing = isEdit ? (clients.find(c => c.id === parseInt(id)) || fetched) : null;
+  const [portefeuilleDropdownOpen, setPortefeuilleDropdownOpen] = useState(false);
+  const portefeuilleFieldRef = useRef(null);
+
+  useEffect(() => {
+    dispatch(fetchPortefeuilles());
+    // Also fetch clients so existing portfolios from users populate immediately
+    dispatch(fetchClients());
+  }, [dispatch]);
+
+  const portefeuilleOptions = useMemo(() => {
+    const set = new Set();
+    (clients || []).forEach((client) => {
+      if (client?.porfeuille) set.add(client.porfeuille);
+    });
+    if (Array.isArray(reduxPortefeuilles)) {
+      reduxPortefeuilles.forEach((value) => {
+        if (value) set.add(value);
+      });
+    }
+    if (existing?.porfeuille) set.add(existing.porfeuille);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [clients, reduxPortefeuilles, existing?.porfeuille]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (portefeuilleFieldRef.current && !portefeuilleFieldRef.current.contains(event.target)) {
+        setPortefeuilleDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // helper to format any date-like value to yyyy-MM-dd
   const toDateInput = (v) => {
@@ -69,7 +102,7 @@ const ClientFormPage = () => {
     revenu_mensuel_net: existing.revenu_mensuel_net ?? '', chiffre_affaires_dernier_ex: existing.chiffre_affaires_dernier_ex ?? '', exercice_annee: existing.exercice_annee ?? '', forme_juridique: existing.forme_juridique || '',
     date_creation: toDateInput(existing.date_creation), capital_social: existing.capital_social ?? '', associes: existing.associes || '', statut_juridique: existing.statut_juridique || '', regime_fiscal: existing.regime_fiscal || '',
     // Collaboration
-    date_debut_collaboration: toDateInput(existing.date_debut_collaboration), type_mission: existing.type_mission || '', representant: existing.representant || '', montant_total: existing.montant_total ?? '',
+    date_debut_collaboration: toDateInput(existing.date_debut_collaboration), type_mission: existing.type_mission || '', representant: existing.representant || '', montant_total: existing.montant_total ?? '', porfeuille: existing.porfeuille || '',
     // Sortie
     date_sortie: toDateInput(existing.date_sortie),
   } : {
@@ -82,7 +115,7 @@ const ClientFormPage = () => {
     revenu_mensuel_net: '', chiffre_affaires_dernier_ex: '', exercice_annee: '', forme_juridique: '',
     date_creation: '', capital_social: '', associes: '', statut_juridique: '', regime_fiscal: '',
     // Collaboration
-    date_debut_collaboration: '', type_mission: '', representant: '', montant_total: '',
+    date_debut_collaboration: '', type_mission: '', representant: '', montant_total: '', porfeuille: '',
     // Sortie
     date_sortie: '',
     // Fixed contract type
@@ -106,7 +139,13 @@ const ClientFormPage = () => {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      const payload = { ...values, typeContrat: 'Client' };
+      const cleaned = { ...values };
+      ['cin','rib'].forEach((field) => {
+        if (typeof cleaned[field] === 'string' && cleaned[field].trim() === '') {
+          delete cleaned[field];
+        }
+      });
+      const payload = { ...cleaned, typeContrat: 'Client' };
       if (isEdit) {
         await dispatch(updateClient({ id: existing.id, ...payload })).unwrap();
         Swal.fire('Succès','Client mis à jour','success');
@@ -115,6 +154,7 @@ const ClientFormPage = () => {
         Swal.fire('Succès','Client créé','success');
       }
       await dispatch(fetchClients());
+      await dispatch(fetchPortefeuilles());
       navigate('/clients');
     } catch (e) {
       Swal.fire('Erreur', e?.message || 'Opération échouée','error');
@@ -149,7 +189,14 @@ const ClientFormPage = () => {
             <div className='card border-0 shadow-lg rounded-4'>
               <div className='card-body p-4'>
                 <Formik initialValues={initial} validationSchema={schema} onSubmit={handleSubmit} enableReinitialize>
-                  {({ isSubmitting, values, setFieldValue }) => (
+                  {({ isSubmitting, values, setFieldValue }) => {
+                    const normalizedPortefeuille = (values.porfeuille || '').trim().toLowerCase();
+                    const filteredPortefeuilleOptions = normalizedPortefeuille
+                      ? portefeuilleOptions.filter((opt) => opt.toLowerCase().includes(normalizedPortefeuille))
+                      : portefeuilleOptions;
+                    const hasAnyPortefeuilles = portefeuilleOptions.length > 0;
+                    const hasFilteredMatches = filteredPortefeuilleOptions.length > 0;
+                    return (
                     <Form className='space-y-4'>
                       {/* Identité du client */}
                       <div className='mb-4'>
@@ -284,6 +331,84 @@ const ClientFormPage = () => {
                             <label className='form-label fw-semibold'>Date sortie (si inactif)</label>
                             <Field type='date' name='date_sortie' className='form-control rounded-3' />
                           </div>
+                          <div className='col-md-3 mb-3'>
+                            <label className='form-label fw-semibold'>Portefeuille</label>
+                            <div className='position-relative' ref={portefeuilleFieldRef}>
+                              <Field
+                                name='porfeuille'
+                                className='form-control rounded-3'
+                                autoComplete='off'
+                                onFocus={() => setPortefeuilleDropdownOpen(true)}
+                                style={{
+                                  padding: '12px 56px 12px 14px',
+                                  border: '1px solid #d0d7de',
+                                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)',
+                                  transition: 'border-color 0.2s, box-shadow 0.2s'
+                                }}
+                              />
+                              <div className='position-absolute top-50 end-0 translate-middle-y d-flex gap-1 me-2'>
+                                {values.porfeuille && (
+                                  <button
+                                    type='button'
+                                    className='btn btn-outline-secondary btn-sm'
+                                    onClick={() => {
+                                      setFieldValue('porfeuille', '');
+                                      setPortefeuilleDropdownOpen(false);
+                                    }}
+                                    title='Effacer'
+                                  >
+                                    <Icon icon='ph:eraser-fill' />
+                                  </button>
+                                )}
+                                <button
+                                  type='button'
+                                  className='btn btn-outline-primary btn-sm'
+                                  onClick={() => setPortefeuilleDropdownOpen((prev) => !prev)}
+                                  title='Afficher les portefeuilles'
+                                >
+                                  <Icon icon={portefeuilleDropdownOpen ? 'mdi:chevron-up' : 'mdi:chevron-down'} />
+                                </button>
+                              </div>
+                              {portefeuilleDropdownOpen && (
+                                <div
+                                  className='card shadow-sm position-absolute w-100 mt-2 z-3'
+                                  style={{
+                                    maxHeight: 260,
+                                    overflowY: 'auto',
+                                    borderRadius: '0.75rem'
+                                  }}
+                                >
+                                  {hasFilteredMatches ? (
+                                    filteredPortefeuilleOptions.map((opt) => (
+                                      <button
+                                        type='button'
+                                        key={opt}
+                                        className='dropdown-item text-start'
+                                        onClick={() => {
+                                          setFieldValue('porfeuille', opt);
+                                          setPortefeuilleDropdownOpen(false);
+                                        }}
+                                        style={{ padding: '10px 14px' }}
+                                      >
+                                        {opt}
+                                      </button>
+                                    ))
+                                  ) : hasAnyPortefeuilles ? (
+                                    <div className='text-muted small px-3 py-2'>Aucun portefeuille ne correspond à votre saisie.</div>
+                                  ) : (
+                                    <div className='text-muted small px-3 py-2'>Aucun portefeuille enregistré.</div>
+                                  )}
+                                  {normalizedPortefeuille && !portefeuilleOptions.some((opt) => opt.toLowerCase() === normalizedPortefeuille) && (
+                                    <div className='text-muted small px-3 py-2 border-top'>
+                                      Nouveau portefeuille: <span className='fw-semibold'>{values.porfeuille}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <ErrorMessage name='porfeuille' component='div' className='text-danger small mt-1' />
+                            <small className='text-muted'>Tapez pour créer une valeur ou utilisez la flèche pour choisir l'une des existantes.</small>
+                          </div>
                           {/* Type de contrat forcé côté back, champ caché */}
                           <Field type='hidden' name='typeContrat' value='Client' />
                           <div className='col-md-3 mb-3'>
@@ -308,7 +433,8 @@ const ClientFormPage = () => {
                         <button type='button' className='btn btn-outline-secondary btn-lg' onClick={()=>navigate('/clients')}>Annuler</button>
                       </div>
                     </Form>
-                  )}
+                    );
+                  }}
                 </Formik>
               </div>
             </div>

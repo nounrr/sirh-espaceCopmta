@@ -77,9 +77,24 @@ export const deleteClients = createAsyncThunk(
   }
 );
 
+export const fetchPortefeuilles = createAsyncThunk(
+  'clients/fetchPortefeuilles',
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log('🔵 Redux: Fetching from', API_ENDPOINTS.CLIENTS.PORTEFEUILLES);
+      const res = await api.get(API_ENDPOINTS.CLIENTS.PORTEFEUILLES);
+      console.log('🔵 Redux: Received response:', res.data);
+      return res.data;
+    } catch (e) {
+      console.error('🔴 Redux: Error fetching portefeuilles:', e.response?.status, e.response?.data);
+      return rejectWithValue(e.response?.data || e.message);
+    }
+  }
+);
+
 const clientsSlice = createSlice({
   name: 'clients',
-  initialState: { items: [], meta: null, status: 'idle', error: null },
+  initialState: { items: [], portefeuilles: [], meta: null, status: 'idle', error: null },
   reducers: {},
   extraReducers: (builder) => {
     builder
@@ -103,6 +118,14 @@ const clientsSlice = createSlice({
       })
       .addCase(deleteClients.fulfilled, (state, action) => {
         state.items = state.items.filter((c) => !action.payload.includes(c.id));
+      })
+      .addCase(fetchPortefeuilles.fulfilled, (state, action) => {
+        console.log('🟢 Redux: Storing portefeuilles in state:', action.payload);
+        state.portefeuilles = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchPortefeuilles.rejected, (state, action) => {
+        console.error('🔴 Redux: fetchPortefeuilles rejected:', action.payload);
+        state.portefeuilles = [];
       });
   }
 });

@@ -15,7 +15,6 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
   const [editStartDate, setEditStartDate] = useState(task.start_date || '');
   const [editEndDate, setEditEndDate] = useState(task.end_date || '');
   const [editAssigned, setEditAssigned] = useState(task.assigned_to || '');
-  const [editType, setEditType] = useState(task.type || 'AC');
   const [editOrigine, setEditOrigine] = useState(task.origine || '');
   const [status, setStatus] = useState(task.status);
   const [isHovered, setIsHovered] = useState(false);
@@ -153,7 +152,6 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
       assigned_to: editAssigned || null,
       status: finalStatus,
       pourcentage: finalStatus === 'En cours' ? finalPourcentage : finalStatus === 'Terminée' ? 100 : 0,
-      type: editType || null,
       origine: editOrigine?.trim() || null
     };
     if (!payload.description) return;
@@ -177,7 +175,6 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
     setEditEndDate(task.end_date || '');
   setEditAssigned(task.assigned_to || '');
   setEditPourcentage(task.pourcentage || 0);
-  setEditType(task.type || 'AC');
   setEditOrigine(task.origine || '');
   };
 
@@ -299,16 +296,6 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
                     />
                   </div>
                   <div className="col-6">
-                    <select
-                      className="form-select form-select-sm"
-                      value={editType}
-                      onChange={(e) => setEditType(e.target.value)}
-                    >
-                      <option value="AC">AC</option>
-                      <option value="AP">AP</option>
-                    </select>
-                  </div>
-                  <div className="col-6">
                     <input
                       type="text"
                       className="form-control form-control-sm"
@@ -371,10 +358,6 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
         <div className="mt-2 pt-2 border-top">
           <div className="d-flex align-items-center justify-content-between gap-2">
             <div className="d-flex align-items-center gap-2 flex-wrap">
-              {/* Type */}
-              <span className={`badge ${task.type === 'AC' ? 'bg-primary' : task.type === 'AP' ? 'bg-success' : 'bg-secondary'} rounded-pill px-2 py-1 d-flex align-items-center gap-1`} style={{ fontSize: '0.6rem' }}>
-                <Icon icon="mdi:ticket" style={{ fontSize: '0.7rem' }} /> {task.type || 'N/A'}
-              </span>
               {/* Origine */}
               {task.origine && (
                 <span className="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2 py-1 d-flex align-items-center gap-1" style={{ fontSize: '0.6rem' }}>

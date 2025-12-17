@@ -76,7 +76,7 @@ const PointageRow = ({
         onChange={e => onFieldChange('statutJour', e.target.value)}
   disabled={disabledStatut || pointage.isAbsent || pointage.valider === 1}
       >
-        <option value="">Sélectionner...</option>
+        <option value="" disabled>Sélectionner...</option>
         <option value="present">Présent</option>
         <option value="absent">Absent</option>
         <option value="retard">Retard</option>

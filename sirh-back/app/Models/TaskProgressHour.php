@@ -10,20 +10,20 @@ class TaskProgressHour extends Model
     use HasFactory;
 
     protected $fillable = [
-        'todo_task_id',
+        'task_id',
         'user_id',
-        'work_date',
-        'minutes_spent',
-        'cost',
+        'start_datetime',
+        'end_datetime',
     ];
 
     protected $casts = [
-        'work_date' => 'date',
+        'start_datetime' => 'datetime',
+        'end_datetime' => 'datetime',
     ];
 
     public function task()
     {
-        return $this->belongsTo(TodoTask::class, 'todo_task_id');
+        return $this->belongsTo(TodoTask::class, 'task_id');
     }
 
     public function user()

@@ -121,6 +121,23 @@ public function updatePlayerId(Request $request) {
             ]
         ]);
     }
+
+    /**
+     * Retourne la liste des portefeuilles distincts pour tous les clients.
+     */
+    public function clientPortefeuilles()
+    {
+        $portefeuilles = User::query()
+            ->where('typeContrat', 'Client')
+            ->whereNotNull('porfeuille')
+            ->where('porfeuille', '<>', '')
+            ->distinct()
+            ->orderBy('porfeuille')
+            ->pluck('porfeuille')
+            ->values();
+
+        return response()->json($portefeuilles);
+    }
     
     public function EmployeTemp(Request $request){
     $perPage = (int) ($request->query('per_page', 15));
@@ -204,6 +221,7 @@ public function updatePlayerId(Request $request) {
             'type_mission' => 'nullable|string|max:150',
             'representant' => 'nullable|string|max:150',
             'montant_total' => 'nullable|numeric',
+            'porfeuille' => 'nullable|string|max:150',
         ];
         // Restreindre statut pour les clients
         if (($request->input('typeContrat') ?? null) === 'Client') {
@@ -348,6 +366,7 @@ public function updatePlayerId(Request $request) {
         'type_mission' => 'sometimes|nullable|string|max:150',
         'representant' => 'sometimes|nullable|string|max:150',
         'montant_total' => 'sometimes|nullable|numeric',
+        'porfeuille' => 'sometimes|nullable|string|max:150',
     ];
 
     // Adapter la règle de statut selon le type du user ciblé

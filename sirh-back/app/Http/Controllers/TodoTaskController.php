@@ -254,13 +254,10 @@ class TodoTaskController extends Controller
 
         $progressComment = $validated['progress_comment'] ?? null;
 
+        // Allow updating progress without forcing a comment
         if (array_key_exists('pourcentage', $validated)) {
             $newPourcentage = (int) $validated['pourcentage'];
-            if ($newPourcentage !== (int) $task->pourcentage && empty($progressComment)) {
-                return response()->json([
-                    'error' => 'Un commentaire est requis pour mettre à jour le taux d\'avancement.'
-                ], 422);
-            }
+            // No blocking validation on missing progressComment; logging remains optional below
         }
 
         if ($hasLimitedEmployeePermissions) {
@@ -403,7 +400,6 @@ class TodoTaskController extends Controller
                 'todo_task_id' => $task->id,
                 'user_id' => optional(Auth::user())->id,
                 'pourcentage' => (int) $task->pourcentage,
-                'status' => $task->status,
                 'comment' => $progressComment,
             ]);
         }

@@ -130,7 +130,7 @@ setAbsencesValidees(absences);
                     name="user_id"
                     className={`form-select ${errors.user_id && touched.user_id ? 'is-invalid' : ''}`}
                   >
-                    <option value="">Sélectionner un employé</option>
+                    <option value="" disabled>Sélectionner un employé</option>
                     {users.map((user) => (
                       <option key={user.id} value={user.id}>
                         {user.name} {user.prenom}
@@ -147,7 +147,7 @@ setAbsencesValidees(absences);
                     name="societe_id"
                     className={`form-select ${errors.societe_id && touched.societe_id ? 'is-invalid' : ''}`}
                   >
-                    <option value="">Sélectionner une société</option>
+                    <option value="" disabled>Sélectionner une société</option>
                     {societes.map((societe) => (
                       <option key={societe.id} value={societe.id}>
                         {societe.nom}

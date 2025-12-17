@@ -31,6 +31,11 @@ const AbsenceRequestsListPage = (props) => {
     if (roles.includes('RH') || roles.includes('Gest_RH')) {
       return true;
     }
+
+    // Resp_Com peut modifier les demandes de document
+    if (roles.includes('Resp_Com') && request.type?.toLowerCase() === 'demande document') {
+      return true;
+    }
     
     // Utilisateur normal peut modifier ses propres demandes seulement si pas encore approuvées ou annulées
     if (currentUser && (request.user_id == currentUser.id)) {
@@ -44,6 +49,11 @@ const AbsenceRequestsListPage = (props) => {
     // RH peut supprimer toutes les demandes non approuvées et non annulées
     if (roles.includes('RH') || roles.includes('Gest_RH')) {
       // Ne pas permettre la suppression des demandes approuvées, validées ou annulées
+      return !['approuvé', 'validé', 'annulé'].includes(request.statut?.toLowerCase());
+    }
+
+    // Resp_Com peut supprimer les demandes de document non validées
+    if (roles.includes('Resp_Com') && request.type?.toLowerCase() === 'demande document') {
       return !['approuvé', 'validé', 'annulé'].includes(request.statut?.toLowerCase());
     }
     
@@ -65,6 +75,7 @@ const AbsenceRequestsListPage = (props) => {
     const status = request.statut?.toLowerCase();
     const isRH = roles.includes('RH') || roles.includes('Gest_RH');
     const isChef = roles.includes('Chef_Dep') || roles.includes('Chef_Projet') || roles.includes('Chef_Chant');
+    const isRespCom = roles.includes('Resp_Com');
 
     if (isRH) {
       // RH peut approuver (valider) les demandes en attente, en demande ou déjà validées par un chef
@@ -76,13 +87,20 @@ const AbsenceRequestsListPage = (props) => {
        return ['en_attente', 'en demande'].includes(status);
     }
 
+    if (isRespCom && request.type?.toLowerCase() === 'demande document') {
+      // Resp_Com peut valider les demandes de document
+      return ['en_attente', 'en demande'].includes(status);
+    }
+
     return false;
   };
 
   const handleValidate = async (request) => {
     const isRH = roles.includes('RH') || roles.includes('Gest_RH');
-    const actionLabel = isRH ? 'Approuver' : 'Valider';
-    const nextStatusLabel = isRH ? 'approuvée' : 'validée';
+    const isRespCom = roles.includes('Resp_Com');
+    const actionLabel = (isRH || isRespCom) ? 'Approuver' : 'Valider';
+    const nextStatusLabel = (isRH || isRespCom) ? 'approuvée' : 'validée';
+    const nextStatus = (isRH || isRespCom) ? 'approuvé' : 'validé';
 
     const result = await Swal.fire({
       title: `${actionLabel} la demande?`,
@@ -97,7 +115,7 @@ const AbsenceRequestsListPage = (props) => {
 
     if (result.isConfirmed) {
       try {
-        await dispatch(updateAbsenceRequestStatus({ id: request.id, status: 'validé' })).unwrap();
+        await dispatch(updateAbsenceRequestStatus({ id: request.id, status: nextStatus })).unwrap();
         Swal.fire(
           `${actionLabel}!`,
           `La demande a été ${nextStatusLabel} avec succès.`,
@@ -328,8 +346,12 @@ const AbsenceRequestsListPage = (props) => {
     const matchesStatus = !status || request.statut.toLowerCase() === status.toLowerCase();
     const matchesStatusProp = !props.statusFilter || props.statusFilter.length === 0 || props.statusFilter.includes(request.statut.toLowerCase());
     const matchesUserStatus = !user || (user.statut?.toLowerCase() !== "inactif");
+
+    // Filtre spécifique pour Resp_Com : seulement "demande document"
+    const isRespCom = roles.includes('Resp_Com');
+    const matchesRespCom = !isRespCom || request.type.toLowerCase() === 'demande document';
   
-    return matchesSearch && matchesType && matchesStatus && matchesStatusProp && matchesUserStatus;
+    return matchesSearch && matchesType && matchesStatus && matchesStatusProp && matchesUserStatus && matchesRespCom;
   }).sort((a, b) => {
     // Tri personnalisé selon le champ sélectionné
     if (sortField === 'created_at') {

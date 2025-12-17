@@ -449,11 +449,17 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
                       Type de demande <span className="text-danger">*</span>
                     </label>
                     <Field as="select" name="type" className="form-select form-select-lg" style={{ borderRadius: '12px' }}>
-                      <option value="Congé">Congé</option>
-                      <option value="maladie">Maladie</option>
-                      <option value="AttestationTravail">Attestation de travail</option>
-                      <option value="demande document">Demande de document</option>
-                      <option value="autre">Autre</option>
+                      {role && role.includes('Resp_Com') ? (
+                        <option value="demande document">Demande de document</option>
+                      ) : (
+                        <>
+                          <option value="Congé">Congé</option>
+                          <option value="maladie">Maladie</option>
+                          <option value="AttestationTravail">Attestation de travail</option>
+                          <option value="demande document">Demande de document</option>
+                          <option value="autre">Autre</option>
+                        </>
+                      )}
                     </Field>
                     <ErrorMessage name="type" component="div" className="invalid-feedback d-flex align-items-center gap-1 mt-2" />
                   </div>
@@ -678,7 +684,7 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
                     Sélectionner le client
                   </label>
                   <Field as="select" name="client_id" id="client_id" className="form-select form-select-lg" style={{ borderRadius: '12px' }}>
-                    <option value="">-- Sélectionner --</option>
+                    <option value="" disabled>-- Sélectionner --</option>
                     {Array.isArray(clientsState.items) && clientsState.items.map((c) => (
                       <option key={c.id} value={c.id}>{c.name} {c.prenom || ''}</option>
                     ))}

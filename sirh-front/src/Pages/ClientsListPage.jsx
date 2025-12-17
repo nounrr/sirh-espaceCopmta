@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchClients, deleteClients } from '../Redux/Slices/clientsSlice';
+import { fetchClients, deleteClients, fetchPortefeuilles } from '../Redux/Slices/clientsSlice';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import Swal from 'sweetalert2';
 import api from '../config/axios';
@@ -10,20 +10,22 @@ import StyledTable from '../Components/Common/StyledTable';
 const ClientsListPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items: clients, meta, status, error } = useSelector((s) => s.clients);
+  const { items: clients, meta, status, error, portefeuilles = [] } = useSelector((s) => s.clients);
   const roles = useSelector((s) => s.auth.roles || []);
   const canManage = roles.includes('RH') || roles.includes('Gest_RH');
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [search, setSearch] = useState('');
+  const [filterPortefeuille, setFilterPortefeuille] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10); // default 10 per user request
 
   useEffect(() => { dispatch(fetchClients({ page: currentPage, perPage: itemsPerPage, search })); }, [dispatch, currentPage, itemsPerPage, search]);
+  useEffect(() => { dispatch(fetchPortefeuilles()); }, [dispatch]);
 
   const filtered = clients.filter(c => {
     const term = search.toLowerCase();
-    return (
+    const matchesSearch = (
       (c.name || '').toLowerCase().includes(term) ||
       (c.prenom || '').toLowerCase().includes(term) ||
       (c.email || '').toLowerCase().includes(term) ||
@@ -31,6 +33,8 @@ const ClientsListPage = () => {
       (c.ice || '').toLowerCase().includes(term) ||
       (c.raison_sociale || '').toLowerCase().includes(term)
     );
+    const matchesPortefeuille = !filterPortefeuille || (c.porfeuille === filterPortefeuille || c.portefeuille === filterPortefeuille);
+    return matchesSearch && matchesPortefeuille;
   });
 
   // Server returns already paginated slice, keep client filters for search (still sent server-side too)
@@ -116,11 +120,19 @@ const ClientsListPage = () => {
             <div className='card border-0 shadow-sm rounded-4'>
               <div className='card-body p-3'>
                 <div className='row g-3'>
-                  <div className='col-md-4'>
+                  <div className='col-md-3'>
                     <div className='position-relative'>
                       <Icon icon='fluent:search-24-filled' className='position-absolute start-0 top-50 translate-middle-y ms-3 text-secondary' />
                       <input className='form-control ps-5' placeholder='Rechercher...' value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} />
                     </div>
+                  </div>
+                  <div className='col-md-3'>
+                    <select className='form-select' value={filterPortefeuille} onChange={e => { setFilterPortefeuille(e.target.value); setCurrentPage(1); }}>
+                      <option value=''>Tous les portefeuilles</option>
+                      {portefeuilles.map((p, idx) => (
+                        <option key={idx} value={p}>{p}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className='col-md-2'>
                     <select className='form-select' value={itemsPerPage} onChange={(e)=>{ const v=e.target.value==='all'?(meta?.total||50):parseInt(e.target.value); setItemsPerPage(v); setCurrentPage(1); }}>
@@ -132,7 +144,7 @@ const ClientsListPage = () => {
                     </select>
                   </div>
                   <div className='col-md-2'>
-                    <button className='btn btn-outline-danger w-100' onClick={()=>{ setSearch(''); setItemsPerPage(10); setCurrentPage(1); setSelectedIds([]); }}>
+                    <button className='btn btn-outline-danger w-100' onClick={()=>{ setSearch(''); setFilterPortefeuille(''); setItemsPerPage(10); setCurrentPage(1); setSelectedIds([]); }}>
                       <Icon icon='fluent:arrow-reset-24-filled' />
                     </button>
                   </div>
@@ -155,6 +167,7 @@ const ClientsListPage = () => {
                         <th>Client</th>
                         <th>Email</th>
                         <th>Raison sociale</th>
+                        <th>Portefeuille</th>
                         <th>RC</th>
                         <th>ICE</th>
                         <th>Statut</th>
@@ -168,6 +181,7 @@ const ClientsListPage = () => {
                           <td className='fw-semibold'>{c.name} {c.prenom}</td>
                           <td>{c.email}</td>
                           <td>{c.raison_sociale || '—'}</td>
+                          <td>{c.porfeuille || c.portefeuille || '—'}</td>
                           <td>{c.rc || '—'}</td>
                           <td>{c.ice || '—'}</td>
                           <td><span className={`badge ${c.statut==='Actif'?'bg-success':'bg-secondary'}`}>{c.statut}</span></td>

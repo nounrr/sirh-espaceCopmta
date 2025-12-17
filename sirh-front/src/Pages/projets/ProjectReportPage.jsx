@@ -171,9 +171,14 @@ const InlineError = ({ message, compact = false }) => (
 
 const ProjectReportPage = () => {
   const dispatch = useDispatch();
-  const { items: projects = [], status: projectsStatus } = useSelector(state => state.projects || {});
-  const { items: todoLists = [], loading: todoListsLoading } = useSelector(state => state.todoLists || {});
-  const { items: users = [] } = useSelector(state => state.users || {});
+  const { items: rawProjects, status: projectsStatus } = useSelector(state => state.projects || {});
+  const projects = Array.isArray(rawProjects) ? rawProjects : [];
+
+  const { items: rawTodoLists, loading: todoListsLoading } = useSelector(state => state.todoLists || {});
+  const todoLists = Array.isArray(rawTodoLists) ? rawTodoLists : [];
+
+  const { items: rawUsers } = useSelector(state => state.users || {});
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
   
   const loading = projectsStatus === 'loading' || todoListsLoading;
 

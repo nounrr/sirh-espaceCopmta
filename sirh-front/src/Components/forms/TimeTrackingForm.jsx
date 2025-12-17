@@ -62,7 +62,7 @@ const TimeTrackingForm = ({ initialValues = {}, isEdit = false, onSuccess }) => 
               id="employe_id"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
-              <option value="">Sélectionner un employé</option>
+              <option value="" disabled>Sélectionner un employé</option>
               {users.map(user => (
                 <option key={user.id} value={user.id}>
                   {user.name} {user.prenom}

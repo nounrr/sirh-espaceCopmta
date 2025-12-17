@@ -475,7 +475,6 @@ const handleSubmitListInline = async (projectId) => {
         assigned_to: '',
         start_date: '',
         end_date: '',
-        type: 'AC',
         origine: '',
         todo_list_id: listId 
       } 
@@ -493,10 +492,9 @@ const handleSubmitListInline = async (projectId) => {
         status: taskData.status,
         assigned_to: taskData.assigned_to || null,
         start_date: taskData.start_date || null,
-        end_date: taskData.end_date || null,
-  // Ajout des nouveaux champs
-  type: taskData.type || null,
-  origine: taskData.origine || null,
+          end_date: taskData.end_date || null,
+        // Ajout des nouveaux champs
+        origine: taskData.origine || null,
       };
       await dispatch(createTask({ listId, data: payload })).unwrap();
       setShowAddTaskForm(prev => ({ ...prev, [listId]: false }));
@@ -716,7 +714,6 @@ const handleSubmitListInline = async (projectId) => {
       assigned_to: task.assigned_to || '',
   start_date: task.start_date || '',
   end_date: task.end_date || '',
-      type: task.type || 'AC',
       origine: task.origine || '',
       pourcentage: task.pourcentage || 0,
       todo_list_id: task.todo_list_id
@@ -1916,7 +1913,7 @@ const handleSubmitListInline = async (projectId) => {
                                                   {showAddTaskForm[list.id] && (
                                                     <div className="mb-3 p-3 bg-light border rounded">
                                                       <div className="row g-3 mb-3">
-                                                        <div className="col-md-4">
+                                                        <div className="col-md-5">
                                                           <label className="form-label small text-muted">Description *</label>
                                                           <input
                                                             type="text"
@@ -1932,23 +1929,6 @@ const handleSubmitListInline = async (projectId) => {
                                                             }))}
                                                             autoFocus
                                                           />
-                                                        </div>
-                                                        <div className="col-md-2">
-                                                          <label className="form-label small text-muted">Type *</label>
-                                                          <select
-                                                            className="form-select form-select-sm"
-                                                            value={newTaskData[list.id]?.type || 'AC'}
-                                                            onChange={(e) => setNewTaskData(prev => ({
-                                                              ...prev,
-                                                              [list.id]: {
-                                                                ...prev[list.id],
-                                                                type: e.target.value
-                                                              }
-                                                            }))}
-                                                          >
-                                                            <option value="AC">AC</option>
-                                                            <option value="AP">AP</option>
-                                                          </select>
                                                         </div>
                                                         <div className="col-md-3">
                                                           <label className="form-label small text-muted">Origine</label>
@@ -1966,7 +1946,7 @@ const handleSubmitListInline = async (projectId) => {
                                                             }))}
                                                           />
                                                         </div>
-                                                        <div className="col-md-3">
+                                                        <div className="col-md-4">
                                                           <label className="form-label small text-muted">Statut</label>
                                                           <select
                                                             className="form-select form-select-sm"
@@ -2172,17 +2152,6 @@ const handleSubmitListInline = async (projectId) => {
                                                                       />
                                                                     </div>
                                                                     
-                                                                    <div className="col-md-3">
-                                                                      <label className="form-label small text-muted mb-1">Type *</label>
-                                                                      <select
-                                                                        className="form-select"
-                                                                        value={editTaskData.type || 'AC'}
-                                                                        onChange={(e) => setEditTaskData(prev => ({ ...prev, type: e.target.value }))}
-                                                                      >
-                                                                        <option value="AC">AC</option>
-                                                                        <option value="AP">AP</option>
-                                                                      </select>
-                                                                    </div>
                                                                     
                                                                     <div className="col-md-3">
                                                                       <label className="form-label small text-muted mb-1">Origine</label>
@@ -2335,13 +2304,6 @@ const handleSubmitListInline = async (projectId) => {
                                                                             {isTaskOverdue(task) && getOverdueBadge()}
                                                                           </div>
                                                                           <div className="d-flex align-items-center gap-2 ms-4">
-                                                                            <span className={`badge px-2 py-1 ${
-                                                                              task.type === 'AC' ? 'bg-primary' : 
-                                                                              task.type === 'AP' ? 'bg-success' : 
-                                                                              'bg-secondary'
-                                                                            }`} style={{ fontSize: '0.7rem' }}>
-                                                                              {task.type || 'N/A'}
-                                                                            </span>
                                                                             {task.origine && (
                                                                               <span className="badge bg-secondary px-2 py-1" style={{ fontSize: '0.7rem' }}>
                                                                                 <Icon icon="mdi:source-branch" style={{ fontSize: '0.8rem' }} className="me-1" />

@@ -153,7 +153,7 @@ const InfoRequestsPage = () => {
                       value={formData.client_id}
                       onChange={e => setFormData({...formData, client_id: e.target.value})}
                     >
-                      <option value="">Sélectionner un client...</option>
+                      <option value="" disabled>Sélectionner un client...</option>
                       {clients.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}

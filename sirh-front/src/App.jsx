@@ -1,4 +1,6 @@
 import MasterLayout from './masterLayout/MasterLayout'
+// (imports consolidated below)
+import { fetchClients, fetchPortefeuilles } from './Redux/Slices/clientsSlice'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import Login from './Pages/Login'
 import Dashboard from './Pages/Dashboard'
@@ -59,6 +61,7 @@ import PrivateRouteWithRole from './PrivateRouteWithRole';
 import UpdateManager from './components/UpdateManager';
 import PWADebug from './PWADebug';
 
+// Hooks and Redux
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers } from './Redux/Slices/userSlice';
@@ -246,10 +249,14 @@ const App = () => {
   const hasRhRole = (role) => typeof role === 'string' && role.toLowerCase().includes('rh');
 const roles = useSelector((state) => state.auth.roles || []);
   const ISGestProjet = Array.isArray(roles)&& roles.some(r => ["Gest_Projet"].includes(r));
+  const ISRespCom = Array.isArray(roles)&& roles.some(r => ["Resp_Com"].includes(r));
 
   // Charger les données après auth
   useEffect(() => {
     if (auth.isAuthenticated) {
+      // Preload clients and portfolios once authenticated
+      dispatch(fetchClients());
+      dispatch(fetchPortefeuilles());
       // dispatch(fetchUserData()); // TODO: Ajouter cette fonction si nécessaire
       // dispatch(fetchNotifications()); // TODO: Ajouter cette fonction si nécessaire
     }
@@ -271,7 +278,19 @@ const roles = useSelector((state) => state.auth.roles || []);
         if (p === '/' || p === '/dashboard' || p === '/login') {
           navigate('/todo/phone', { replace: true });
         }
+      } else if (ISRespCom) {
+        // Resp_Com: fetch slices needed for info requests and publications
+        dispatch(fetchUsers()); // Needed for assignees
+        dispatch(fetchClients()); // Needed for info requests
+        dispatch(fetchPublications());
+        dispatch(fetchAbsenceRequests());
+        
+        const p = typeof window !== 'undefined' ? window.location.pathname : '';
+        if (p === '/' || p === '/dashboard' || p === '/login') {
+          navigate('/info-requests', { replace: true });
+        }
       } else {
+
         // Other roles: fetch all slices as before
         dispatch(fetchUsers());
         dispatch(fetchDepartments());
@@ -327,9 +346,9 @@ const roles = useSelector((state) => state.auth.roles || []);
         <Route element={  <PrivateRoute requirePlayerId={false}>
                             <MasterLayout />
                           </PrivateRoute>}>
-          <Route  path="/" element={ISGestProjet ? <TasksPhoneView /> : <Dashboard />} />
+          <Route  path="/" element={ISGestProjet ? <TasksPhoneView /> : (ISRespCom ? <InfoRequestsPage /> : <Dashboard />)} />
           <Route path="/view-profile" element={<ViewProfileLayer />} />
-          <Route path='/dashboard' element={ISGestProjet ? <TasksPhoneView /> : <Dashboard/>} />
+          <Route path='/dashboard' element={ISGestProjet ? <TasksPhoneView /> : (ISRespCom ? <InfoRequestsPage /> : <Dashboard />)} />
           <Route path='/statistiques' element={<PresenceDashboard/>} />
           <Route path='/pointagedetails'element={<UserPointagesPeriode userId={user?.id} />} />
 

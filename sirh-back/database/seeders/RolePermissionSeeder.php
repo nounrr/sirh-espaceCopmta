@@ -46,6 +46,10 @@ class RolePermissionSeeder extends Seeder
                 'manage project reports',
                 'create project absence',
             ],
+            'Resp_Com' => [
+                'view info requests',
+                'manage info requests',
+            ],
             'RH' => [
                 'view all absences',
                 'export excel',

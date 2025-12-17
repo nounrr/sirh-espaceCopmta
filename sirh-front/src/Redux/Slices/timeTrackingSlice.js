@@ -1,53 +1,49 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-
-// Temporary in-memory store for time tracking since backend endpoints are not yet finalized.
-// These thunks keep the UI responsive by updating local state and resolving immediately.
+import api from '../../config/axios';
+import { API_ENDPOINTS } from '../../config/api';
 
 const nowIso = () => new Date().toISOString();
 
 export const fetchActiveEntry = createAsyncThunk(
 	'timeTracking/fetchActiveEntry',
-	async (taskId, { getState }) => {
-		const existing = getState().timeTracking?.activeByTask?.[taskId] || null;
-		return { taskId, entry: existing };
+	async (taskId) => {
+		const url = API_ENDPOINTS.TIME_TRACKING.ACTIVE(taskId);
+		console.log('[TimeTracking] fetchActiveEntry - URL:', url);
+		const { data } = await api.get(url);
+		console.log('[TimeTracking] fetchActiveEntry - Response:', data);
+		return { taskId, entry: data.entry || null };
 	}
 );
 
 export const startTaskTimer = createAsyncThunk(
 	'timeTracking/startTaskTimer',
-	async (taskId) => ({
-		taskId,
-		entry: {
-			id: `local-${Date.now()}`,
-			task_id: taskId,
-			started_at: nowIso(),
+	async (taskId) => {
+		const url = API_ENDPOINTS.TIME_TRACKING.START(taskId);
+		console.log('[TimeTracking] START - TaskID:', taskId, 'URL:', url);
+		const { data } = await api.post(url);
+		console.log('[TimeTracking] START - Response:', data);
+		const entry = data.entry ? {
+			...data.entry,
 			status: 'running',
-		},
-	})
+		} : null;
+		return { taskId, entry };
+	}
 );
 
 export const pauseTaskTimer = createAsyncThunk(
 	'timeTracking/pauseTaskTimer',
-	async (taskId, { getState }) => {
-		const existing = getState().timeTracking?.activeByTask?.[taskId] || null;
-		let addedMinutes = 0;
-		if (existing && existing.status === 'running' && existing.started_at) {
-			const start = new Date(existing.started_at);
-			const now = new Date();
-			const diffMs = now - start;
-			addedMinutes = Math.floor(diffMs / 60000);
-		}
-		return {
-			taskId,
-			addedMinutes,
-			entry: existing
-				? {
-						...existing,
-						status: 'paused',
-						paused_at: nowIso(),
-					}
-				: null,
-		};
+	async (taskId) => {
+		const url = API_ENDPOINTS.TIME_TRACKING.PAUSE(taskId);
+		console.log('[TimeTracking] PAUSE - TaskID:', taskId, 'URL:', url);
+		const { data } = await api.post(url);
+		console.log('[TimeTracking] PAUSE - Response:', data);
+		const entry = data.entry ? {
+			...data.entry,
+			status: 'paused',
+			paused_at: data.entry?.ended_at || nowIso(),
+		} : null;
+		const addedMinutes = data.entry?.duration_minutes || 0;
+		return { taskId, addedMinutes, entry };
 	}
 );
 
@@ -68,14 +64,17 @@ export const finishTask = createAsyncThunk(
 
 export const fetchDailySummary = createAsyncThunk(
 	'timeTracking/fetchDailySummary',
-	async ({ taskId, date }) => ({
-		taskId,
-		date,
-		summary: {
-			total_minutes: 0,
-			sessions: [],
-		},
-	})
+	async ({ taskId, date }) => {
+		const { data } = await api.get(API_ENDPOINTS.TIME_TRACKING.DAILY_SUMMARY(taskId, date));
+		return {
+			taskId,
+			date: data.date,
+			summary: {
+				total_minutes: data.total_minutes || 0,
+				sessions: [],
+			},
+		};
+	}
 );
 
 const initialState = {

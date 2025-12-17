@@ -1332,7 +1332,7 @@ const SalairePage = () => {
                       user_id: e.target.value
                     }))}
                   >
-                    <option value="">Sélectionner un employé</option>
+                    <option value="" disabled>Sélectionner un employé</option>
                     {(availableUsers || []).map(user => {
                       const userDepartment = departments.find(d => d.id === user.departement_id);
                       return (

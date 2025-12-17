@@ -46,7 +46,7 @@ const menuData = [
   },
   {
     icon: "fluent:task-list-square-24-filled",
-    label: "Gestion Projets",
+    label: "Gestion des taches",
     roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_RH"],
     excludeRoles: ["Gest_Projet"],
     options: [
@@ -120,7 +120,7 @@ const BottomMenu = () => {
     {
       icon: "fluent:task-list-square-24-filled",
       to: "/todo/phone",
-      label: "Gestion Projet",
+      label: "Gestion des taches",
       direct: true
     },
     {

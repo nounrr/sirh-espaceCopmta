@@ -12,8 +12,11 @@ import Swal from 'sweetalert2';
 const ProjectListPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items: projects, status } = useSelector(state => state.projects);
-  const { items: todoLists = [] } = useSelector(state => state.todoLists || {});
+  const { items: rawProjects, status } = useSelector(state => state.projects || {});
+  const projects = Array.isArray(rawProjects) ? rawProjects : [];
+  
+  const { items: rawTodoLists } = useSelector(state => state.todoLists || {});
+  const todoLists = Array.isArray(rawTodoLists) ? rawTodoLists : [];
   const [editProject, setEditProject] = useState(null);
   const [showDeleteId, setShowDeleteId] = useState(null);
   const [editForm, setEditForm] = useState({ 

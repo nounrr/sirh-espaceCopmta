@@ -5,7 +5,7 @@ import { fetchTodoLists } from '../../Redux/Slices/todoListSlice';
 import { createTask, updateTask, deleteTask, requestTaskCancellation, cancelTaskCancellationRequest, uploadTaskProofs, approveCancellationRequest, rejectCancellationRequest, sendBulkReminders } from '../../Redux/Slices/todoTaskSlice';
 import { fetchProjects } from '../../Redux/Slices/projectSlice';
 import { fetchUsers } from '../../Redux/Slices/userSlice';
-import { fetchClients } from '../../Redux/Slices/clientsSlice';
+import { fetchClients, fetchPortefeuilles } from '../../Redux/Slices/clientsSlice';
 import Swal from '../../utils/swal';
 import { fetchTaskComments, addTaskComment, updateTaskComment, deleteTaskComment } from '../../Redux/Slices/taskCommentsSlice';
 import { fetchActiveEntry, startTaskTimer, pauseTaskTimer, finishTask, fetchDailySummary } from '../../Redux/Slices/timeTrackingSlice';
@@ -174,11 +174,19 @@ const TasksPhoneView = () => {
   };
 
   const dispatch = useDispatch();
-  const { items: lists = [] } = useSelector((state) => state.todoLists);
-  const { items: projects = [] } = useSelector((state) => state.projects);
+  const { items: rawLists } = useSelector((state) => state.todoLists || {});
+  const lists = Array.isArray(rawLists) ? rawLists : [];
+
+  const { items: rawProjects } = useSelector((state) => state.projects || {});
+  const projects = Array.isArray(rawProjects) ? rawProjects : [];
+
   // Employés (users) + Clients will be merged for assignment / filtering
-  const { items: users = [] } = useSelector((state) => state.users);
-  const { items: clients = [] } = useSelector((state) => state.clients || {});
+  const { items: rawUsers } = useSelector((state) => state.users || {});
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
+
+  const { items: rawClients, portefeuilles: rawPortefeuilles } = useSelector((state) => state.clients || {});
+  const clients = Array.isArray(rawClients) ? rawClients : [];
+  const availablePortefeuilles = Array.isArray(rawPortefeuilles) ? rawPortefeuilles : [];
   const { user: authUser, roles: authRoles = [] } = useSelector((state) => state.auth || {});
   const taskCommentsState = useSelector((state) => state.taskComments || {});
   const commentsByTask = taskCommentsState.commentsByTask || {};
@@ -216,11 +224,12 @@ const TasksPhoneView = () => {
   const [clientAssigneeInput, setClientAssigneeInput] = useState('');
   const [selectedEmployeeAssignees, setSelectedEmployeeAssignees] = useState([]); // array of user IDs (employees)
   const [selectedClientAssignees, setSelectedClientAssignees] = useState([]); // array of user IDs (clients)
+  const [selectedPortefeuilleForBulk, setSelectedPortefeuilleForBulk] = useState(''); // Pour créer des tâches pour tous les clients d'un portefeuille
+  const [clientFilterPortefeuille, setClientFilterPortefeuille] = useState(''); // Filtre portefeuille pour la recherche client
   const [status, setStatus] = useState('Non commencée');
   const [priority, setPriority] = useState('normale');
   const [pourcentage, setPourcentage] = useState(0);
   const [source, setSource] = useState('');
-  const [taskType, setTaskType] = useState('AC');
   const [attachments, setAttachments] = useState([]);
   const [loadingAdd, setLoadingAdd] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
@@ -237,7 +246,6 @@ const TasksPhoneView = () => {
   const [editStatus, setEditStatus] = useState('Non commencée');
   const [editPriority, setEditPriority] = useState('normale');
   const [editPourcentage, setEditPourcentage] = useState(0);
-  const [editType, setEditType] = useState('AC');
   const [editLoading, setEditLoading] = useState(false);
   const [editSelectedProject, setEditSelectedProject] = useState('');
   const [editSelectedList, setEditSelectedList] = useState('');
@@ -258,6 +266,7 @@ const TasksPhoneView = () => {
   const [filterClient, setFilterClient] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
   const [filterTaskType, setFilterTaskType] = useState('');
+  const [filterPortefeuille, setFilterPortefeuille] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showHundredIncompleteOnly, setShowHundredIncompleteOnly] = useState(false);
   const [sortMode, setSortMode] = useState('recent');
@@ -758,6 +767,10 @@ const TasksPhoneView = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    dispatch(fetchPortefeuilles());
+  }, [dispatch]);
+
   const normalizedAuthRoles = useMemo(() => {
     const collected = [
       ...(Array.isArray(authRoles) ? authRoles : []),
@@ -975,7 +988,46 @@ const TasksPhoneView = () => {
         }
       }
 
-      if (!matchesProject || !matchesList || !matchesStatus || !matchesPriority || !matchesClient || !matchesType) {
+      let matchesPortefeuille = true;
+      if (filterPortefeuille) {
+        // Chercher le portefeuille dans les assignés de la tâche
+        const rawAssignees = Array.isArray(t.assignees) && t.assignees.length > 0
+          ? t.assignees
+          : (t.assigned_to ? [{ id: t.assigned_to }] : []);
+        
+        if (rawAssignees.length === 0) {
+          // Pas d'assignés = ne correspond pas au filtre
+          matchesPortefeuille = false;
+        } else {
+          const hasMatchingPortefeuille = rawAssignees.some((assignee) => {
+            // Extraire l'ID de l'assigné
+            const assigneeId = typeof assignee === 'object' && assignee !== null 
+              ? (assignee.id || assignee.user_id)
+              : assignee;
+            
+            if (!assigneeId) return false;
+            
+            // Récupérer l'utilisateur complet depuis usersById
+            const user = getUserById(assigneeId);
+            
+            if (!user) return false;
+            
+            // Vérifier les deux orthographes possibles: porfeuille et portefeuille
+            const userPortefeuille = user.porfeuille || user.portefeuille;
+            
+            // Debug log (à retirer après test)
+            if (userPortefeuille) {
+              console.log('[Filter Debug] User:', user.name || user.prenom, 'Portefeuille:', userPortefeuille, 'Filter:', filterPortefeuille, 'Match:', userPortefeuille === filterPortefeuille);
+            }
+            
+            return userPortefeuille === filterPortefeuille;
+          });
+          
+          matchesPortefeuille = hasMatchingPortefeuille;
+        }
+      }
+
+      if (!matchesProject || !matchesList || !matchesStatus || !matchesPriority || !matchesClient || !matchesType || !matchesPortefeuille) {
         return false;
       }
       // ------------------------
@@ -1075,7 +1127,7 @@ const TasksPhoneView = () => {
     })();
 
     return [...filteredTasks].sort(comparator);
-  }, [allTasks, filterProject, filterList, filterStatus, filterAssignees, query, usersById, hasLimitedEmployeePermissions, authUser, userHasAdvancedAccess, showHundredIncompleteOnly, sortMode, filterPriority, filterClient, filterTaskType, projectsById]);
+  }, [allTasks, filterProject, filterList, filterStatus, filterAssignees, query, usersById, hasLimitedEmployeePermissions, authUser, userHasAdvancedAccess, showHundredIncompleteOnly, sortMode, filterPriority, filterClient, filterTaskType, filterPortefeuille, projectsById]);
 
   const totalPages = useMemo(() => {
     return Math.max(1, Math.ceil(filtered.length / perPage || 1));
@@ -1158,10 +1210,10 @@ const TasksPhoneView = () => {
     setClientAssigneeInput('');
     setSelectedEmployeeAssignees([]);
     setSelectedClientAssignees([]);
+    setSelectedPortefeuilleForBulk('');
     setStatus('Non commencée');
     setPourcentage(0);
     setSource('');
-    setTaskType('AC');
     setAttachments([]);
   };
 
@@ -1298,6 +1350,199 @@ const TasksPhoneView = () => {
   const effectiveStatus = (status === 'En cours' && Number(pourcentage) >= 100) ? 'Terminée' : status;
   const effectivePourcentage = effectiveStatus === 'Terminée' ? 100 : (effectiveStatus === 'En cours' ? pourcentage : 0);
 
+      // Check if bulk creation via portefeuille
+      if (selectedPortefeuilleForBulk) {
+        const portfolioClients = clients.filter(c => 
+          c.porfeuille === selectedPortefeuilleForBulk || 
+          c.portefeuille === selectedPortefeuilleForBulk
+        );
+        
+        if (portfolioClients.length === 0) {
+          showSwal({
+            icon: 'warning',
+            title: 'Aucun client',
+            text: `Aucun client trouvé dans le portefeuille "${selectedPortefeuilleForBulk}"`,
+            confirmButtonText: 'OK',
+            toast: true,
+            position: 'top-end',
+            timer: 2500,
+            showConfirmButton: false
+          });
+          setLoadingAdd(false);
+          return;
+        }
+
+        let successCount = 0;
+        let errorCount = 0;
+        let totalTasksCreated = 0;
+
+        for (const client of portfolioClients) {
+          try {
+            // Déterminer les plages de dates à créer (soit répétitions, soit unique)
+            const rangesToCreate = isRepeatingTask 
+              ? normalizedRepeatRanges 
+              : [{ start: startDate, end: endDate }];
+
+            // Créer une tâche individuelle pour chaque occurrence
+            for (const range of rangesToCreate) {
+              const formData = new FormData();
+              formData.append('description', (description || '').trim() || 'Nouvelle tâche');
+              formData.append('status', effectiveStatus === 'Non commencée' ? 'En attente' : effectiveStatus);
+              formData.append('priority', priority);
+              formData.append('client_id', client.id);
+              formData.append('pourcentage', String(effectivePourcentage));
+
+              if (range.start) formData.append('start_date', range.start);
+              if (range.end) formData.append('end_date', range.end);
+              
+              // Note: On n'envoie PAS les paramètres de répétition (repeat_count, etc.)
+              // car on crée manuellement chaque occurrence ici pour éviter les problèmes backend.
+              
+              formData.append('assignees_present', '1');
+              // Assigner le client comme assigné principal
+              formData.append('assignees[]', client.id);
+              formData.append('assigned_to', client.id);
+              // Ajouter aussi les autres assignés sélectionnés (employés)
+              if (selectedAssignees.length > 0) {
+                selectedAssignees.forEach((id) => {
+                  formData.append('assignees[]', id);
+                });
+              }
+              
+              if (source.trim()) formData.append('source', source.trim());
+
+              attachments.forEach((file) => {
+                formData.append('attachments[]', file);
+              });
+
+              await dispatch(createTask({ listId: effectiveListId, data: formData })).unwrap();
+              totalTasksCreated++;
+            }
+            successCount++; // Compte le client comme traité avec succès
+          } catch (err) {
+            console.error(`Erreur création tâche pour client ${client.nom}:`, err);
+            errorCount++;
+          }
+        }
+
+        dispatch(fetchTodoLists());
+        resetForm();
+        setShowAdd(false);
+
+        if (successCount > 0) {
+          const repeatInfo = isRepeatingTask ? ` (${totalTasksCreated} tâches au total avec répétitions)` : '';
+          showSwal({
+            icon: 'success',
+            title: 'Tâches créées',
+            text: `${successCount} client${successCount > 1 ? 's' : ''} × ${isRepeatingTask ? repeatCount + ' répétitions' : '1 tâche'}${repeatInfo} pour le portefeuille "${selectedPortefeuilleForBulk}"${errorCount > 0 ? `. ${errorCount} échec${errorCount > 1 ? 's' : ''}` : ''}`,
+            toast: true,
+            position: 'top-end',
+            timer: 3500,
+            showConfirmButton: false
+          });
+        } else {
+          showSwal({
+            icon: 'error',
+            title: 'Erreur',
+            text: 'Impossible de créer les tâches pour ce portefeuille',
+            toast: true,
+            position: 'top-end',
+            timer: 2500,
+            showConfirmButton: false
+          });
+        }
+        
+        setLoadingAdd(false);
+        return;
+      }
+
+      // Check if multiple clients selected manually (create separate tasks for each)
+      if (!selectedPortefeuilleForBulk && selectedClientAssignees.length > 1) {
+        const targetClients = selectedClientAssignees.map(id => clients.find(c => String(c.id) === String(id))).filter(Boolean);
+        
+        let successCount = 0;
+        let errorCount = 0;
+        let totalTasksCreated = 0;
+
+        for (const client of targetClients) {
+          try {
+            // Déterminer les plages de dates à créer (soit répétitions, soit unique)
+            const rangesToCreate = isRepeatingTask 
+              ? normalizedRepeatRanges 
+              : [{ start: startDate, end: endDate }];
+
+            // Créer une tâche individuelle pour chaque occurrence
+            for (const range of rangesToCreate) {
+              const formData = new FormData();
+              formData.append('description', (description || '').trim() || 'Nouvelle tâche');
+              formData.append('status', effectiveStatus === 'Non commencée' ? 'En attente' : effectiveStatus);
+              formData.append('priority', priority);
+              formData.append('client_id', client.id);
+              formData.append('pourcentage', String(effectivePourcentage));
+
+              if (range.start) formData.append('start_date', range.start);
+              if (range.end) formData.append('end_date', range.end);
+              
+              formData.append('assignees_present', '1');
+              // Assigner le client comme assigné principal
+              formData.append('assignees[]', client.id);
+              formData.append('assigned_to', client.id);
+              
+              // Ajouter les employés sélectionnés
+              if (selectedEmployeeAssignees.length > 0) {
+                selectedEmployeeAssignees.forEach((id) => {
+                  formData.append('assignees[]', id);
+                });
+              }
+              
+              if (source.trim()) formData.append('source', source.trim());
+
+              attachments.forEach((file) => {
+                formData.append('attachments[]', file);
+              });
+
+              await dispatch(createTask({ listId: effectiveListId, data: formData })).unwrap();
+              totalTasksCreated++;
+            }
+            successCount++;
+          } catch (err) {
+            console.error(`Erreur création tâche pour client ${client.nom}:`, err);
+            errorCount++;
+          }
+        }
+
+        dispatch(fetchTodoLists());
+        resetForm();
+        setShowAdd(false);
+
+        if (successCount > 0) {
+          const repeatInfo = isRepeatingTask ? ` (${totalTasksCreated} tâches au total avec répétitions)` : '';
+          showSwal({
+            icon: 'success',
+            title: 'Tâches créées',
+            text: `${successCount} client${successCount > 1 ? 's' : ''} × ${isRepeatingTask ? repeatCount + ' répétitions' : '1 tâche'}${repeatInfo} pour les clients sélectionnés${errorCount > 0 ? `. ${errorCount} échec${errorCount > 1 ? 's' : ''}` : ''}`,
+            toast: true,
+            position: 'top-end',
+            timer: 3500,
+            showConfirmButton: false
+          });
+        } else {
+          showSwal({
+            icon: 'error',
+            title: 'Erreur',
+            text: 'Impossible de créer les tâches pour les clients sélectionnés',
+            toast: true,
+            position: 'top-end',
+            timer: 2500,
+            showConfirmButton: false
+          });
+        }
+        
+        setLoadingAdd(false);
+        return;
+      }
+
+      // Single task creation (existing logic)
       const formData = new FormData();
       formData.append('description', (description || '').trim() || 'Nouvelle tâche');
       formData.append('status', effectiveStatus === 'Non commencée' ? 'En attente' : effectiveStatus);
@@ -1331,7 +1576,6 @@ const TasksPhoneView = () => {
         formData.append('assigned_to', '');
       }
       if (source.trim()) formData.append('source', source.trim());
-      formData.append('type', taskType || 'AC');
 
       attachments.forEach((file) => {
         formData.append('attachments[]', file);
@@ -1488,7 +1732,6 @@ const TasksPhoneView = () => {
     setEditStatus(task.status || 'Non commencée');
     setEditPourcentage(task.pourcentage ?? 0);
     setEditSource(task.source || '');
-  setEditType(task.type || 'AC');
     setEditCompletionProofs([]);
     const normalizedAssignees = Array.isArray(task.assignees) && task.assignees.length > 0
       ? task.assignees.map((assignee) => String(assignee.id))
@@ -1535,7 +1778,6 @@ const TasksPhoneView = () => {
     setEditStatus('Non commencée');
     setEditPourcentage(0);
     setEditSource('');
-    setEditType('AC');
     setEditExistingAttachments([]); // Reset existing attachments
     setEditNewAttachments([]); // Reset new attachments
     setAttachmentsToRemove([]); // Reset attachments to remove
@@ -1574,7 +1816,6 @@ const TasksPhoneView = () => {
         formData.append('start_date', editStartDate || '');
         formData.append('end_date', editEndDate || '');
         formData.append('source', editSource.trim());
-        formData.append('type', editType || 'AC');
         if (editSelectedList) {
           formData.append('todo_list_id', editSelectedList);
         }
@@ -1797,7 +2038,6 @@ const TasksPhoneView = () => {
     setSelectedAssignees((Array.isArray(task.assignees) && task.assignees.length > 0)
       ? task.assignees.map((a) => (typeof a === 'object' ? String(a.id) : String(a)))
       : (task.assigned_to ? [String(task.assigned_to)] : []));
-    setTaskType(task.type || 'AC');
     setPourcentage(task.pourcentage ?? task.progression ?? 0);
     setStatus('Non commencée'); // reset status to default for new task
     setAttachments([]);
@@ -2184,89 +2424,7 @@ const TasksPhoneView = () => {
             </div>
           </div>
 
-          {/* Checkbox for 100% incomplete tasks - takes half width on mobile, auto on desktop */}
-          {userHasAdvancedAccess && (
-            <div className="col-6 col-md-auto ms-md-auto d-flex align-items-center">
-              <label 
-                htmlFor="filter-hundred-incomplete"
-                className="d-flex align-items-center gap-2 px-2 px-md-3 py-2 no-column w-100"
-                style={{
-                  cursor: 'pointer',
-                  borderRadius: '12px',
-                  background: showHundredIncompleteOnly 
-                    ? 'linear-gradient(135deg, #667eea, #764ba2)'
-                    : 'rgba(102, 126, 234, 0.04)',
-                  border: `1px solid ${showHundredIncompleteOnly ? 'rgba(102, 126, 234, 0.3)' : 'rgba(102, 126, 234, 0.1)'}`,
-                  transition: 'all 0.2s ease',
-                  userSelect: 'none',
-                  boxShadow: '0 2px 8px rgba(102, 126, 234, 0.08)'
-                }}
-                onMouseEnter={(e) => {
-                  if (!showHundredIncompleteOnly) {
-                    e.currentTarget.style.background = 'rgba(102, 126, 234, 0.06)';
-                    e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.2)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!showHundredIncompleteOnly) {
-                    e.currentTarget.style.background = 'rgba(102, 126, 234, 0.04)';
-                    e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.1)';
-                  }
-                }}
-              >
-                <div 
-                  className="d-flex align-items-center justify-content-center"
-                  style={{
-                    width: 20,
-                    height: 20,
-                    minWidth: 20,
-                    borderRadius: '6px',
-                    background: showHundredIncompleteOnly 
-                      ? 'linear-gradient(135deg, #667eea, #764ba2)'
-                      : '#ffffff',
-                    border: `2px solid ${showHundredIncompleteOnly ? '#667eea' : '#d1d5db'}`,
-                    transition: 'all 0.2s ease',
-                    boxShadow: showHundredIncompleteOnly ? '0 2px 8px rgba(102, 126, 234, 0.3)' : 'none'
-                  }}
-                >
-                  {showHundredIncompleteOnly && (
-                    <Icon icon="mdi:check" style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 'bold' }} />
-                  )}
-                </div>
-                <input
-                  className="form-check-input d-none"
-                  type="checkbox"
-                  id="filter-hundred-incomplete"
-                  checked={showHundredIncompleteOnly}
-                  onChange={(event) => setShowHundredIncompleteOnly(event.target.checked)}
-                />
-                <span 
-                  className="fw-semibold d-none d-md-inline"
-                  style={{ 
-                    fontSize: '0.85rem',
-                    color: showHundredIncompleteOnly ? '#667eea' : '#6b7280',
-                    transition: 'color 0.2s ease',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  <Icon icon="mdi:file-document-check" className="me-1" style={{ fontSize: '1rem' }} />
-                  Tâches 100% non clôturées
-                </span>
-                <span 
-                  className="fw-semibold d-md-none"
-                  style={{ 
-                    fontSize: '0.75rem',
-                    color: showHundredIncompleteOnly ? '#667eea' : '#6b7280',
-                    transition: 'color 0.2s ease',
-                    lineHeight: '1.2'
-                  }}
-                >
-                  <Icon icon="mdi:file-document-check" className="me-1" style={{ fontSize: '0.9rem' }} />
-                  100% non clôturées
-                </span>
-              </label>
-            </div>
-          )}
+          {/* Checkbox for 100% incomplete tasks - removed */}
         </div>
       </div>
 
@@ -2397,7 +2555,8 @@ const TasksPhoneView = () => {
                 <option value="Annulé">Annulé</option>
               </select>
             </div>
-            {/* Tri */}
+            {/* Tri - hidden */}
+            {false && (
             <div className="col-6 col-md-3">
               <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
                 <Icon icon="mdi:sort" className="me-1" style={{ fontSize: '0.85rem', color: '#f59e0b' }} />
@@ -2423,7 +2582,35 @@ const TasksPhoneView = () => {
                 <option value="status_noncommencee">Statut: Non commencée en premier</option>
               </select>
             </div>
+            )}
           
+            {/* Portefeuille */}
+            <div className="col-6 col-md-2">
+              <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
+                <Icon icon="mdi:briefcase" className="me-1" style={{ fontSize: '0.85rem', color: '#06b6d4' }} />
+                Portefeuille
+              </label>
+              <select
+                className="form-select form-select-sm shadow-sm border-0"
+                value={filterPortefeuille}
+                onChange={(e) => setFilterPortefeuille(e.target.value)}
+                style={{ 
+                  borderRadius: '10px', 
+                  background: 'rgba(6, 182, 212, 0.04)',
+                  fontSize: '0.8rem',
+                  padding: '8px 12px',
+                  border: '1px solid rgba(6, 182, 212, 0.1)'
+                }}
+              >
+                <option value="">Tous les portefeuilles</option>
+                {availablePortefeuilles.map((portfolio, idx) => (
+                  <option key={idx} value={portfolio}>
+                    {portfolio}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Collaborateur */}
             <div className="col-6 col-md-3">
               <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
@@ -2855,7 +3042,7 @@ const TasksPhoneView = () => {
                     fontSize: '0.85rem'
                   }}
                 >
-                  <option value="">Sélectionner une catégorie...</option>
+                  <option value="" disabled>Sélectionner une catégorie...</option>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>{p.nom || p.titre || p.name || p.title || `Catégorie ${p.id}`}</option>
                   ))}
@@ -2880,33 +3067,12 @@ const TasksPhoneView = () => {
                     fontSize: '0.85rem'
                   }}
                 >
-                  <option value="">Choisir une liste...</option>
+                  <option value="" disabled>Choisir une liste...</option>
                   {listsForSelectedProject.map((l) => (<option key={l.id} value={l.id}>{l.title || l.name || `Liste ${l.id}`}</option>))}
                 </select>
               </div>
 
               <div className="mb-3 row g-2">
-                {!hasLimitedEmployeePermissions && (
-                  <div className="col-6">
-                    <label className="form-label small mb-2 fw-semibold text-secondary d-flex align-items-center gap-1">
-                      <Icon icon="mdi:tag" className="text-primary" />
-                      Nature
-                    </label>
-                    <select
-                      className="form-select border-0 shadow-sm"
-                      value={taskType}
-                      onChange={(e) => setTaskType(e.target.value)}
-                      style={{
-                        borderRadius: '12px',
-                        background: 'rgba(255,255,255,0.85)',
-                        padding: '10px 12px'
-                      }}
-                    >
-                      <option value="AC">AC</option>
-                      <option value="AP">AP</option>
-                    </select>
-                  </div>
-                )}
                 {!hasLimitedEmployeePermissions && (
                   <div className="col-6">
                     <label className="form-label small mb-2 fw-semibold text-secondary d-flex align-items-center gap-1">
@@ -3128,12 +3294,35 @@ const TasksPhoneView = () => {
                     <Icon icon="mdi:account-box-multiple" className="me-1" style={{ color: '#10b981', fontSize: '0.9rem' }} />
                     Client associé
                   </label>
+                  
+                  {/* Filtre par portefeuille pour la recherche client */}
+                  <div className="mb-2">
+                     <select
+                        className="form-select form-select-sm border-0 shadow-sm"
+                        value={clientFilterPortefeuille}
+                        onChange={(e) => setClientFilterPortefeuille(e.target.value)}
+                        style={{ 
+                          borderRadius: '10px', 
+                          background: 'rgba(6, 182, 212, 0.04)',
+                          fontSize: '0.8rem',
+                          padding: '8px 12px',
+                          border: '1px solid rgba(6, 182, 212, 0.1)',
+                          color: '#0e7490'
+                        }}
+                      >
+                        <option value="">Filtrer par portefeuille (Tous)</option>
+                        {availablePortefeuilles.map((p, idx) => (
+                          <option key={idx} value={p}>{p}</option>
+                        ))}
+                      </select>
+                  </div>
+
                   <div className="position-relative mb-2">
                     <Icon icon="mdi:account-search" className="position-absolute top-50 start-0 translate-middle-y ms-3" style={{ color: '#9ca3af', fontSize: '1rem' }} />
                     <input
                       list="tasks-phone-client-assignee-list"
                       className="form-control border-0 shadow-sm ps-5"
-                      placeholder="Rechercher un client... (1 maximum)"
+                      placeholder={clientFilterPortefeuille ? `Rechercher un client (${clientFilterPortefeuille})...` : "Rechercher un client..."}
                       value={clientAssigneeInput}
                       onChange={(e) => setClientAssigneeInput(e.target.value)}
                       aria-label="Assigner clients"
@@ -3147,14 +3336,50 @@ const TasksPhoneView = () => {
                     />
                   </div>
                   <datalist id="tasks-phone-client-assignee-list">
-                    {clients.map(c => {
+                    {clients
+                      .filter(c => !clientFilterPortefeuille || c.porfeuille === clientFilterPortefeuille || c.portefeuille === clientFilterPortefeuille)
+                      .map(c => {
                       const label = buildDisplayLabel(c) || `Client ${c.id}`;
                       return <option key={`cli-${c.id}`} value={label} />;
                     })}
                   </datalist>
+                  
+                  {/* Sélecteur de portefeuille pour créer des tâches en masse */}
+                  <div className="mt-3">
+                    <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                      <Icon icon="mdi:briefcase-outline" className="me-1" style={{ fontSize: '0.9rem', color: '#06b6d4' }} />
+                      Ou sélectionner un portefeuille (créera une tâche pour chaque client)
+                    </label>
+                    <select
+                      className="form-select border-0 shadow-sm"
+                      value={selectedPortefeuilleForBulk}
+                      onChange={(e) => setSelectedPortefeuilleForBulk(e.target.value)}
+                      style={{ 
+                        borderRadius: '12px', 
+                        background: 'rgba(6, 182, 212, 0.04)',
+                        padding: '12px 16px',
+                        border: '1px solid rgba(6, 182, 212, 0.1)',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      <option value="">Aucun (tâche unique)</option>
+                      {availablePortefeuilles.map((p, idx) => {
+                        const clientCount = clients.filter(c => (c.porfeuille === p || c.portefeuille === p)).length;
+                        return (
+                          <option key={idx} value={p}>{p} ({clientCount} client{clientCount > 1 ? 's' : ''})</option>
+                        );
+                      })}
+                    </select>
+                    {selectedPortefeuilleForBulk && (
+                      <div className="mt-2 alert alert-info py-2 px-3 small" style={{ borderRadius: '10px', fontSize: '0.75rem' }}>
+                        <Icon icon="mdi:information" className="me-1" />
+                        Une tâche sera créée pour chaque client du portefeuille <strong>{selectedPortefeuilleForBulk}</strong>
+                      </div>
+                    )}
+                  </div>
                   {selectedClientAssignees.length > 0 && (
                     <div className="mt-2 d-flex flex-wrap gap-2 no-column">
-                      {selectedClientAssignees.slice(0,1).map(cliId => {
+                      {selectedClientAssignees.map(cliId => {
                         const user = getUserById(cliId);
                         const label = buildUserLabel(user) || `Client ${cliId}`;
                         const initials = label.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
@@ -3238,7 +3463,7 @@ const TasksPhoneView = () => {
       )}
 
       {/* Bulk Reminder Actions Bar */}
-      {selectedTasksForReminder.length > 0 && (
+      {false && selectedTasksForReminder.length > 0 && (
         <div 
           className="mb-3 p-3 animate__animated animate__fadeInDown" 
           style={{ 
@@ -3363,8 +3588,6 @@ const TasksPhoneView = () => {
                 ? 'Tâche déjà finalisée'
                 : 'Demander l\'annulation';
             const canSeeCancellationDetails = userHasAdvancedAccess || isTaskAssignedToCurrentUser(task);
-            const typeBadgeClass = task.type === 'AC' ? 'bg-primary' : task.type === 'AP' ? 'bg-success' : 'bg-secondary';
-            const typeLabel = task.type || 'N/A';
             const dynamicComments = commentsByTask[String(task.id)] || [];
             const fallbackCommentsCount = Array.isArray(task.comments) ? task.comments.length : 0;
             const commentCount = dynamicComments.length || fallbackCommentsCount;
@@ -3451,8 +3674,8 @@ const TasksPhoneView = () => {
                         <div className="row g-3 mb-3">
                           <div className="col-6">
                             <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
-                              <Icon icon="mdi:tag" className="text-primary" />
-                              Nature
+                              <Icon icon="mdi:calendar-start" className="text-success" />
+                              Début
                             </label>
                             <input 
                               type="date" 
@@ -3511,7 +3734,7 @@ const TasksPhoneView = () => {
                             disabled={hasLimitedEmployeePermissions}
                             style={{ borderRadius: '10px', background: 'rgba(255,255,255,0.8)' }}
                           >
-                            <option value="">Choisir une liste</option>
+                            <option value="" disabled>Choisir une liste</option>
                             {(editSelectedProject ? lists.filter(l => {
                               const pid = l.project_id ?? l.projectId ?? (l.project && l.project.id) ?? l.project;
                               return String(pid) === String(editSelectedProject);
@@ -3591,7 +3814,7 @@ const TasksPhoneView = () => {
                           </datalist>
                           {editSelectedClientAssignees.length > 0 && (
                             <div className="mt-2 d-flex flex-wrap gap-2 no-column">
-                              {editSelectedClientAssignees.slice(0,1).map(assigneeId => {
+                              {editSelectedClientAssignees.map(assigneeId => {
                                 const user = getUserById(assigneeId);
                                 const label = buildUserLabel(user) || `Client ${assigneeId}`;
                                 return (
@@ -3607,20 +3830,6 @@ const TasksPhoneView = () => {
                         </div>
                       )}
                       <div className="row g-2 mb-3">
-                        {!hasLimitedEmployeePermissions && (
-                          <div className="col-6">
-                            <label className="form-label small mb-1 fw-semibold text-secondary">Nature</label>
-                            <select
-                              className="form-select border-0 shadow-sm"
-                              value={editType}
-                              onChange={(e) => setEditType(e.target.value)}
-                              style={{ borderRadius: '10px', background: 'rgba(255,255,255,0.85)' }}
-                            >
-                              <option value="AC">AC</option>
-                              <option value="AP">AP</option>
-                            </select>
-                          </div>
-                        )}
                         {!hasLimitedEmployeePermissions && (
                           <div className="col-6">
                             <label className="form-label small mb-1 fw-semibold text-secondary">Statut</label>
@@ -3978,20 +4187,6 @@ const TasksPhoneView = () => {
                             {task.status || 'Non commencée'}
                           </div>
                           
-                          {/* Type badge - minimalist */}
-                          <span 
-                            className="d-inline-flex align-items-center gap-1 px-2 py-1 no-column" 
-                            style={{ 
-                              borderRadius: '8px', 
-                              fontSize: '0.7rem', 
-                              fontWeight: '600',
-                              background: task.type === 'AC' ? 'rgba(102, 126, 234, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                              color: task.type === 'AC' ? '#667eea' : '#10b981'
-                            }}
-                          >
-                            {typeLabel}
-                          </span>
-                          
                           {/* Progress percentage badge */}
                           {task.pourcentage > 0 && (
                             <div 
@@ -4213,7 +4408,7 @@ const TasksPhoneView = () => {
                               (
                                 normalizedStatus.includes('non') || 
                                 (normalizedStatus.includes('cours') && task.pourcentage < 100)
-                              ) && (
+                              ) && false && (
                               <button
                                 type="button"
                                 className="btn btn-sm d-inline-flex align-items-center justify-content-center no-column"
@@ -4537,17 +4732,18 @@ const TasksPhoneView = () => {
                                     className="btn btn-sm d-inline-flex align-items-center justify-content-center no-column"
                                     onClick={handleFinish}
                                     aria-label="Terminer"
-                                    title="Terminer la tâche"
+                                    title={!showPlay ? "Mettez en pause avant de terminer" : "Terminer la tâche"}
                                     style={{ 
                                       width: 32, height: 32, minWidth: 32, maxWidth: 32, flex: '0 0 auto', padding: 0,
                                       borderRadius: '10px', border: 'none',
-                                      background: allowed ? 'rgba(239,68,68,0.15)' : 'rgba(209,213,219,0.4)',
-                                      color: allowed ? '#dc2626' : '#9ca3af',
-                                      transition: 'all 0.2s ease'
+                                      background: (allowed && showPlay) ? 'rgba(239,68,68,0.15)' : 'rgba(209,213,219,0.4)',
+                                      color: (allowed && showPlay) ? '#dc2626' : '#9ca3af',
+                                      transition: 'all 0.2s ease',
+                                      cursor: !showPlay ? 'not-allowed' : 'pointer'
                                     }}
-                                    onMouseEnter={(e) => { if (!allowed) return; e.currentTarget.style.background = 'rgba(239,68,68,0.25)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-                                    onMouseLeave={(e) => { if (!allowed) return; e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.transform = 'scale(1)'; }}
-                                    disabled={!allowed}
+                                    onMouseEnter={(e) => { if (!allowed || !showPlay) return; e.currentTarget.style.background = 'rgba(239,68,68,0.25)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                                    onMouseLeave={(e) => { if (!allowed || !showPlay) return; e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                                    disabled={!allowed || !showPlay}
                                   >
                                     <Icon icon="mdi:stop" style={{ fontSize: '1rem' }} />
                                   </button>
@@ -4740,25 +4936,33 @@ const TasksPhoneView = () => {
                                   const label = buildUserLabel(user || normalized) || `Utilisateur ${normalized.id}`;
                                   const initials = label.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
                                   
+                                  // Déterminer si c'est un client
+                                  const isClient = user?.typeContrat === 'Client';
+                                  
                                   return (
                                     <div
                                       key={`task-${task.id}-assignee-${normalized.id}`}
                                       className="d-inline-flex align-items-center gap-1 px-2 py-1 no-column"
                                       style={{ 
                                         borderRadius: '10px',
-                                        background: 'rgba(102, 126, 234, 0.08)',
+                                        background: isClient ? 'rgba(6, 182, 212, 0.08)' : 'rgba(102, 126, 234, 0.08)',
                                         fontSize: '0.7rem',
                                         fontWeight: '500',
-                                        color: '#667eea'
+                                        color: isClient ? '#0891b2' : '#667eea'
                                       }}
-                                      title={label}
+                                      title={isClient ? `${label} (Client)` : label}
                                     >
+                                      {isClient && (
+                                        <Icon icon="mdi:briefcase" style={{ fontSize: '0.85rem', color: '#0891b2' }} />
+                                      )}
                                       <div 
                                         className="rounded-circle d-flex align-items-center justify-content-center"
                                         style={{
                                           width: 20,
                                           height: 20,
-                                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                          background: isClient 
+                                            ? 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)'
+                                            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                           color: '#fff',
                                           fontSize: '0.6rem',
                                           fontWeight: '600'

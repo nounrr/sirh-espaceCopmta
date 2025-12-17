@@ -28,7 +28,7 @@ class User extends Authenticatable
         'raison_sociale','rc','ice','identifiant_fiscale','domaine_activite','revenu_mensuel_net',
         'chiffre_affaires_dernier_ex','exercice_annee','forme_juridique','date_creation','capital_social',
         'associes','statut_juridique','regime_fiscal','date_debut_collaboration','type_mission','representant',
-    'montant_total',
+    'montant_total','porfeuille',
     'hourly_rate'
     ];
 

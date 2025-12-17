@@ -370,7 +370,7 @@ date_naissance: Yup.date().nullable('La date de naissance est requise'),
                                 Sexe
                               </label>
                               <Field as="select" name="sex" id="sex" className="form-select rounded-3">
-                                <option value="">Sélectionner le sexe</option>
+                                <option value="" disabled>Sélectionner le sexe</option>
                                 <option value="H">Homme</option>
                                 <option value="F">Femme</option>
                               </Field>
@@ -593,7 +593,7 @@ date_naissance: Yup.date().nullable('La date de naissance est requise'),
                                 className="form-select rounded-3"
                                 key="role-field"
                               >
-                                <option value="">Sélectionner un rôle</option>
+                                <option value="" disabled>Sélectionner un rôle</option>
                                 <option value="Employe">Employé</option>
                                 <option value="Chef_Dep">Chef de Département</option>
                                 <option value="Chef_Chant">Chef de Chantier</option>
@@ -664,7 +664,7 @@ date_naissance: Yup.date().nullable('La date de naissance est requise'),
                                 className="form-select rounded-3"
                                 key="departement_id-field"
                               >
-                                <option value="">Sélectionner un département</option>
+                                <option value="" disabled>Sélectionner un département</option>
                                 {departments.map(dept => (
                                   <option key={dept.id} value={dept.id}>{dept.nom}</option>
                                 ))}
@@ -685,7 +685,7 @@ date_naissance: Yup.date().nullable('La date de naissance est requise'),
                                 className="form-select rounded-3"
                                 key="societe_id-field"
                               >
-                                <option value="">Sélectionner une société</option>
+                                <option value="" disabled>Sélectionner une société</option>
                                 {societes.map(soc => (
                                   <option key={soc.id} value={soc.id}>{soc.nom}</option>
                                 ))}
