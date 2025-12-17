@@ -15,7 +15,8 @@ const borderClasses = [
 
 export default function PublicationListCards() {
   const dispatch = useDispatch();
-  const { items: publications, loading } = useSelector(state => state.publications);
+  const { items: rawPublications, loading } = useSelector(state => state.publications || {});
+  const publications = Array.isArray(rawPublications) ? rawPublications : [];
 
   useEffect(() => {
     dispatch(fetchPublications());

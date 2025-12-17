@@ -20,10 +20,16 @@ function PresenceEvaluationChart({
   mois,
   isMobile = false,
 }) {
-  const pointages = useSelector((state) => state.pointages.items || []);
-  const users = useSelector((state) => state.users.items || []);
-  const departments = useSelector((state) => state.departments.items || []);
-  const roles = useSelector((state) => state.auth.roles || []);
+  const rawPointages = useSelector((state) => state.pointages?.items);
+  const pointages = Array.isArray(rawPointages) ? rawPointages : [];
+
+  const rawUsers = useSelector((state) => state.users?.items);
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
+
+  const rawDepartments = useSelector((state) => state.departments?.items);
+  const departments = Array.isArray(rawDepartments) ? rawDepartments : [];
+
+  const roles = useSelector((state) => state.auth?.roles || []);
   const isRH = roles.includes('RH');
   // Filtres
   const [filtreDepartement, setFiltreDepartement] = useState("");

@@ -39,7 +39,7 @@ function getType(label) {
 const PresenceStatsCard = ({ label, value, icon, percentage, showDetailsBtn, onDetailsClick, selectorClass }) => {
   const type = getType(label);
   const color = STATUS_COLORS[type] || STATUS_COLORS.default;
-  const roles = useSelector((state) => state.auth.roles || []);
+  const roles = useSelector((state) => state.auth?.roles || []);
   const isRH = roles.includes('RH') || roles.includes('Gest_RH');
 
   return (

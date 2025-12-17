@@ -229,11 +229,20 @@ disabled={pointage.isAbsent || !pointage.statutJour || pointage.valider === 1}
 
 const PointagesListPage = () => {
   const dispatch = useDispatch();
-  const { items: pointages, status: loading, error } = useSelector((state) => state.pointages);
-  const { items: users } = useSelector((state) => state.users);
-  const { items: societes } = useSelector((state) => state.societes); // Récupération des sociétés
-  const { items: absenceRequests } = useSelector((state) => state.absenceRequests);
-  const { items: departments } = useSelector((state) => state.departments);
+  const { items: rawPointages, status: loading, error } = useSelector((state) => state.pointages || {});
+  const pointages = Array.isArray(rawPointages) ? rawPointages : [];
+  
+  const { items: rawUsers } = useSelector((state) => state.users || {});
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
+  
+  const { items: rawSocietes } = useSelector((state) => state.societes || {}); // Récupération des sociétés
+  const societes = Array.isArray(rawSocietes) ? rawSocietes : [];
+  
+  const { items: rawAbsenceRequests } = useSelector((state) => state.absenceRequests || {});
+  const absenceRequests = Array.isArray(rawAbsenceRequests) ? rawAbsenceRequests : [];
+  
+  const { items: rawDepartments } = useSelector((state) => state.departments || {});
+  const departments = Array.isArray(rawDepartments) ? rawDepartments : [];
   const { user: currentUser } = useSelector((state) => state.auth); // Récupérer l'utilisateur actuel
   const canValidateAll = currentUser && ['RH', 'Gest_RH', 'Chef_Dep', 'Chef_Projet'].includes(currentUser.role);
   const canInvalidateAllForRH = currentUser && ['RH', 'Gest_RH'].includes(currentUser.role); // Ajout pour le bouton Invalider Tout

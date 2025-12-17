@@ -13,7 +13,8 @@ const DepartmentsListPage = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items: departments, status: loading, error } = useSelector((state) => state.departments);
+  const { items: rawDepartments, status: loading, error } = useSelector((state) => state.departments);
+  const departments = Array.isArray(rawDepartments) ? rawDepartments : [];
   const [selectedDepartments, setSelectedDepartments] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);

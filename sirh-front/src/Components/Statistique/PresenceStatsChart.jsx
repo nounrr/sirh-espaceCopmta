@@ -8,7 +8,7 @@ const PresenceStatsChart = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   const dispatch = useDispatch();
-  const { data: stats, loading } = useSelector((state) => state.presence);
+  const { data: stats, loading } = useSelector((state) => state.presence || {});
 
   useEffect(() => {
     dispatch(fetchPresenceStats({ periode, date }));

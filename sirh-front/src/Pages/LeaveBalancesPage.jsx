@@ -12,11 +12,20 @@ import StyledTable from '../Components/Common/StyledTable';
 const LeaveBalancesPage = () => {
   const dispatch = useDispatch();
   
-  const { items: absenceRequests, status: absenceLoading } = useSelector((state) => state.absenceRequests);
-  const { items: users, status: usersLoading } = useSelector((state) => state.users);
-  const { items: departments } = useSelector((state) => state.departments);
-  const { items: pointages } = useSelector((state) => state.pointages);
-  const { items: holidays } = useSelector((state) => state.holidays);
+  const { items: rawAbsenceRequests, status: absenceLoading } = useSelector((state) => state.absenceRequests || {});
+  const absenceRequests = Array.isArray(rawAbsenceRequests) ? rawAbsenceRequests : [];
+  
+  const { items: rawUsers, status: usersLoading } = useSelector((state) => state.users || {});
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
+  
+  const { items: rawDepartments } = useSelector((state) => state.departments || {});
+  const departments = Array.isArray(rawDepartments) ? rawDepartments : [];
+  
+  const { items: rawPointages } = useSelector((state) => state.pointages || {});
+  const pointages = Array.isArray(rawPointages) ? rawPointages : [];
+  
+  const { items: rawHolidays } = useSelector((state) => state.holidays || {});
+  const holidays = Array.isArray(rawHolidays) ? rawHolidays : [];
   const holidaysStatus = useSelector(state => state.holidays.status);
   const holidaysError = useSelector(state => state.holidays.error);
   const { user: currentUser } = useSelector((state) => state.auth);

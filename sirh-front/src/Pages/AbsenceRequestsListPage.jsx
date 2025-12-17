@@ -12,8 +12,10 @@ import StyledTable from '../Components/Common/StyledTable';
 const AbsenceRequestsListPage = (props) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items: absenceRequests, status: loading, error } = useSelector((state) => state.absenceRequests);
-  const { items: users } = useSelector((state) => state.users);
+  const { items: rawAbsenceRequests, status: loading, error } = useSelector((state) => state.absenceRequests);
+  const absenceRequests = Array.isArray(rawAbsenceRequests) ? rawAbsenceRequests : [];
+  const { items: rawUsers } = useSelector((state) => state.users);
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
   const [selectedRequests, setSelectedRequests] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);

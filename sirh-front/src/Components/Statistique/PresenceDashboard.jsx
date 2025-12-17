@@ -51,11 +51,19 @@ const PresenceDashboard = ({ isDashboard = false }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Redux
-  const { loading } = useSelector((state) => state.presence);
-  const pointages = useSelector((state) => state.pointages.items || []);
-  const users = useSelector((state) => state.users.items || []);
-  const departments = useSelector((state) => state.departments.items || []);
-  const absenceRequests = useSelector((state) => state.absenceRequests.items || []);
+  const { loading } = useSelector((state) => state.presence || {});
+  const rawPointages = useSelector((state) => state.pointages?.items);
+  const pointages = Array.isArray(rawPointages) ? rawPointages : [];
+  
+  const rawUsers = useSelector((state) => state.users?.items);
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
+  
+  const rawDepartments = useSelector((state) => state.departments?.items);
+  const departments = Array.isArray(rawDepartments) ? rawDepartments : [];
+  
+  const rawAbsenceRequests = useSelector((state) => state.absenceRequests?.items);
+  const absenceRequests = Array.isArray(rawAbsenceRequests) ? rawAbsenceRequests : [];
+  
   const roles = useSelector((state) => state.auth.roles || []);
   const isRH = roles.includes('RH') ||  roles.includes('Gest_RH');
   const isEMP = roles.includes('Employe');

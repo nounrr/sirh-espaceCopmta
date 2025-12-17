@@ -12,8 +12,10 @@ import StyledTable from '../Components/Common/StyledTable';
 const UsersListPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items: users, meta, status: loading, error } = useSelector((state) => state.users);
-  const { items: departments } = useSelector((state) => state.departments);
+  const { items: rawUsers, meta, status: loading, error } = useSelector((state) => state.users);
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
+  const { items: rawDepartments } = useSelector((state) => state.departments);
+  const departments = Array.isArray(rawDepartments) ? rawDepartments : [];
   const { user: currentUser } = useSelector((state) => state.auth); // Ajout de l'utilisateur connecté
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [filtersOpen, setFiltersOpen] = useState(false);

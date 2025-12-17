@@ -17,10 +17,17 @@ const AuditPage = () => {
   const dispatch = useDispatch();
   const isMobile = useIsMobile();
   
-  const { items: audits, status, pagination, stats, currentAudit, entityHistory } = useSelector(state => state.audits);
-  const { items: projects } = useSelector(state => state.projects);
-  const { items: todoLists } = useSelector(state => state.todoLists);
-  const { items: users } = useSelector(state => state.users || { items: [] });
+  const { items: rawAudits, status, pagination, stats, currentAudit, entityHistory } = useSelector(state => state.audits || {});
+  const audits = Array.isArray(rawAudits) ? rawAudits : [];
+  
+  const { items: rawProjects } = useSelector(state => state.projects || {});
+  const projects = Array.isArray(rawProjects) ? rawProjects : [];
+  
+  const { items: rawTodoLists } = useSelector(state => state.todoLists || {});
+  const todoLists = Array.isArray(rawTodoLists) ? rawTodoLists : [];
+  
+  const { items: rawUsers } = useSelector(state => state.users || {});
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
   const { roles } = useSelector(state => state.auth);
   
   // Vérifier les permissions

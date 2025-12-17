@@ -15,7 +15,8 @@ const PublicationList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   // publications: { items, loading, error }
-  const { items: publications, loading, error } = useSelector(state => state.publications);
+  const { items: rawPublications, loading, error } = useSelector(state => state.publications || {});
+  const publications = Array.isArray(rawPublications) ? rawPublications : [];
   // user: { role, ... }
   const user = useSelector(state => state.auth.user); // <-- adaptez selon votre store
   const isRH = user && user.role && user.role.toLowerCase().includes('rh');

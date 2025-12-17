@@ -40,9 +40,10 @@ const StatCard = ({ icon, label, value, color }) => (
 
 const UserPointagesPeriode = ({ userId, onClose }) => {
   const dispatch = useDispatch();
-  const pointages = useSelector(getPointagesOfSelectedUserAndPeriod);
-  const selectedPeriode = useSelector(state => state.pointages.selectedPeriode);
-  const selectedDates = useSelector(state => state.pointages.selectedDates);
+  const rawPointages = useSelector(getPointagesOfSelectedUserAndPeriod);
+  const pointages = Array.isArray(rawPointages) ? rawPointages : [];
+  const selectedPeriode = useSelector(state => state.pointages?.selectedPeriode);
+  const selectedDates = useSelector(state => state.pointages?.selectedDates);
 
   // Sélectionne l'utilisateur à l'ouverture
   useEffect(() => {

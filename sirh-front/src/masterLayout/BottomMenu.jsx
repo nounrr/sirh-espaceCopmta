@@ -19,6 +19,7 @@ const menuData = [
       { icon: "fluent:person-add-24-filled", to: "/users/add", label: "Ajouter", roles: ["RH", "Gest_RH", "Chef_Dep", "Chef_Chant"] }
     ]
   },
+  /*
   {
     icon: "fluent:clock-24-filled",
     to: "/pointages",
@@ -26,6 +27,7 @@ const menuData = [
     roles: ["RH", "Chef_Dep", "Chef_Chant", "Employe", "Gest_RH"],
     direct: true
   },
+  */
   {
     icon: "fluent:calendar-person-24-filled",
     label: "Demandes",
@@ -33,7 +35,7 @@ const menuData = [
       { icon: "fluent:clipboard-task-list-ltr-24-filled", to: "/absences", label: "Liste Demandes", roles: ["RH", "Chef_Dep", "Chef_Chant", "Employe", "Gest_RH"] },
       { icon: "fluent:calendar-24-filled", to: "/absences/calendar", label: "Calendrier Des Demandes", roles: ["RH", "Chef_Dep", "Chef_Chant", "Gest_RH"] },
       { icon: "fluent:calendar-add-24-filled", to: "/absences/add", label: "Ajouter Une Demande", roles: ["RH", "Chef_Dep", "Chef_Chant", "Employe", "Gest_RH"] },
-      { icon: "fluent:table-24-filled", to: "/conges/soldes", label: "Soldes Congés", roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_RH"] }
+      // { icon: "fluent:table-24-filled", to: "/conges/soldes", label: "Soldes Congés", roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_RH"] }
     ]
   },
   {
@@ -66,6 +68,7 @@ const menuData = [
       }
     ]
   },
+  /*
   {
     icon: "fluent:data-bar-vertical-24-filled",
     label: "Reporting",
@@ -107,6 +110,7 @@ const menuData = [
       }
     ]
   }
+  */
 ];
 
 const BottomMenu = () => {

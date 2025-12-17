@@ -8,7 +8,11 @@ export default defineConfig({
   base: './',
   
   plugins: [
-    react(),
+    react({
+      babel: {
+        plugins: ['styled-jsx/babel']
+      }
+    }),
     VitePWA({ 
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,

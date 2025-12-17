@@ -17,8 +17,9 @@ const borderClasses = [
 
 export default function SondageList() {
   const dispatch = useDispatch();
-  const { items: publications, loading } = useSelector(state => state.publications);
-  const { votes } = useSelector(state => state.vote);
+  const { items: rawPublications, loading } = useSelector(state => state.publications || {});
+  const publications = Array.isArray(rawPublications) ? rawPublications : [];
+  const { votes } = useSelector(state => state.vote || {});
   const user = useSelector(state => state.auth.user);
   const [blockedIds, setBlockedIds] = React.useState([]);
 

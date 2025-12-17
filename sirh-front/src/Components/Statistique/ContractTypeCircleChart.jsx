@@ -6,10 +6,16 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 const COLORS = ["#2563EB", "#F59E0B", "#10B981", "#6366F1", "#EF4444", "#EAB308"];
 
 function ContractTypeCircleChart({ periode, date, dateDebut, dateFin, mois, isMobile = false }) {
-  const pointages = useSelector((state) => state.pointages.items || []);
-  const users = useSelector((state) => state.users.items || []);
-  const departments = useSelector((state) => state.departments.items || []);
-  const roles = useSelector((state) => state.auth.roles || []);
+  const rawPointages = useSelector((state) => state.pointages?.items);
+  const pointages = Array.isArray(rawPointages) ? rawPointages : [];
+
+  const rawUsers = useSelector((state) => state.users?.items);
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
+
+  const rawDepartments = useSelector((state) => state.departments?.items);
+  const departments = Array.isArray(rawDepartments) ? rawDepartments : [];
+
+  const roles = useSelector((state) => state.auth?.roles || []);
   const isRH = roles.includes('RH');
   const isCD = roles.includes('Chef_Dep');
   const [filtreDepartement, setFiltreDepartement] = useState("");
