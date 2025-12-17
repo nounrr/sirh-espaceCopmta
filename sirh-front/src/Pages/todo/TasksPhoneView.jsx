@@ -2477,11 +2477,11 @@ const TasksPhoneView = () => {
                 />
               </div>
             </div>
-            {/* Catégorie (ex-Projet) */}
+            {/* Projet */}
             <div className="col-6 col-md-2">
               <label className="form-label small fw-semibold mb-1" style={{ color: '#6b7280', fontSize: '0.7rem' }}>
                 <Icon icon="mdi:folder-outline" className="me-1" style={{ fontSize: '0.85rem', color: '#3b82f6' }} />
-                Catégorie
+                Projet
               </label>
               <select
                 className="form-select form-select-sm shadow-sm border-0"
@@ -2495,10 +2495,10 @@ const TasksPhoneView = () => {
                   border: '1px solid rgba(59, 130, 246, 0.1)'
                 }}
               >
-                <option value="">Toutes les catégories</option>
+                <option value="">Tous les projets</option>
                 {projects.map((project) => (
                   <option key={project.id} value={String(project.id)}>
-                    {project.nom || project.titre || project.name || project.title || `Catégorie ${project.id}`}
+                    {project.nom || project.titre || project.name || project.title || `Projet ${project.id}`}
                   </option>
                 ))}
               </select>
@@ -3027,7 +3027,7 @@ const TasksPhoneView = () => {
               <div className="mb-3">
                 <label className="form-label small mb-2 fw-semibold" style={{ color: '#6b7280', fontSize: '0.75rem' }}>
                   <Icon icon="mdi:folder-outline" className="me-1" style={{ color: '#3b82f6', fontSize: '0.9rem' }} />
-                  Catégorie (optionnel)
+                  Projet (optionnel)
                 </label>
                 <select 
                   className="form-select border-0 shadow-sm" 
@@ -3042,9 +3042,9 @@ const TasksPhoneView = () => {
                     fontSize: '0.85rem'
                   }}
                 >
-                  <option value="" disabled>Sélectionner une catégorie...</option>
+                  <option value="" disabled>Sélectionner un projet...</option>
                   {projects.map((p) => (
-                    <option key={p.id} value={p.id}>{p.nom || p.titre || p.name || p.title || `Catégorie ${p.id}`}</option>
+                    <option key={p.id} value={p.id}>{p.nom || p.titre || p.name || p.title || `Projet ${p.id}`}</option>
                   ))}
                 </select>
               </div>
@@ -3715,7 +3715,7 @@ const TasksPhoneView = () => {
 
                       {!hasLimitedEmployeePermissions && (
                         <div className="mb-3">
-                          <label className="form-label small mb-1 fw-semibold text-secondary">Catégorie</label>
+                          <label className="form-label small mb-1 fw-semibold text-secondary">Projet</label>
                           <select 
                             className="form-select border-0 shadow-sm mb-2" 
                             value={editSelectedProject} 
@@ -3723,7 +3723,7 @@ const TasksPhoneView = () => {
                             disabled={hasLimitedEmployeePermissions}
                             style={{ borderRadius: '10px', background: 'rgba(255,255,255,0.8)' }}
                           >
-                            <option value="">Aucune catégorie</option>
+                            <option value="">Aucun projet</option>
                             {projects.map(p => <option key={p.id} value={p.id}>{p.nom || p.titre || p.name || p.title || `Projet ${p.id}`}</option>)}
                           </select>
                           <label className="form-label small mb-1 fw-semibold text-secondary">Liste</label>

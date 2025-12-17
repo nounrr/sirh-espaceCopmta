@@ -185,6 +185,30 @@ useEffect(() => {
     </li>
   )}
 
+  {/* Projets - Gest_Projet et RH */}
+  {(roles.includes("Gest_Projet") || roles.includes("RH")) && (
+    <li className="dropdown">
+      <Link to="#">
+        <Icon icon="fluent:folder-24-filled" className="menu-icon" />
+        <span>Projets</span>
+      </Link>
+      <ul className="sidebar-submenu">
+        <li>
+          <NavLink to="/projets" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+            <Icon icon="fluent:folder-open-24-filled" className="circle-icon w-auto" />
+            Liste des projets
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/projets/creer" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+            <Icon icon="fluent:add-square-24-filled" className="circle-icon w-auto" />
+            Créer un projet
+          </NavLink>
+        </li>
+      </ul>
+    </li>
+  )}
+
   {/* Gestion des employés & Clients - RH & Chef_Dep & Chef_Chant & Gest_Projet */}
   {(roles.includes("RH") || roles.includes("Chef_Dep") || roles.includes("Chef_Chant") || roles.includes("Gest_RH") || roles.includes("Gest_Projet")) && (
     <li className="dropdown">
