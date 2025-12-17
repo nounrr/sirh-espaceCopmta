@@ -31,8 +31,8 @@ const Dashboard = () => {
     }
     if (roles.includes("Gest_Projet")) {
       return {
-        title: "Tableau de Bord Gestionnaire de Projet",
-        subtitle: "Coordination et suivi des projets",
+        title: "Tableau de Bord Gestionnaire de Catégorie",
+        subtitle: "Coordination et suivi des catégories",
         icon: "mdi:account-group",
         gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
       };

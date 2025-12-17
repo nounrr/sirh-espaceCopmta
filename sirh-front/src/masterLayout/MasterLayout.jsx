@@ -190,19 +190,19 @@ useEffect(() => {
     <li className="dropdown">
       <Link to="#">
         <Icon icon="fluent:folder-24-filled" className="menu-icon" />
-        <span>Projets</span>
+        <span>Catégories</span>
       </Link>
       <ul className="sidebar-submenu">
         <li>
           <NavLink to="/projets" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
             <Icon icon="fluent:folder-open-24-filled" className="circle-icon w-auto" />
-            Liste des projets
+            Liste des catégories
           </NavLink>
         </li>
         <li>
           <NavLink to="/projets/creer" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
             <Icon icon="fluent:add-square-24-filled" className="circle-icon w-auto" />
-            Créer un projet
+            Créer une catégorie
           </NavLink>
         </li>
       </ul>
@@ -406,22 +406,22 @@ useEffect(() => {
               </Link>
     <ul className="sidebar-submenu">
     
-                {/* Rapport des projets */}
+                {/* Rapport des catégories */}
                 {(roles.includes("Gest_Projet") || roles.includes("RH")) && (
                     <li>
                     <NavLink to="/projets-rapport" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
                         <Icon icon="fluent:folder-open-24-filled" className="circle-icon w-auto" />
-                        <span> Rapport des projets</span>
+                        <span> Rapport des catégories</span>
                     </NavLink>
                     </li>
                 )}
 
-                {/* Liste des projets */}
+                {/* Liste des catégories */}
                 {(roles.includes("Gest_Projet") || roles.includes("RH")) && (
                     <li>
                     <NavLink to="/projets" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
                         <Icon icon="fluent:folder-24-filled" className="circle-icon w-auto" />
-                        <span>Liste des projets</span>
+                        <span>Liste des catégories</span>
                     </NavLink>
                     </li>
                 )}

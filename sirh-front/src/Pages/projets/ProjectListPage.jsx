@@ -86,7 +86,7 @@ const ProjectListPage = () => {
       setErrors({});
       Swal.fire({
         icon: 'success',
-        title: 'Projet modifié avec succès !',
+        title: 'Catégorie modifiée avec succès !',
         timer: 1500,
         showConfirmButton: false,
         toast: true,
@@ -106,7 +106,7 @@ const ProjectListPage = () => {
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
-      title: 'Supprimer ce projet ?',
+      title: 'Supprimer cette catégorie ?',
       text: 'Cette action supprimera également toutes les tâches associées. Cette action est irréversible.',
       icon: 'warning',
       showCancelButton: true,
@@ -126,7 +126,7 @@ const ProjectListPage = () => {
         setShowDeleteId(null);
         Swal.fire({
           icon: 'success',
-          title: 'Projet supprimé',
+          title: 'Catégorie supprimée',
           timer: 1500,
           showConfirmButton: false,
           toast: true,
@@ -228,8 +228,8 @@ const ProjectListPage = () => {
                   <Icon icon="mdi:folder-multiple-outline" style={{ fontSize: '2rem' }} />
                 </div>
                 <div>
-                  <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Gestion des Projets</h1>
-                  <p className="mb-0 opacity-90">Gérez et suivez l'avancement de tous vos projets</p>
+                  <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Gestion des Catégories</h1>
+                  <p className="mb-0 opacity-90">Gérez et suivez l'avancement de toutes vos catégories</p>
                 </div>
               </div>
               <div className="d-flex align-items-center gap-3">
@@ -242,7 +242,7 @@ const ProjectListPage = () => {
                   fontWeight: '600'
                 }}>
                   <Icon icon="mdi:folder" />
-                  {projects.length} projet{projects.length > 1 ? 's' : ''}
+                  {projects.length} catégorie{projects.length > 1 ? 's' : ''}
                 </span>
                 <button 
                   className="btn btn-primary d-flex align-items-center gap-2 px-4 py-2 rounded-pill shadow-sm"
@@ -256,7 +256,7 @@ const ProjectListPage = () => {
                   onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                 >
                   <Icon icon="mdi:plus" style={{ fontSize: '1.2rem' }} />
-                  <span className="fw-semibold">Nouveau Projet</span>
+                  <span className="fw-semibold">Nouvelle Catégorie</span>
                 </button>
               </div>
             </div>
@@ -269,7 +269,7 @@ const ProjectListPage = () => {
             <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
               <span className="visually-hidden">Chargement...</span>
             </div>
-            <p className="mt-3 text-muted">Chargement des projets...</p>
+            <p className="mt-3 text-muted">Chargement des catégories...</p>
           </div>
         )}
 
@@ -278,7 +278,7 @@ const ProjectListPage = () => {
             <Icon icon="mdi:alert-circle" style={{ fontSize: '1.5rem' }} />
             <div>
               <h6 className="mb-1">Erreur de chargement</h6>
-              <p className="mb-0">Impossible de charger les projets. Veuillez réessayer.</p>
+              <p className="mb-0">Impossible de charger les catégories. Veuillez réessayer.</p>
             </div>
           </div>
         )}
@@ -292,8 +292,8 @@ const ProjectListPage = () => {
                   <div className="mb-4">
                     <Icon icon="mdi:folder-plus-outline" style={{ fontSize: '4rem', color: '#e9ecef' }} />
                   </div>
-                  <h5 className="text-muted mb-3">Aucun projet trouvé</h5>
-                  <p className="text-muted mb-4">Commencez par créer votre premier projet pour organiser vos tâches.</p>
+                  <h5 className="text-muted mb-3">Aucune catégorie trouvée</h5>
+                  <p className="text-muted mb-4">Commencez par créer votre première catégorie pour organiser vos tâches.</p>
                   <button 
                     className="btn btn-primary d-flex align-items-center gap-2 mx-auto px-4 py-2 rounded-pill"
                     onClick={() => navigate('/projets/create')}
@@ -303,7 +303,7 @@ const ProjectListPage = () => {
                     }}
                   >
                     <Icon icon="mdi:plus" />
-                    Créer un projet
+                    Créer une catégorie
                   </button>
                 </div>
               </div>
@@ -351,14 +351,14 @@ const ProjectListPage = () => {
                               <div className="mb-3">
                                 <label className="form-label fw-semibold d-flex align-items-center gap-2 mb-2">
                                   <Icon icon="mdi:text" className="text-primary" />
-                                  Titre du projet
+                                  Titre de la catégorie
                                 </label>
                                 <input 
                                   className={`form-control ${errors.titre ? 'is-invalid' : editForm.titre.trim() ? 'is-valid' : ''}`}
                                   name="titre" 
                                   value={editForm.titre} 
                                   onChange={handleEditChange}
-                                  placeholder="Nom du projet"
+                                  placeholder="Nom de la catégorie"
                                   style={{ borderRadius: '8px' }}
                                 />
                                 {errors.titre && (
@@ -380,7 +380,7 @@ const ProjectListPage = () => {
                                   value={editForm.description} 
                                   onChange={handleEditChange}
                                   rows={3}
-                                  placeholder="Description du projet"
+                                  placeholder="Description de la catégorie"
                                   style={{ borderRadius: '8px', resize: 'none' }}
                                 />
                                 {errors.description && (
@@ -455,7 +455,7 @@ const ProjectListPage = () => {
                                     placeholder="0-100"
                                     style={{ borderRadius: '6px' }}
                                   />
-                                  <small className="text-muted">Progression manuelle du projet (0-100%)</small>
+                                  <small className="text-muted">Progression manuelle de la catégorie (0-100%)</small>
                                 </div>
                               </div>
 
@@ -564,7 +564,7 @@ const ProjectListPage = () => {
                                   <button 
                                     className="btn btn-outline-primary btn-sm rounded-circle p-1 d-flex align-items-center justify-content-center" 
                                     onClick={e => { e.stopPropagation(); handleEditClick(project); }}
-                                    title="Modifier le projet"
+                                    title="Modifier la catégorie"
                                     style={{ width: '30px', height: '30px' }}
                                   >
                                     <Icon icon="lucide:edit" style={{ fontSize: '0.9rem' }} />
@@ -572,7 +572,7 @@ const ProjectListPage = () => {
                                   <button 
                                     className="btn btn-outline-danger btn-sm rounded-circle p-1 d-flex align-items-center justify-content-center" 
                                     onClick={e => { e.stopPropagation(); handleDelete(project.id); }}
-                                    title="Supprimer le projet"
+                                    title="Supprimer la catégorie"
                                     style={{ width: '30px', height: '30px' }}
                                   >
                                     <Icon icon="mingcute:delete-2-line" style={{ fontSize: '0.9rem' }} />

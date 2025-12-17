@@ -155,10 +155,10 @@ const AuditPage = () => {
     if (entityType === 'App\\Models\\Project') {
       const project = projects.find(p => p.id === entityId);
       return {
-        title: project?.titre || `Projet #${entityId}`,
-        type: 'Projet',
-        badge: 'Projet',
-        path: project ? project.titre : `Projet #${entityId}`,
+        title: project?.titre || `Catégorie #${entityId}`,
+        type: 'Catégorie',
+        badge: 'Catégorie',
+        path: project ? project.titre : `Catégorie #${entityId}`,
         project
       };
     }
@@ -230,7 +230,7 @@ const AuditPage = () => {
 
   const getEntityTypeLabel = (type) => {
     switch (type) {
-      case 'App\\Models\\Project': return 'Projet';
+      case 'App\\Models\\Project': return 'Catégorie';
       case 'App\\Models\\TodoList': return 'Liste';
       case 'App\\Models\\TodoTask': return 'Tâche';
       default: return type;
@@ -279,7 +279,7 @@ const AuditPage = () => {
       name: 'Nom',
       email: 'Email',
       role: 'Rôle',
-      project_id: 'Projet',
+      project_id: 'Catégorie',
       todo_list_id: 'Liste de tâches',
       user_id: 'Utilisateur',
       title: 'Titre'
@@ -442,7 +442,7 @@ const AuditPage = () => {
                     return `Utilisateur ID: ${value}`;
                   }
                   if (field === 'project_id') {
-                    return `Projet ID: ${value}`;
+                    return `Catégorie ID: ${value}`;
                   }
                   if (field === 'todo_list_id') {
                     return `Liste ID: ${value}`;
@@ -497,7 +497,7 @@ const AuditPage = () => {
                         return value === 'vide' ? 'Non assigné' : `Utilisateur ID: ${value}`;
                       }
                       if (key === 'project_id') {
-                        return `Projet ID: ${value}`;
+                        return `Catégorie ID: ${value}`;
                       }
                       if (key === 'todo_list_id') {
                         return `Liste ID: ${value}`;
@@ -520,7 +520,7 @@ const AuditPage = () => {
                         return value === 'vide' ? 'Non assigné' : `Utilisateur ID: ${value}`;
                       }
                       if (key === 'project_id') {
-                        return `Projet ID: ${value}`;
+                        return `Catégorie ID: ${value}`;
                       }
                       if (key === 'todo_list_id') {
                         return `Liste ID: ${value}`;
@@ -558,7 +558,7 @@ const AuditPage = () => {
                     return `Était assigné à l'utilisateur ID: ${value}`;
                   }
                   if (field === 'project_id') {
-                    return `Appartenait au projet ID: ${value}`;
+                    return `Appartenait à la catégorie ID: ${value}`;
                   }
                   if (field === 'todo_list_id') {
                     return `Appartenait à la liste ID: ${value}`;

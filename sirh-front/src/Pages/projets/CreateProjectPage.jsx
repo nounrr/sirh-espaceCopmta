@@ -77,19 +77,19 @@ const CreateProjectPage = () => {
       
       Swal.fire({
         icon: 'success',
-        title: 'Projet créé avec succès !',
-        text: 'Vous allez être redirigé vers la liste des projets.',
+        title: 'Catégorie créée avec succès !',
+        text: 'Vous allez être redirigé vers la liste des catégories.',
         timer: 2000,
         showConfirmButton: false
       });
       
       setTimeout(() => navigate('/projets'), 2000);
     } catch (err) {
-      setErrors({ submit: err?.message || 'Erreur lors de la création du projet' });
+      setErrors({ submit: err?.message || 'Erreur lors de la création de la catégorie' });
       Swal.fire({
         icon: 'error',
         title: 'Erreur lors de la création',
-        text: err?.message || 'Une erreur est survenue lors de la création du projet.',
+        text: err?.message || 'Une erreur est survenue lors de la création de la catégorie.',
         confirmButtonText: 'Réessayer'
       });
     } finally {
@@ -129,8 +129,8 @@ const CreateProjectPage = () => {
                     <Icon icon="mdi:folder-plus-outline" style={{ fontSize: '2rem' }} />
                   </div>
                   <div>
-                    <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Créer un nouveau projet</h1>
-                    <p className="mb-0 opacity-90">Définissez les paramètres de votre projet</p>
+                    <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Créer une nouvelle catégorie</h1>
+                    <p className="mb-0 opacity-90">Définissez les paramètres de votre catégorie</p>
                   </div>
                 </div>
               </div>
@@ -155,7 +155,7 @@ const CreateProjectPage = () => {
                       <div className="col-12">
                         <label className="form-label fw-semibold d-flex align-items-center gap-2">
                           <Icon icon="mdi:text" className="text-primary" />
-                          Titre du projet <span className="text-danger">*</span>
+                          Titre de la catégorie <span className="text-danger">*</span>
                         </label>
                         <input 
                           className={`form-control form-control-lg ${errors.titre ? 'is-invalid' : titre.trim() ? 'is-valid' : ''}`}
@@ -208,7 +208,7 @@ const CreateProjectPage = () => {
                   <div className="mb-4">
                     <div className="d-flex align-items-center gap-2 mb-3">
                       <Icon icon="mdi:calendar-range" className="text-primary" style={{ fontSize: '1.3rem' }} />
-                      <h5 className="fw-bold mb-0">Planning du projet</h5>
+                      <h5 className="fw-bold mb-0">Planning de la catégorie</h5>
                     </div>
                     
                     <div className="row g-3">
@@ -226,7 +226,7 @@ const CreateProjectPage = () => {
                           style={{ borderRadius: '10px' }}
                         />
                         <small className="text-muted mt-1 d-block">
-                          Date de lancement du projet
+                          Date de lancement de la catégorie
                         </small>
                       </div>
                       
@@ -283,7 +283,7 @@ const CreateProjectPage = () => {
                     <div className="mb-4">
                       <div className="d-flex align-items-center gap-2 mb-3">
                         <Icon icon="mdi:eye" className="text-primary" style={{ fontSize: '1.3rem' }} />
-                        <h5 className="fw-bold mb-0">Aperçu du projet</h5>
+                        <h5 className="fw-bold mb-0">Aperçu de la catégorie</h5>
                       </div>
                       
                       <div className="card border-2 border-dashed" style={{ borderColor: '#667eea' }}>
@@ -369,7 +369,7 @@ const CreateProjectPage = () => {
                       ) : (
                         <>
                           <Icon icon="mdi:plus-circle" />
-                          Créer le projet
+                          Créer la catégorie
                         </>
                       )}
                     </button>
