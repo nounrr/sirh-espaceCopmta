@@ -62,7 +62,7 @@ const menuData = [
       {
         icon: "fluent:folder-open-24-filled",
         to: "/projets-rapport",
-        label: "Rapport des projets",
+        label: "Reporting",
         roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_RH"],
         excludeRoles: ["Gest_Projet"]
       }

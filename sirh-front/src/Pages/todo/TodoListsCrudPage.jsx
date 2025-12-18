@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { fetchTodoLists, createTodoList, updateTodoList, deleteTodoList, resetCreationStatus } from '../../Redux/Slices/todoListSlice';
 import StyledTable from '../../Components/Common/StyledTable';
 
 const TodoListsCrudPage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { items: lists, loading, creationStatus, creationError } = useSelector((s) => s.todoLists);
   const { items: projects } = useSelector((s) => s.projects);
   const [search, setSearch] = useState('');
@@ -81,7 +83,7 @@ const TodoListsCrudPage = () => {
             onChange={(e) => setSearch(e.target.value)}
             style={{ maxWidth: 240 }}
           />
-          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(s => !s)}>
+          <button className="btn btn-primary btn-sm d-flex align-items-center gap-1 text-nowrap" onClick={() => setShowAdd(s => !s)}>
             <Icon icon="mdi:plus" /> Nouvelle liste
           </button>
         </div>
@@ -101,8 +103,15 @@ const TodoListsCrudPage = () => {
             </div>
             <div className="col-md-4">
               <label className="form-label small">Catégorie (projet)</label>
-              <select className="form-select" value={newProjectId} onChange={(e) => setNewProjectId(e.target.value)}>
+              <select className="form-select" value={newProjectId} onChange={(e) => {
+                if (e.target.value === 'NEW_CATEGORY') {
+                  navigate('/projets/creer');
+                } else {
+                  setNewProjectId(e.target.value);
+                }
+              }}>
                 <option value="">— Aucune —</option>
+                <option value="NEW_CATEGORY" style={{ fontWeight: 'bold', color: '#3b82f6' }}>+ Créer une catégorie</option>
                 {projects.map(p => (
                   <option key={p.id} value={p.id}>{p.titre || p.nom || p.name || `Projet ${p.id}`}</option>
                 ))}
@@ -143,8 +152,15 @@ const TodoListsCrudPage = () => {
                   </td>
                   <td>
                     {editingId === l.id ? (
-                      <select className="form-select form-select-sm" value={editProjectId} onChange={(e) => setEditProjectId(e.target.value)}>
+                      <select className="form-select form-select-sm" value={editProjectId} onChange={(e) => {
+                        if (e.target.value === 'NEW_CATEGORY') {
+                          navigate('/projets/creer');
+                        } else {
+                          setEditProjectId(e.target.value);
+                        }
+                      }}>
                         <option value="">— Aucune —</option>
+                        <option value="NEW_CATEGORY" style={{ fontWeight: 'bold', color: '#3b82f6' }}>+ Créer une catégorie</option>
                         {projects.map(p => (
                           <option key={p.id} value={p.id}>{p.titre || p.nom || p.name || `Projet ${p.id}`}</option>
                         ))}

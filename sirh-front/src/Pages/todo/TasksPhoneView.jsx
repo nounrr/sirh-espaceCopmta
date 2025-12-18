@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { fetchTodoLists } from '../../Redux/Slices/todoListSlice';
 import { createTask, updateTask, deleteTask, requestTaskCancellation, cancelTaskCancellationRequest, uploadTaskProofs, approveCancellationRequest, rejectCancellationRequest, sendBulkReminders } from '../../Redux/Slices/todoTaskSlice';
@@ -92,7 +93,7 @@ const MINIMAL_ACCESS_ROLES = [
   'ched_dep',
 ];
 
-const MAX_REPEAT_COUNT = 10;
+const MAX_REPEAT_COUNT = 12;
 const REPEAT_FREQUENCY_OPTIONS = [
   { value: 'manual', label: 'Personnalisé' },
   { value: 'week', label: 'Chaque semaine' },
@@ -146,6 +147,7 @@ const addIntervalToDate = (dateString, frequency, multiplier) => {
 const REPEAT_COUNT_OPTIONS = Array.from({ length: MAX_REPEAT_COUNT }, (_, index) => index + 1);
 
 const TasksPhoneView = () => {
+  const navigate = useNavigate();
   // Configuration globale et moderne pour tous les popups SweetAlert2
   const showSwal = (config) => {
     const defaultConfig = {
@@ -2486,7 +2488,13 @@ const TasksPhoneView = () => {
               <select
                 className="form-select form-select-sm shadow-sm border-0"
                 value={filterProject}
-                onChange={(e) => setFilterProject(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value === 'NEW_CATEGORY') {
+                    navigate('/projets/creer');
+                  } else {
+                    setFilterProject(e.target.value);
+                  }
+                }}
                 style={{ 
                   borderRadius: '10px', 
                   background: 'rgba(59, 130, 246, 0.04)',
@@ -2496,6 +2504,7 @@ const TasksPhoneView = () => {
                 }}
               >
                 <option value="">Toutes les catégories</option>
+                <option value="NEW_CATEGORY" style={{ fontWeight: 'bold', color: '#3b82f6' }}>+ Créer une catégorie</option>
                 {projects.map((project) => (
                   <option key={project.id} value={String(project.id)}>
                     {project.nom || project.titre || project.name || project.title || `Catégorie ${project.id}`}
@@ -2512,7 +2521,13 @@ const TasksPhoneView = () => {
               <select
                 className="form-select form-select-sm shadow-sm border-0"
                 value={filterList}
-                onChange={(e) => setFilterList(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value === 'NEW_LIST') {
+                    navigate('/todo/create');
+                  } else {
+                    setFilterList(e.target.value);
+                  }
+                }}
                 style={{ 
                   borderRadius: '10px', 
                   background: 'rgba(102, 126, 234, 0.04)',
@@ -2523,6 +2538,7 @@ const TasksPhoneView = () => {
                 disabled={filterProject && listsForFilters.length === 0}
               >
                 <option value="">Toutes les listes</option>
+                <option value="NEW_LIST" style={{ fontWeight: 'bold', color: '#667eea' }}>+ Créer une liste</option>
                 {listsForFilters.map((listOption) => (
                   <option key={listOption.id} value={String(listOption.id)}>
                     {listOption.title || listOption.name || `Liste ${listOption.id}`}
@@ -3032,7 +3048,14 @@ const TasksPhoneView = () => {
                 <select 
                   className="form-select border-0 shadow-sm" 
                   value={selectedProject} 
-                  onChange={(e) => { setSelectedProject(e.target.value); setSelectedList(''); /* keep assignees */ }} 
+                  onChange={(e) => {
+                    if (e.target.value === 'NEW_CATEGORY') {
+                      navigate('/projets/creer');
+                    } else {
+                      setSelectedProject(e.target.value); 
+                      setSelectedList(''); /* keep assignees */ 
+                    }
+                  }} 
                   aria-label="Catégorie (optionnel)"
                   style={{ 
                     borderRadius: '12px', 
@@ -3043,6 +3066,7 @@ const TasksPhoneView = () => {
                   }}
                 >
                   <option value="" disabled>Sélectionner une catégorie...</option>
+                  <option value="NEW_CATEGORY" style={{ fontWeight: 'bold', color: '#3b82f6' }}>+ Créer une catégorie</option>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>{p.nom || p.titre || p.name || p.title || `Catégorie ${p.id}`}</option>
                   ))}
@@ -3057,7 +3081,14 @@ const TasksPhoneView = () => {
                 <select 
                   className="form-select border-0 shadow-sm" 
                   value={selectedList} 
-                  onChange={(e) => { setSelectedList(e.target.value); /* keep assignees */ }} 
+                  onChange={(e) => {
+                    if (e.target.value === 'NEW_LIST') {
+                      navigate('/todo/create');
+                    } else {
+                      setSelectedList(e.target.value); 
+                      /* keep assignees */ 
+                    }
+                  }} 
                   aria-label="Liste"
                   style={{ 
                     borderRadius: '12px', 
@@ -3068,6 +3099,7 @@ const TasksPhoneView = () => {
                   }}
                 >
                   <option value="" disabled>Choisir une liste...</option>
+                  <option value="NEW_LIST" style={{ fontWeight: 'bold', color: '#667eea' }}>+ Créer une liste</option>
                   {listsForSelectedProject.map((l) => (<option key={l.id} value={l.id}>{l.title || l.name || `Liste ${l.id}`}</option>))}
                 </select>
               </div>
@@ -3719,22 +3751,37 @@ const TasksPhoneView = () => {
                           <select 
                             className="form-select border-0 shadow-sm mb-2" 
                             value={editSelectedProject} 
-                            onChange={(e) => { setEditSelectedProject(e.target.value); setEditSelectedList(''); }}
+                            onChange={(e) => {
+                              if (e.target.value === 'NEW_CATEGORY') {
+                                navigate('/projets/creer');
+                              } else {
+                                setEditSelectedProject(e.target.value); 
+                                setEditSelectedList(''); 
+                              }
+                            }}
                             disabled={hasLimitedEmployeePermissions}
                             style={{ borderRadius: '10px', background: 'rgba(255,255,255,0.8)' }}
                           >
                             <option value="">Aucune catégorie</option>
+                            <option value="NEW_CATEGORY" style={{ fontWeight: 'bold', color: '#3b82f6' }}>+ Créer une catégorie</option>
                             {projects.map(p => <option key={p.id} value={p.id}>{p.nom || p.titre || p.name || p.title || `Catégorie ${p.id}`}</option>)}
                           </select>
                           <label className="form-label small mb-1 fw-semibold text-secondary">Liste</label>
                           <select 
                             className="form-select border-0 shadow-sm" 
                             value={editSelectedList} 
-                            onChange={(e) => setEditSelectedList(e.target.value)}
+                            onChange={(e) => {
+                              if (e.target.value === 'NEW_LIST') {
+                                navigate('/todo/create');
+                              } else {
+                                setEditSelectedList(e.target.value);
+                              }
+                            }}
                             disabled={hasLimitedEmployeePermissions}
                             style={{ borderRadius: '10px', background: 'rgba(255,255,255,0.8)' }}
                           >
                             <option value="" disabled>Choisir une liste</option>
+                            <option value="NEW_LIST" style={{ fontWeight: 'bold', color: '#667eea' }}>+ Créer une liste</option>
                             {(editSelectedProject ? lists.filter(l => {
                               const pid = l.project_id ?? l.projectId ?? (l.project && l.project.id) ?? l.project;
                               return String(pid) === String(editSelectedProject);

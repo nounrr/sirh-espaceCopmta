@@ -177,11 +177,26 @@ useEffect(() => {
 
   {/* Gestion des taches - Visible pour tous sauf Resp_Com */}
   {!roles.includes("Resp_Com") && (
-    <li>
-        <NavLink to="/todo/phone" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+    <li className="dropdown">
+      <Link to="#">
         <Icon icon="fluent:task-list-square-24-filled" className="menu-icon" />
         <span>Gestion des taches</span>
-      </NavLink>
+      </Link>
+      <ul className="sidebar-submenu">
+        <li>
+          <NavLink to="/todo/phone" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+            <Icon icon="fluent:board-24-filled" className="circle-icon w-auto" />
+            Tableau des tâches
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/todo/lists" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+            <Icon icon="fluent:list-24-filled" className="circle-icon w-auto" />
+            Mes listes
+          </NavLink>
+        </li>
+
+      </ul>
     </li>
   )}
 
@@ -200,9 +215,21 @@ useEffect(() => {
           </NavLink>
         </li>
         <li>
+          <NavLink to="/projets-table" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+            <Icon icon="fluent:table-24-filled" className="circle-icon w-auto" />
+            Tableau des projets
+          </NavLink>
+        </li>
+        <li>
           <NavLink to="/projets/creer" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
             <Icon icon="fluent:add-square-24-filled" className="circle-icon w-auto" />
             Créer une catégorie
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/projets-rapport" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
+            <Icon icon="fluent:data-bar-vertical-24-filled" className="circle-icon w-auto" />
+            Reporting
           </NavLink>
         </li>
       </ul>
