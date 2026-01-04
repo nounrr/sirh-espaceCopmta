@@ -213,7 +213,7 @@ const CreateProjectPage = () => {
                     </div>
                   </div>
 
-                  {/* Planning */}
+                  {/* Planning - Masqué temporairement
                   <div className="mb-4">
                     <div className="d-flex align-items-center gap-2 mb-3">
                       <Icon icon="mdi:calendar-range" className="text-primary" style={{ fontSize: '1.3rem' }} />
@@ -286,6 +286,7 @@ const CreateProjectPage = () => {
                       </div>
                     </div>
                   </div>
+                  */}
 
                   {/* Aperçu du projet */}
                   {(titre.trim() || description.trim()) && (

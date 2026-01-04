@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { generateLeaveReport, calculateTeamLeaveStats } from '../../services/leaveCalculationService';
+import { generateLeaveReport, calculateTeamLeaveStats, validateLeaveRequest as validateLeaveRequestService } from '../../services/leaveCalculationService';
 
 // Async thunks
 export const calculateUserLeave = createAsyncThunk(
@@ -39,8 +39,7 @@ export const validateLeaveRequest = createAsyncThunk(
   'leave/validateLeaveRequest',
   async ({ employee, absenceRequests, startDate, endDate }, { rejectWithValue }) => {
     try {
-      const { validateLeaveRequest } = require('../../services/leaveCalculationService');
-      const validation = validateLeaveRequest(employee, absenceRequests, startDate, endDate);
+      const validation = validateLeaveRequestService(employee, absenceRequests, startDate, endDate);
       
       return {
         employeeId: employee.id,

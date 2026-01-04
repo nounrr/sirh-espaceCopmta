@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers } from '../Redux/Slices/userSlice';
 import UserForm from '../Components/forms/UserForm';
+import Swal from 'sweetalert2';
 const UserFormPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();

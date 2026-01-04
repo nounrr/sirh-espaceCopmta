@@ -1,4 +1,5 @@
 /* Amélioration automatique des composants existants pour la responsivité mobile */
+import { useState, useEffect } from 'react';
 
 // Fonction utilitaire pour détecter mobile
 export const useIsMobile = () => {

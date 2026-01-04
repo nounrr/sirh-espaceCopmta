@@ -30,6 +30,16 @@ function getAllUserDocsForUser(userDocsPivotArray, typeDocs, user_id) {
   });
 }
 
+// Types de documents applicables selon le typeContrat
+const resolveUserContract = (user) => {
+  if (!user) return '';
+  const raw = (user.typeContrat || user.type_contrat || '').trim().toLowerCase();
+  if (raw.startsWith('client')) return 'client';
+  if (raw.startsWith('perm')) return 'permanent';
+  if (raw.startsWith('temp')) return 'temporaire';
+  return raw; // fallback
+};
+
 const UserDocsPage = () => {
   const dispatch = useDispatch();
   const userDocs = useSelector((state) => state.userDocs.items); // [[pivot,pivot,...],...]
@@ -50,11 +60,11 @@ const UserDocsPage = () => {
   // Auto-fetch data if not already loaded. Fetch large pages so local pagination works across merged users + clients.
   useEffect(() => {
     const BULK_SIZE = 500; // adjust as needed
-    if (usersStatus === 'idle' || users.length === 0) dispatch(fetchUsers({ perPage: BULK_SIZE }));
-    if (clientsStatus === 'idle' || rawClients.length === 0) dispatch(fetchClients({ perPage: BULK_SIZE }));
-    if (typeDocsStatus === 'idle' || typeDocs.length === 0) dispatch(fetchTypeDocs({ perPage: BULK_SIZE }));
-    if (userDocsStatus === 'idle' || userDocs.length === 0) dispatch(fetchUserDocs());
-  }, [dispatch, usersStatus, clientsStatus, typeDocsStatus, userDocsStatus, users.length, rawClients.length, typeDocs.length, userDocs.length]);
+    if (usersStatus === 'idle') dispatch(fetchUsers({ perPage: BULK_SIZE }));
+    if (clientsStatus === 'idle') dispatch(fetchClients({ perPage: BULK_SIZE }));
+    if (typeDocsStatus === 'idle') dispatch(fetchTypeDocs({ perPage: BULK_SIZE }));
+    if (userDocsStatus === 'idle') dispatch(fetchUserDocs());
+  }, [dispatch, usersStatus, clientsStatus, typeDocsStatus, userDocsStatus]);
 
   // Accordéon ouvert
   const [openUser, setOpenUser] = useState(null);
@@ -80,24 +90,14 @@ const UserDocsPage = () => {
     setCurrentPage(1); // reset page when size changes
   }, [perPage]);
 
-  // Types de documents applicables selon le typeContrat
-  const resolveUserContract = (user) => {
-    if (!user) return '';
-    const raw = (user.typeContrat || user.type_contrat || '').trim().toLowerCase();
-    if (raw.startsWith('client')) return 'client';
-    if (raw.startsWith('perm')) return 'permanent';
-    if (raw.startsWith('temp')) return 'temporaire';
-    return raw; // fallback
-  };
-
-  const getApplicableTypeDocs = (user) => {
+  const getApplicableTypeDocs = React.useCallback((user) => {
     const contract = resolveUserContract(user);
     const key = contract === 'client' ? 'Client' : 'Employe';
     return (typeDocs || []).filter(td => (td.type_contrat || 'Employe') === key);
-  };
+  }, [typeDocs]);
 
   // Filtrage users
-  const getFilteredUsers = () => {
+  const filteredUsers = React.useMemo(() => {
     // Fusion employés + clients avec déduplication par id
     const baseUsers = Array.isArray(users) ? users : [];
     const baseClients = Array.isArray(clients) ? clients : [];
@@ -114,8 +114,6 @@ const UserDocsPage = () => {
     });
     const allPeople = Array.from(map.values());
     return allPeople.filter(user => {
-      // Debug: inspect contract resolution (supprimer après résolution)
-      // console.log('USER ENTRY', {id: user.id, name: user.name, contratRaw: user.typeContrat || user.type_contrat, resolved: resolveUserContract(user)});
       // Filtre search
       const term = searchTerm.toLowerCase();
       const matchSearch =
@@ -127,10 +125,10 @@ const UserDocsPage = () => {
       const matchDept = !selectedDepartment || user.departement_id === Number(selectedDepartment);
 
       // Filtre type de contrat
-  const matchContract = !contractType || resolveUserContract(user) === contractType;
+      const matchContract = !contractType || resolveUserContract(user) === contractType;
 
       // Filtre statut (exclure inactifs)
-  const matchStatut = (user.statut || '').toLowerCase() !== "inactif" || resolveUserContract(user) === 'client';
+      const matchStatut = (user.statut || '').toLowerCase() !== "inactif" || resolveUserContract(user) === 'client';
 
       // Filtre complet/incomplet
       let matchComplete = true;
@@ -144,10 +142,7 @@ const UserDocsPage = () => {
       }
       return matchSearch && matchDept && matchContract && matchStatut && matchComplete;
     });
-  };
-
-  // Slice for current page
-  const filteredUsers = getFilteredUsers();
+  }, [users, clients, searchTerm, selectedDepartment, contractType, onlyCompleted, userDocs, typeDocs, getApplicableTypeDocs]);
   const totalFiltered = filteredUsers.length;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / perPage));
   const pageUsers = filteredUsers.slice((currentPage - 1) * perPage, currentPage * perPage);
@@ -189,7 +184,7 @@ const UserDocsPage = () => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages || 1);
     }
-  }, [totalPages]);
+  }, [totalPages, currentPage]);
 
   // Actions
   // UI: Ajout du select type de contrat dans la barre de filtres
@@ -390,7 +385,6 @@ const UserDocsPage = () => {
 
   // Fonction d'export de tous les utilisateurs en un seul fichier Excel
   const exportAllUsersDocs = () => {
-    const filteredUsers = getFilteredUsers();
     
     if (filteredUsers.length === 0) {
       Swal.fire('Attention', 'Aucun utilisateur à exporter !', 'warning');
@@ -604,18 +598,20 @@ const UserDocsPage = () => {
           {/* Icône et statut */}
           <div className="mb-3">
             <div 
-              className="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center"
+              className="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center shadow-sm"
               style={{ 
                 width: '50px', 
                 height: '50px',
-                background: doc.is_provided 
-                  ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)'
-                  : 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)'
+                background: 'white',
+                border: doc.is_provided ? '2px solid #28a745' : '2px solid #ff6b6b'
               }}
             >
               <Icon 
                 icon={doc.is_provided ? "mdi:check-circle" : "mdi:exclamation"} 
-                style={{ fontSize: '1.5rem', color: 'white' }} 
+                style={{ 
+                  fontSize: '1.5rem', 
+                  color: doc.is_provided ? '#28a745' : '#ff6b6b'
+                }} 
               />
             </div>
             <h6 className=" text-dark mb-1" style={{ fontSize: '0.5rem' }}>

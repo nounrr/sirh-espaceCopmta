@@ -220,12 +220,6 @@ useEffect(() => {
           </NavLink>
         </li>
         <li>
-          <NavLink to="/projets-table" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
-            <Icon icon="fluent:table-24-filled" className="circle-icon w-auto" />
-            Tableau des projets
-          </NavLink>
-        </li>
-        <li>
           <NavLink to="/projets/creer" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
             <Icon icon="fluent:add-square-24-filled" className="circle-icon w-auto" />
             Créer une catégorie

@@ -601,7 +601,7 @@ const TodoListBoard = () => {
                 )}
               </p>
               {/* Debug info */}
-              {process.env.NODE_ENV === 'development' && (
+              {import.meta.env.MODE === 'development' && (
                 <div className="mt-3 p-3 rounded" style={{ background: 'var(--ds-bg-secondary)' }}>
                   <small className="text-muted">
                     <strong>Debug:</strong><br />

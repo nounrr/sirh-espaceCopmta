@@ -77,6 +77,7 @@ import { fetchVotes } from './Redux/slices/voteSlice';
 import { fetchTodoLists } from './Redux/Slices/todoListSlice';
 import { fetchProjects } from './Redux/Slices/projectSlice';
 import OneSignalSetup from './OneSignalSetup';
+import HealthCheckPage from './Pages/HealthCheckPage';
 
 
 const NotificationButton = () => {
@@ -318,9 +319,9 @@ const roles = useSelector((state) => state.auth.roles || []);
       console.debug('[App] user.role is not a string:', user.role);
     }
     const getFaviconUrl = () => {
-      if (societe_id === 1) return "/assets/smee.webp";
-      if (societe_id === 2) return "/assets/dct.webp";
-      return "/assets/default.webp";
+      // if (societe_id === 1) return "/assets/images/smee.webp";
+      // if (societe_id === 2) return "/assets/images/dct.webp";
+      return "/assets/images/gestion-icon.svg";
     };
 
     const faviconUrl = getFaviconUrl();
@@ -436,6 +437,7 @@ const roles = useSelector((state) => state.auth.roles || []);
           <Route path="/sondages" element={<SondageListCards />} />
           <Route path="/publications/:id" element={<PublicationDetail />} />
           <Route path="/publications/nouveau" element={<PublicationCreate />} />
+          <Route path="/health" element={<HealthCheckPage />} />
           {/* Page introuvable */}
           <Route path="*" element={<NotFound />} />
 

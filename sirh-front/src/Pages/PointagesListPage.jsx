@@ -251,6 +251,7 @@ const PointagesListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [selectedKeys, setSelectedKeys] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
 
   const [filters, setFilters] = useState({
     date: '',

@@ -27,7 +27,6 @@ const menuData = [
     roles: ["Gest_Projet", "RH"],
     options: [
       { icon: "fluent:folder-open-24-filled", to: "/projets", label: "Liste des catégories" },
-      { icon: "fluent:table-24-filled", to: "/projets-table", label: "Tableau des projets" },
       { icon: "fluent:add-square-24-filled", to: "/projets/creer", label: "Créer une catégorie" },
       { icon: "fluent:data-bar-vertical-24-filled", to: "/projets-rapport", label: "Reporting" }
     ]

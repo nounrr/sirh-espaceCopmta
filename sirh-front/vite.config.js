@@ -1,3 +1,4 @@
+/* eslint-env node */
 // vite.config.js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -30,10 +31,10 @@ export default defineConfig({
       },
       includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: {
-        name: 'SMART RH',
-        short_name: 'SMART RH',
+        name: 'Espace Compta et Conseil',
+        short_name: 'Espace Compta',
         version: '3.7.8',
-        description: 'Application de gestion des ressources humaines',
+        description: 'Application de gestion comptable et conseil',
         lang: 'fr',
         theme_color: '#667eea',
         background_color: '#ffffff',

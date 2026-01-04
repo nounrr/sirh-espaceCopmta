@@ -274,7 +274,7 @@ function PWAInstallManager() {
       {showIOSInstructions && platformInfo?.isIOS && <IOSInstructions />}
       
       {/* Debug info (à supprimer en production) */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.MODE === 'development' && (
         <div style={{ 
           background: '#f0f0f0', 
           padding: '10px', 
