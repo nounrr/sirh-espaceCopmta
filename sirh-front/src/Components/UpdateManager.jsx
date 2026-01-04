@@ -57,29 +57,7 @@ const UpdateManager = () => {
   };
 
   if (!showNotification) {
-    return (
-      <div className="update-manager-hidden">
-        {/* Bouton discret pour vérifier manuellement */}
-        <button 
-          onClick={handleRefresh}
-          className="refresh-btn"
-          title="Vérifier les mises à jour"
-          disabled={loading}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path 
-              d="M4 12a8 8 0 0 1 8-8V2.5L16 6l-4 3.5V8a6 6 0 0 0-6 6c0 1 .25 1.97.7 2.8L3.24 18.16A7.93 7.93 0 0 1 4 12z"
-              fill="currentColor"
-            />
-            <path 
-              d="M20 12a8 8 0 0 1-8 8v1.5L8 18l4-3.5V16a6 6 0 0 0 6-6c0-1-.25-1.97-.7-2.8l1.46-1.36A7.93 7.93 0 0 1 20 12z"
-              fill="currentColor"
-            />
-          </svg>
-          {loading && <span className="loading-spinner"></span>}
-        </button>
-      </div>
-    );
+    return null;
   }
 
   return (

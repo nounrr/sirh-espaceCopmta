@@ -18,7 +18,8 @@ const Dashboard = () => {
         title: roles.includes("Gest_RH") ? "Tableau de Bord Gestionnaire RH" : "Tableau de Bord RH",
         subtitle: "Gestion des ressources humaines et supervision",
         icon: "mdi:account-supervisor",
-        gradient: "linear-gradient(135deg, #667eea 0%, #264ba2 100%)"
+        gradient: "linear-gradient(135deg, #667eea 0%, #264ba2 100%)",
+        color: "#667eea"
       };
     }
     if (roles.includes("Chef_Dep") || roles.includes("Chef_Département") || roles.includes("chef_dep") || roles.includes("CHEF_DEP")) {
@@ -26,7 +27,8 @@ const Dashboard = () => {
         title: "Tableau de Bord Chef de Département",
         subtitle: "Gestion d'équipe et suivi des performances",
         icon: "mdi:account-tie",
-        gradient: "linear-gradient(135deg, rgb(255 106 16) 0%, rgb(242, 23, 108) 100%)"
+        gradient: "linear-gradient(135deg, rgb(255 106 16) 0%, rgb(242, 23, 108) 100%)",
+        color: "rgb(255 106 16)"
       };
     }
     if (roles.includes("Gest_Projet")) {
@@ -34,7 +36,8 @@ const Dashboard = () => {
         title: "Tableau de Bord Gestionnaire de Catégorie",
         subtitle: "Coordination et suivi des catégories",
         icon: "mdi:account-group",
-        gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
+        gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+        color: "#fa709a"
       };
     }
     if (roles.includes("Employe")) {
@@ -42,14 +45,16 @@ const Dashboard = () => {
         title: "Mon Tableau de Bord",
         subtitle: "Suivi de mes activités et présences",
         icon: "mdi:account-circle",
-        gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+        gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+        color: "#4facfe"
       };
     }
     return {
       title: "Tableau de Bord",
       subtitle: "Bienvenue dans votre espace de travail",
       icon: "mdi:view-dashboard",
-      gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+      gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      color: "#667eea"
     };
   };
 
@@ -68,8 +73,14 @@ const Dashboard = () => {
               }}>
                 <div className="d-flex justify-content-between align-items-center">
                   <div className="d-flex align-items-center gap-3">
-                    <div className="p-2 p-md-3 rounded-circle bg-white bg-opacity-20">
-                      <Icon icon={dashboardInfo.icon} style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)' }} />
+                    <div className="bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style={{ width: '60px', height: '60px' }}>
+                      <Icon 
+                        icon={dashboardInfo.icon} 
+                        style={{ 
+                          fontSize: '2rem', 
+                          color: dashboardInfo.color 
+                        }} 
+                      />
                     </div>
                     <div>
                       <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>

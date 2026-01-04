@@ -288,8 +288,8 @@ const UsersListPage = () => {
               }}>
                 <div className="d-flex justify-content-between align-items-center">
                   <div className="d-flex align-items-center gap-3">
-                    <div className="p-3 rounded-circle bg-white bg-opacity-20">
-                      <Icon icon="fluent:people-team-24-filled" style={{ fontSize: '2rem' }} />
+                    <div className="p-3 rounded-circle bg-white shadow-sm">
+                      <Icon icon="fluent:people-team-24-filled" style={{ fontSize: '2rem', color: '#667eea' }} />
                     </div>
                     <div>
                       <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Gestion des Employés</h1>
@@ -769,7 +769,7 @@ const UsersListPage = () => {
 </div>
 
       {/* CSS pour les animations */}
-      <style jsx>{`
+      <style>{`
         .card {
           transition: all 0.3s ease;
         }

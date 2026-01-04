@@ -224,8 +224,14 @@ const ProjectListPage = () => {
           }}>
             <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
               <div className="d-flex align-items-center gap-3">
-                <div className="p-3 rounded-circle bg-white bg-opacity-20">
-                  <Icon icon="mdi:folder-multiple-outline" style={{ fontSize: '2rem' }} />
+                <div className="bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style={{ width: '60px', height: '60px' }}>
+                  <Icon 
+                    icon="mdi:folder-multiple-outline" 
+                    style={{ 
+                      fontSize: '2rem', 
+                      color: '#667eea' 
+                    }} 
+                  />
                 </div>
                 <div>
                   <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Gestion des Catégories</h1>
@@ -593,7 +599,7 @@ const ProjectListPage = () => {
       </div>
 
       {/* CSS pour les animations */}
-      <style jsx>{`
+      <style>{`
         .card:hover {
           box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
         }

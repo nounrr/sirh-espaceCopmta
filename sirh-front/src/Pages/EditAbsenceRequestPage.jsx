@@ -120,7 +120,7 @@ const EditAbsenceRequestPage = () => {
       </div>
 
       {/* CSS pour les animations */}
-      <style jsx>{`
+      <style>{`
         .btn:hover:not(:disabled) {
           transform: translateY(-2px);
           transition: transform 0.2s ease;

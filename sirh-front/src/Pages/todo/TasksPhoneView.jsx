@@ -2866,6 +2866,22 @@ const TasksPhoneView = () => {
                 <Icon icon="mdi:plus" style={{ fontSize: '1.5rem', color: '#fff' }} />
               </div>
               <h6 className="mb-0 fw-bold" style={{ color: '#1f2937', fontSize: '1.1rem' }}>Nouvelle Tâche</h6>
+              <button
+                type="button"
+                className="btn btn-sm ms-auto d-flex align-items-center gap-1"
+                onClick={() => navigate('/absences/add', { state: { type: 'demande document' } })}
+                style={{ 
+                  borderRadius: '20px',
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  color: '#10b981',
+                  border: 'none',
+                  fontWeight: '600',
+                  fontSize: '0.8rem'
+                }}
+              >
+                <Icon icon="mdi:file-document-plus-outline" style={{ fontSize: '1rem' }} />
+                Demande doc
+              </button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="mb-3">

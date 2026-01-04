@@ -1475,8 +1475,8 @@ const handleValiderPointage = async (pointageId, key) => {
       }}>
         <div className="p-4">
           <div className="d-flex align-items-center gap-3">
-            <div className="p-3 rounded-circle" style={{ background: 'rgba(255,255,255,0.2)' }}>
-              <Icon icon="mdi:clock-time-eight" style={{ fontSize: '2rem' }} />
+            <div className="p-3 rounded-circle bg-white shadow-sm">
+              <Icon icon="mdi:clock-time-eight" style={{ fontSize: '2rem', color: '#667eea' }} />
             </div>
             <div>
               <h1 className="fw-bold mb-1" style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)' }}>

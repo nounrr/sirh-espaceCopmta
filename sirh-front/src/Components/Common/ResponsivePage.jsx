@@ -159,7 +159,7 @@ const ResponsivePage = ({
       </div>
 
       {/* Styles pour le mobile action sheet */}
-      <style jsx>{`
+      <style>{`
         .mobile-action-sheet .mobile-action-overlay {
           position: fixed;
           top: 0;

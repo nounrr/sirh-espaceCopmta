@@ -137,17 +137,9 @@ useEffect(() => {
   };
 
   return (
-    <section className={mobileMenu ? "overlay active" : "overlay"}>
-      {/* Floating toggle button: always visible, repositions when sidebar is open */}
-      <button
-        type='button'
-        onClick={sidebarControl}
-        className={sidebarActive ? 'sidebar-fab-toggle open' : 'sidebar-fab-toggle'}
-        aria-label={sidebarActive ? 'Masquer la barre latérale' : 'Afficher la barre latérale'}
-        title={sidebarActive ? 'Masquer la barre latérale' : 'Afficher la barre latérale'}
-      >
-        <Icon icon={sidebarActive ? 'fluent:chevron-left-24-filled' : 'fluent:navigation-24-filled'} className='icon' />
-      </button>
+    <>
+    <div className={mobileMenu ? "overlay active" : "overlay"} onClick={() => setMobileMenu(false)}></div>
+    <section className="layout-wrapper">
       {/* sidebar */}
       <aside
       className={
@@ -155,6 +147,19 @@ useEffect(() => {
         " md:block hidden" // Ajoute cette classe
       }
       >
+        {/* Toggle Button - Half inside/half outside */}
+        <button
+          type='button'
+          onClick={sidebarControl}
+          className='sidebar-toggle-btn'
+          aria-label={sidebarActive ? 'Masquer la barre latérale' : 'Afficher la barre latérale'}
+        >
+          <Icon 
+            icon='fluent:chevron-right-24-filled' 
+            className={`icon ${sidebarActive ? 'rotate-180' : ''}`} 
+          />
+        </button>
+
         <button
           onClick={sidebarControl}
           type='button'
@@ -332,14 +337,7 @@ useEffect(() => {
               </Link>
     <ul className="sidebar-submenu">
       
-      {(roles.includes("RH") || roles.includes("Resp_Com")) && (
-        <li>
-          <NavLink to="/info-requests" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
-            <Icon icon="fluent:chat-help-24-filled" className="circle-icon w-auto" />
-            Demandes d'information
-          </NavLink>
-        </li>
-      )}
+
 
         <li>
           <NavLink to="/absences" className={(navData) => navData.isActive ? "active-page" : ""} onClick={handleLinkClick}>
@@ -539,33 +537,34 @@ useEffect(() => {
                 {/* Notification dropdown end */}
                 <div className='dropdown'>
                   <button
-                    className='d-flex justify-content-center align-items-center rounded-circle'
+                    className='d-flex align-items-center gap-3 bg-transparent border-0 p-0'
                     type='button'
                     data-bs-toggle='dropdown'
+                    aria-expanded="false"
                   >
-                    
-                     <Link style={{textDecoration:"none",textAlign:"right"}} to="/view-profile">
-                        <h6 className='text-lg text-primary fw-bold mb-1'>
-                          {user.name +" "+ user.prenom}
-                        </h6>
-                        <span className='text-secondary-light fw-medium text-sm'>
-                        {user.role}
-                        </span>
-                      </Link>
-                      <img
-                      src={imagePreview}
-                      alt='image_user'
-                      className='w-40-px h-40-px object-fit-cover rounded-circle'
-                    />
+                    <div className="text-end d-none d-sm-block">
+                      <h6 className='text-primary fw-bold mb-0 text-md'>
+                        {user?.name ? `${user.name} ${user.prenom}` : "Admin DRH"}
+                      </h6>
+                      <span className='text-secondary-light text-xs fw-medium d-block mt-1'>
+                        {user?.role || "Responsable RH"}
+                      </span>
+                    </div>
+                    <div className="position-relative">
+                      <div className='w-48-px h-48-px rounded-circle bg-primary-50 d-flex justify-content-center align-items-center border border-2 border-white shadow-sm'>
+                        <Icon icon="fluent:person-24-filled" className="text-2xl text-primary" />
+                      </div>
+                      <span className="position-absolute bottom-0 end-0 w-12-px h-12-px bg-success rounded-circle border border-2 border-white"></span>
+                    </div>
                   </button>
                   <div className='dropdown-menu to-top dropdown-menu-sm'>
                     <div className='py-12 px-16 radius-8 bg-primary-50 mb-16 d-flex align-items-center justify-content-between gap-2'>
                       <Link to="/view-profile">
                         <h6 className='text-lg text-primary-light fw-semibold mb-2'>
-                          {user.name +" "+ user.prenom}
+                          {user?.name ? `${user.name} ${user.prenom}` : "Admin DRH"}
                         </h6>
                         <span className='text-secondary-light fw-medium text-sm'>
-                        {user.role}
+                        {user?.role || "Responsable RH"}
                         </span>
                       </Link>
                       <button type='button' className='hover-text-danger'>
@@ -608,6 +607,7 @@ useEffect(() => {
       <BottomMenu />
 
     </section>
+    </>
   );
 };
 

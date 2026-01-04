@@ -697,12 +697,14 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
               <div className="mb-4">
                 <div className="d-flex align-items-center gap-2 mb-3">
                   <Icon icon="mdi:text-box" className="text-primary" style={{ fontSize: '1.3rem' }} />
-                  <h5 className="fw-bold mb-0">Motif de la demande</h5>
+                  <h5 className="fw-bold mb-0">
+                    {values.type === 'demande document' ? 'Documents demandés' : 'Motif de la demande'}
+                  </h5>
                 </div>
                 
                 <label htmlFor="motif" className="form-label fw-semibold d-flex align-items-center gap-2">
                   <Icon icon="mdi:message-text" className="text-primary" />
-                  Motif
+                  {values.type === 'demande document' ? 'Détails' : 'Motif'}
                 </label>
                 <Field
                   as="textarea"
@@ -710,7 +712,7 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
                   id="motif"
                   className="form-control"
                   rows="4"
-                  placeholder="Décrivez le motif de votre demande d'absence..."
+                  placeholder={values.type === 'demande document' ? "Détails" : "Décrivez le motif de votre demande d'absence..."}
                   style={{ borderRadius: '12px', resize: 'vertical' }}
                 />
                 <ErrorMessage name="motif" component="div" className="invalid-feedback d-flex align-items-center gap-1 mt-2" />
@@ -762,7 +764,7 @@ const AbsenceRequestForm = ({ initialValues = {}, isEdit = false, onSuccess }) =
       </div>
 
       {/* CSS pour les animations */}
-      <style jsx>{`
+      <style>{`
         .btn:hover:not(:disabled) {
           transform: translateY(-2px);
           transition: transform 0.2s ease;

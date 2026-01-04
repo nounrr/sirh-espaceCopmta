@@ -204,7 +204,7 @@ const LeaveValidationWidget = ({
       </div>
 
       {/* CSS pour améliorer l'apparence */}
-      <style jsx>{`
+      <style>{`
         .text-sm {
           font-size: 0.875rem;
         }

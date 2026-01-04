@@ -15,7 +15,7 @@ const StyledTable = ({ thead, children, className = '', ...props }) => {
           )}
         </table>
       </div>
-      <style jsx>{`
+      <style>{`
         .styled-table-container :global(.table-responsive) {
           border-radius: 1rem;
           box-shadow: 0 0 20px rgba(0,0,0,0.05);

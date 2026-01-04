@@ -706,8 +706,14 @@ const AbsenceRequestsListPage = (props) => {
               }}>
                 <div className="d-flex justify-content-between align-items-center">
                   <div className="d-flex align-items-center gap-3">
-                    <div className="p-3 rounded-circle bg-white bg-opacity-20">
-                      <Icon icon="fluent:calendar-person-24-filled" style={{ fontSize: '2rem' }} />
+                    <div className="bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style={{ width: '60px', height: '60px' }}>
+                      <Icon 
+                        icon="fluent:calendar-person-24-filled" 
+                        style={{ 
+                          fontSize: '2rem', 
+                          color: '#667eea' 
+                        }} 
+                      />
                     </div>
                     <div>
                       <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Les demandes</h1>
@@ -1229,7 +1235,7 @@ const AbsenceRequestsListPage = (props) => {
       </div>
 
       {/* CSS pour les animations */}
-      <style jsx>{`
+      <style>{`
         .card {
           transition: all 0.3s ease;
           border: none;

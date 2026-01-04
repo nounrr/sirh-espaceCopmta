@@ -90,7 +90,7 @@ export const PresenceStatsContainer = ({ children }) => {
       ))}
       
       {/* CSS pour les effets hover */}
-      <style jsx>{`
+      <style>{`
         .card {
           transition: all 0.3s ease;
         }

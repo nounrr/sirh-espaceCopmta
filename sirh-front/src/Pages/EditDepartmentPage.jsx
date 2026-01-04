@@ -162,8 +162,8 @@ const EditDepartmentPage = () => {
                 color: 'white'
               }}>
                 <div className="d-flex align-items-center gap-2 gap-md-3">
-                  <div className="p-2 p-md-3 rounded-circle bg-white bg-opacity-20">
-                    <Icon icon="mdi:office-building-outline" style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)' }} />
+                  <div className="p-2 p-md-3 rounded-circle bg-white shadow-sm">
+                    <Icon icon="mdi:office-building-outline" style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', color: '#667eea' }} />
                   </div>
                   <div className="flex-grow-1 min-width-0">
                     <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Modifier le département</h1>

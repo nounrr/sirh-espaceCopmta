@@ -1262,7 +1262,7 @@ const SalairePage = () => {
       </div>
       
       {/* CSS pour les animations */}
-      <style jsx>{`
+      <style>{`
         .card {
           transition: all 0.3s ease;
         }

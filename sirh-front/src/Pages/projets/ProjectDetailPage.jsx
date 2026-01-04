@@ -78,8 +78,8 @@ const TaskCommentsModal = ({ show, onClose, task, users }) => {
             padding: '1rem 1.5rem'
           }}>
             <div className="d-flex align-items-center gap-2">
-              <div className="p-2 rounded-circle bg-white bg-opacity-20">
-                <Icon icon="mdi:comment-multiple-outline" style={{ fontSize: '1.3rem' }} />
+              <div className="p-2 rounded-circle bg-white shadow-sm">
+                <Icon icon="mdi:comment-multiple-outline" style={{ fontSize: '1.3rem', color: '#667eea' }} />
               </div>
               <h5 className="modal-title fw-bold mb-0">Commentaires de la tâche</h5>
             </div>
@@ -472,36 +472,45 @@ const ProjectDetailPage = () => {
         {/* En-tête du projet avec design amélioré */}
         <div className="row mb-4">
           <div className="col-12">
-            <div className="card border-0 shadow-lg rounded-4 overflow-hidden">
-              <div className="card-body p-4" style={{ 
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white'
-              }}>
+            <div className="card border-0 shadow-sm rounded-4">
+              <div className="card-body p-4" style={{ backgroundColor: '#ffffff' }}>
                 <div className="row align-items-center">
                   <div className="col-md-8">
-                    <div className="d-flex align-items-center gap-3 mb-3">
-                      <div className="p-3 rounded-circle bg-white bg-opacity-20">
-                        <Icon icon="mdi:folder-outline" style={{ fontSize: '2rem' }} />
+                    <div className="d-flex align-items-center gap-4 mb-3">
+                      <div className="p-3 rounded-circle bg-white shadow-sm d-flex align-items-center justify-content-center" style={{ width: '64px', height: '64px' }}>
+                        <Icon icon="mdi:folder-outline" style={{ 
+                          fontSize: '2rem', 
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text'
+                        }} />
                       </div>
                       <div>
-                        <h1 className="fw-bold mb-1" style={{ fontSize: '2.5rem' }}>{project.titre}</h1>
-                        <p className="lead mb-0 opacity-90">{project.description}</p>
+                        <h1 className="fw-bold mb-1" style={{ 
+                          fontSize: '2.5rem',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text'
+                        }}>{project.titre}</h1>
+                        <p className="text-muted lead mb-0">{project.description}</p>
                       </div>
                     </div>
                   </div>
                   <div className="col-md-4 text-md-end">
-                    <div className="d-flex flex-column gap-2">
+                    <div className="d-flex flex-column gap-2 text-muted">
                       <div className="d-flex align-items-center gap-2 justify-content-md-end">
-                        <Icon icon="mdi:calendar-start" />
+                        <Icon icon="mdi:calendar-start" className="text-primary" />
                         <span><strong>Début:</strong> {project.date_debut || 'Non défini'}</span>
                       </div>
                       <div className="d-flex align-items-center gap-2 justify-content-md-end">
-                        <Icon icon="mdi:calendar-end" />
+                        <Icon icon="mdi:calendar-end" className="text-primary" />
                         <span><strong>Fin prévue:</strong> {project.date_fin_prevu || 'Non défini'}</span>
                       </div>
                       {project.date_fin_reel && (
                         <div className="d-flex align-items-center gap-2 justify-content-md-end">
-                          <Icon icon="mdi:calendar-check" />
+                          <Icon icon="mdi:calendar-check" className="text-success" />
                           <span><strong>Fin réelle:</strong> {project.date_fin_reel}</span>
                         </div>
                       )}

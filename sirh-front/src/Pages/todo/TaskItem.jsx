@@ -472,7 +472,7 @@ const TaskItem = ({ task, users = [], assignedUserName, onStatusChange, onEditDe
       </div>
 
       {/* CSS pour les animations */}
-      <style jsx>{`
+      <style>{`
         .task-actions {
           transition: opacity 0.3s ease;
         }

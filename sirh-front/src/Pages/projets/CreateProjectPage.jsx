@@ -83,7 +83,7 @@ const CreateProjectPage = () => {
         showConfirmButton: false
       });
       
-      setTimeout(() => navigate('/projets'), 2000);
+      setTimeout(() => navigate('/projets-table'), 2000);
     } catch (err) {
       setErrors({ submit: err?.message || 'Erreur lors de la création de la catégorie' });
       Swal.fire({
@@ -119,18 +119,27 @@ const CreateProjectPage = () => {
         {/* En-tête de la page */}
         <div className="row justify-content-center mb-4">
           <div className="col-12 col-lg-8">
-            <div className="card border-0 shadow-lg rounded-4 overflow-hidden">
-              <div className="card-body p-4" style={{ 
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white'
-              }}>
-                <div className="d-flex align-items-center gap-3">
-                  <div className="p-3 rounded-circle bg-white bg-opacity-20">
-                    <Icon icon="mdi:folder-plus-outline" style={{ fontSize: '2rem' }} />
+            <div className="card border-0 shadow-sm rounded-4">
+              <div className="card-body p-4" style={{ backgroundColor: '#ffffff' }}>
+                <div className="d-flex align-items-center gap-4">
+                  <div className="p-3 rounded-circle bg-white shadow-sm d-flex align-items-center justify-content-center" style={{ width: '64px', height: '64px' }}>
+                    <Icon icon="mdi:folder-plus-outline" style={{ 
+                      fontSize: '2rem', 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }} />
                   </div>
                   <div>
-                    <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Créer une nouvelle catégorie</h1>
-                    <p className="mb-0 opacity-90">Définissez les paramètres de votre catégorie</p>
+                    <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ 
+                      fontSize: 'clamp(1.25rem, 5vw, 2rem)',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}>Créer une nouvelle catégorie</h1>
+                    <p className="text-muted mb-0">Définissez les paramètres de votre catégorie</p>
                   </div>
                 </div>
               </div>
@@ -340,7 +349,7 @@ const CreateProjectPage = () => {
                     <button
                       type="button"
                       className="btn btn-outline-secondary d-flex align-items-center gap-2 px-4"
-                      onClick={() => navigate('/projets')}
+                      onClick={() => navigate('/projets-table')}
                       disabled={loading}
                       style={{ borderRadius: '10px' }}
                     >
@@ -382,7 +391,7 @@ const CreateProjectPage = () => {
       </div>
 
       {/* CSS pour les animations */}
-      <style jsx>{`
+      <style>{`
         .btn:hover:not(:disabled) {
           transform: translateY(-2px);
           transition: transform 0.2s ease;

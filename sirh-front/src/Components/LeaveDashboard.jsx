@@ -248,7 +248,7 @@ const LeaveDashboard = ({ userId = null, showTeamStats = false }) => {
       )}
 
       {/* CSS pour les animations */}
-      <style jsx>{`
+      <style>{`
         .card {
           transition: all 0.3s ease;
         }

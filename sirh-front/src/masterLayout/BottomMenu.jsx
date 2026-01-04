@@ -7,110 +7,63 @@ const menuData = [
   {
     icon: "fluent:home-24-filled",
     to: "/",
-    label: "Dashboard",
-    roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_RH", "Gest_Projet"], // tous
+    label: "Tableau de bord",
+    roles: ["RH", "Chef_Dep", "Chef_Chant", "Employe", "Gest_RH"], // Tous sauf Gest_Projet et Resp_Com
+    excludeRoles: ["Gest_Projet", "Resp_Com"],
     direct: true
+  },
+  {
+    icon: "fluent:task-list-square-24-filled",
+    label: "Gestion des taches",
+    excludeRoles: ["Resp_Com"],
+    options: [
+      { icon: "fluent:board-24-filled", to: "/todo/phone", label: "Tableau des tâches" },
+      { icon: "fluent:list-24-filled", to: "/todo/lists", label: "Mes listes" }
+    ]
+  },
+  {
+    icon: "fluent:folder-24-filled",
+    label: "Catégories",
+    roles: ["Gest_Projet", "RH"],
+    options: [
+      { icon: "fluent:folder-open-24-filled", to: "/projets", label: "Liste des catégories" },
+      { icon: "fluent:table-24-filled", to: "/projets-table", label: "Tableau des projets" },
+      { icon: "fluent:add-square-24-filled", to: "/projets/creer", label: "Créer une catégorie" },
+      { icon: "fluent:data-bar-vertical-24-filled", to: "/projets-rapport", label: "Reporting" }
+    ]
   },
   {
     icon: "fluent:people-24-filled",
-    label: "Employés",
+    label: "Employés & Clients",
+    roles: ["RH", "Chef_Dep", "Chef_Chant", "Gest_RH", "Gest_Projet"],
     options: [
-      { icon: "fluent:people-list-24-filled", to: "/users", label: "Liste", roles: ["RH", "Chef_Dep", "Chef_Chant", "Gest_RH"] },
-      { icon: "fluent:person-add-24-filled", to: "/users/add", label: "Ajouter", roles: ["RH", "Gest_RH", "Chef_Dep", "Chef_Chant"] }
-    ]
-  },
-  /*
-  {
-    icon: "fluent:clock-24-filled",
-    to: "/pointages",
-    label: "Pointages",
-    roles: ["RH", "Chef_Dep", "Chef_Chant", "Employe", "Gest_RH"],
-    direct: true
-  },
-  */
-  {
-    icon: "fluent:calendar-person-24-filled",
-    label: "Demandes",
-    options: [
-      { icon: "fluent:clipboard-task-list-ltr-24-filled", to: "/absences", label: "Liste Demandes", roles: ["RH", "Chef_Dep", "Chef_Chant", "Employe", "Gest_RH"] },
-      { icon: "fluent:calendar-24-filled", to: "/absences/calendar", label: "Calendrier Des Demandes", roles: ["RH", "Chef_Dep", "Chef_Chant", "Gest_RH"] },
-      { icon: "fluent:calendar-add-24-filled", to: "/absences/add", label: "Ajouter Une Demande", roles: ["RH", "Chef_Dep", "Chef_Chant", "Employe", "Gest_RH"] },
-      // { icon: "fluent:table-24-filled", to: "/conges/soldes", label: "Soldes Congés", roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_RH"] }
+      { icon: "fluent:people-list-24-filled", to: "/users", label: "Liste des employés" },
+      { icon: "fluent:person-briefcase-24-filled", to: "/clients", label: "Liste des clients", roles: ["RH", "Gest_RH", "Chef_Dep", "Chef_Chant"] },
+      { icon: "fluent:person-add-24-filled", to: "/clients/add", label: "Ajouter un client", roles: ["RH", "Gest_RH", "Chef_Dep", "Chef_Chant"] },
+      { icon: "fluent:person-add-24-filled", to: "/users/add", label: "Ajouter les employés", roles: ["RH", "Gest_RH", "Chef_Dep", "Chef_Chant"] },
+      { icon: "fluent:building-multiple-24-filled", to: "/departments", label: "Liste des départements", roles: ["RH", "Gest_RH"] },
+      { icon: "fluent:add-square-24-filled", to: "/departments/add", label: "Créer un département", roles: ["RH", "Gest_RH"] }
     ]
   },
   {
     icon: "fluent:document-24-filled",
     label: "Documents",
+    roles: ["RH", "Gest_RH"],
     options: [
       { icon: "fluent:document-table-24-filled", to: "/type-docs", label: "Types des documents", roles: ["RH", "Gest_RH"] },
-      { icon: "fluent:folder-24-filled", to: "/documents", label: "Liste Documents", roles: ["RH", "Gest_RH"] }
+      { icon: "fluent:folder-24-filled", to: "/documents", label: "Liste des documents" }
     ]
   },
   {
-    icon: "fluent:task-list-square-24-filled",
-    label: "Gestion des taches",
-    roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_RH"],
-    excludeRoles: ["Gest_Projet"],
+    icon: "fluent:calendar-person-24-filled",
+    label: "Demandes",
+    roles: ["RH", "Employe", "Chef_Dep", "Chef_Chant", "Gest_RH", "Resp_Com"],
     options: [
-      {
-        icon: "fluent:board-24-filled",
-        to: "/todo/phone",
-        label: "TODO Phone",
-        roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_RH"],
-        excludeRoles: ["Gest_Projet"]
-      },
-      {
-        icon: "fluent:folder-open-24-filled",
-        to: "/projets-rapport",
-        label: "Reporting",
-        roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_RH"],
-        excludeRoles: ["Gest_Projet"]
-      }
-    ]
-  },
-  /*
-  {
-    icon: "fluent:data-bar-vertical-24-filled",
-    label: "Reporting",
-    options: [
-      { icon: "fluent:data-bar-vertical-24-filled", to: "/statistiques", label: "Statistiques", roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_RH"] },
-      { icon: "fluent:clock-toolbox-24-filled", to: "/pointagedetails", label: "Pointage Details", roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe"] },
-      { icon: "fluent:document-table-arrow-right-24-filled", to: "/export", label: "Excel Export", roles: ["RH", "Gest_RH"] }
-    ]
-  },
-  {
-    icon: "fluent:money-24-filled",
-    label: "Paie",
-    options: [
-      { icon: "fluent:money-24-filled", to: "/salaires", label: "Salaires", roles: ["RH"] },
-      { icon: "fluent:money-calculator-24-regular", to: "/charges-personnel", label: "Charge Personnel", roles: ["RH"] }
-    ]
-  },
-  {
-    icon: "fluent:news-24-filled",
-    label: "Communications",
-    options: [
-      {
-        icon: "fluent:news-24-filled",
-        to: "/publications",
-        label: "Publications",
-        roles: ["RH", "Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_RH", "Gest_Projet"]
-      },
-      {
-        icon: "fluent:add-square-24-filled",
-        to: "/publications/nouveau",
-        label: "Nouvelle publication",
-        roles: ["RH", "Gest_RH"]
-      },
-      {
-        icon: "fluent:poll-24-filled",
-        to: "/sondages",
-        label: "Sondages",
-        roles: ["Chef_Dep", "Chef_Chant", "Chef_Projet", "Employe", "Gest_Projet"]
-      }
+      { icon: "fluent:clipboard-task-list-ltr-24-filled", to: "/absences", label: "Liste des demandes" },
+      { icon: "fluent:calendar-24-filled", to: "/absences/calendar", label: "Calendrier des demandes", roles: ["RH", "Chef_Dep", "Chef_Chant", "Gest_RH"] },
+      { icon: "fluent:calendar-add-24-filled", to: "/absences/add", label: "Ajouter une demande" }
     ]
   }
-  */
 ];
 
 const BottomMenu = () => {
@@ -190,14 +143,16 @@ const BottomMenu = () => {
     overflowX: "auto",           // ← scroll horizontal
     overflowY: "hidden",
     WebkitOverflowScrolling: "touch",
-    padding: "8px 6px"
+    padding: "8px 6px",
+    justifyContent: "center"
   }}
 >
   <div
-    className="d-flex"
+    className="d-flex align-items-center justify-content-center"
     style={{
       gap: 6,
       whiteSpace: "nowrap",      // ← tout sur UNE ligne
+      minWidth: "min-content"
     }}
   >
         {filteredMenuData.map((item, idx) => (

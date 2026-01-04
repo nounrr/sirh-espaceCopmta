@@ -1,10 +1,12 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AbsenceRequestForm from '../Components/forms/AbsenceRequestForm';
 import { Icon } from '@iconify/react';
 
 const AddAbsenceRequestPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialValues = location.state || {};
 
   const handleSuccess = () => {
     // Redirect to absence requests list after a short delay
@@ -45,8 +47,8 @@ const AddAbsenceRequestPage = () => {
                     <Icon icon="mdi:calendar-plus" style={{ fontSize: '2rem' }} />
                   </div>
                   <div>
-                    <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Nouvelle demande d'absence</h1>
-                    <p className="mb-0 opacity-90">Créez votre demande de congé ou d'absence</p>
+                    <h1 className="fw-bold mb-1 fs-4 fs-md-2 fs-lg-1" style={{ fontSize: 'clamp(1.25rem, 5vw, 2rem)' }}>Nouvelle demande</h1>
+                    <p className="mb-0 opacity-90">Créez votre demande</p>
                   </div>
                 </div>
               </div>
@@ -57,13 +59,13 @@ const AddAbsenceRequestPage = () => {
         {/* Formulaire */}
         <div className="row">
           <div className="col-12">
-            <AbsenceRequestForm onSuccess={handleSuccess} />
+            <AbsenceRequestForm onSuccess={handleSuccess} initialValues={initialValues} />
           </div>
         </div>
       </div>
 
       {/* CSS pour les animations */}
-      <style jsx>{`
+      <style>{`
         .btn:hover:not(:disabled) {
           transform: translateY(-2px);
           transition: transform 0.2s ease;

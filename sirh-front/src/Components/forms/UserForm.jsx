@@ -817,7 +817,7 @@ date_naissance: Yup.date().nullable('La date de naissance est requise'),
         </div>
 
         {/* CSS pour les animations */}
-        <style jsx>{`
+        <style>{`
           .card {
             transition: all 0.3s ease;
           }

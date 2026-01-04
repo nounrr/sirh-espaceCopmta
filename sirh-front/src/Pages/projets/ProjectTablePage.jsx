@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import Swal from 'sweetalert2';
 import './ProjectTablePage.css';
@@ -37,6 +38,7 @@ import StyledTable from '../../Components/Common/StyledTable';
 
 const ProjectTablePage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   
   // États pour les données
   const { items: projects, status: projectsStatus } = useSelector(state => state.projects);
@@ -909,12 +911,14 @@ const handleSubmitListInline = async (projectId) => {
                 <div className="row align-items-center">
                   <div className="col-lg-8 col-md-7">
                     <div className="d-flex align-items-center gap-4">
-                      <div className="p-4 rounded-4 bg-gradient position-relative overflow-hidden" style={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
-                      }}>
-                        <Icon icon="solar:folder-with-files-bold-duotone" style={{ fontSize: '2.5rem', color: 'white' }} />
-                        <div className="position-absolute top-0 start-0 w-100 h-100 bg-white" style={{ opacity: '0.1' }}></div>
+                      <div className="p-3 rounded-circle bg-white shadow-sm d-flex align-items-center justify-content-center" style={{ width: '64px', height: '64px' }}>
+                        <Icon icon="solar:folder-with-files-bold-duotone" style={{ 
+                          fontSize: '2rem', 
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text'
+                        }} />
                       </div>
                       <div>
                         <h1 className="fw-bold mb-2 text-dark" style={{ 
@@ -931,7 +935,7 @@ const handleSubmitListInline = async (projectId) => {
                   <div className="col-lg-4 col-md-5 text-md-end">
                     <button 
                       className="btn btn-primary d-flex align-items-center gap-2 px-4 py-3 shadow-lg mx-auto mx-md-0 rounded-pill"
-                      onClick={() => handleAddProjectInline()}
+                      onClick={() => navigate('/projets/creer')}
                       style={{
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         border: 'none',
@@ -1069,7 +1073,7 @@ const handleSubmitListInline = async (projectId) => {
                 <p className="text-muted mb-4">Commencez par créer votre premier projet pour organiser vos tâches</p>
                 <button
                   className="btn btn-primary d-flex align-items-center gap-2 mx-auto rounded-pill px-4 py-3 shadow-lg"
-                  onClick={() => handleAddProjectInline()}
+                  onClick={() => navigate('/projets/creer')}
                   style={{
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     border: 'none'

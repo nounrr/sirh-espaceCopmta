@@ -42,6 +42,9 @@ api.interceptors.response.use(
       // Optionnel: rediriger vers la page de connexion
       // window.location.href = '/login';
     }
+    if (error.response?.status === 403) {
+      console.error('Accès interdit (403) - Vérifiez les permissions ou CORS:', error.response.data);
+    }
     return Promise.reject(error);
   }
 );
